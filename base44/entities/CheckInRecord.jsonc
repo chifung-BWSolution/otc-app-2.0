@@ -1,0 +1,57 @@
+{
+  "name": "CheckInRecord",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "title": "\u54e1\u5de5Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "date": {
+      "type": "string",
+      "title": "\u65e5\u671f",
+      "format": "date"
+    },
+    "type": {
+      "type": "string",
+      "title": "\u985e\u578b",
+      "enum": [
+        "check_in",
+        "check_out"
+      ]
+    },
+    "time": {
+      "type": "string",
+      "title": "\u6642\u9593"
+    },
+    "latitude": {
+      "type": "number",
+      "title": "\u7def\u5ea6"
+    },
+    "longitude": {
+      "type": "number",
+      "title": "\u7d93\u5ea6"
+    },
+    "accuracy": {
+      "type": "number",
+      "title": "\u5b9a\u4f4d\u7cbe\u5ea6(\u7c73)"
+    },
+    "location_valid": {
+      "type": "boolean",
+      "title": "\u5728\u5141\u8a31\u7bc4\u570d\u5167"
+    },
+    "distance_from_office": {
+      "type": "number",
+      "title": "\u8ddd\u516c\u53f8\u8ddd\u96e2(\u7c73)"
+    }
+  },
+  "required": [
+    "user_email",
+    "date",
+    "type",
+    "time"
+  ]
+}

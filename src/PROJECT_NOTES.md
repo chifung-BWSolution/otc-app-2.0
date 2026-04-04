@@ -5,13 +5,16 @@
 ## 📋 Update Log
 > This section records every update made to the system. Newest entries at the top.
 
-### [2026-04-04] — Initial System Build
-- ✅ Set up project architecture: `App.jsx` router, `Layout.jsx`, `Sidebar.jsx`
-- ✅ Built Home dashboard with welcome banner, stats, quick links, module grid
-- ✅ Built 13 fully functional pages (see Page Structure below)
-- ✅ Set up 35 routes total (20+ as Placeholder stubs)
-- ✅ Created `PROJECT_NOTES.md` for documentation
-- ✅ Added Update Log section to track all future changes
+### [2026-04-04] v0.2 — 簽到地理定位功能
+- ✅ 建立 `CheckInRecord` 實體（存儲簽到/簽退記錄）
+- ✅ 將 `CheckIn.jsx` 從 setTimeout 模擬改為真實 Geolocation API
+- ✅ 實現公司地點範圍檢查（Haversine 公式計算距離，預設 500米半徑）
+- ✅ 簽到成功將 座標、時間、距離寫入資料庫
+- ✅ 新增定位狀態提示（locating / success / error / out_of_range）
+- ✅ 上方檢記從資料庫載入真實記錄
+- 📌 公司座標配置在 `CheckIn.jsx` 頂部 `OFFICE_LOCATIONS` 常數中，可直接修改
+
+### [2026-04-04] v0.1 — Initial System Build
 
 ---
 
