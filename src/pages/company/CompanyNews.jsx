@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Bookmark, Share2, Play } from "lucide-react";
 
 const heroNews = [
@@ -46,19 +46,7 @@ const catColor = { 活動: "text-red-500", 行政: "text-blue-500", 獎項: "tex
 const catBg = { 活動: "bg-red-500", 行政: "bg-blue-500", 獎項: "bg-yellow-500", IT: "bg-purple-500", 公告: "bg-green-500" };
 
 export default function CompanyNews() {
-  const [heroIdx, setHeroIdx] = useState(0);
   const [activeTab, setActiveTab] = useState("最新");
-  const autoRef = useRef(null);
-
-  useEffect(() => {
-    autoRef.current = setInterval(() => setHeroIdx((i) => (i + 1) % heroNews.length), 5000);
-    return () => clearInterval(autoRef.current);
-  }, []);
-
-  const goHero = (dir) => {
-    clearInterval(autoRef.current);
-    setHeroIdx((i) => (i + dir + heroNews.length) % heroNews.length);
-  };
 
   const filtered = activeTab === "最新" ? allNews : allNews.filter((n) => n.category === activeTab);
   const mainCard = filtered[0];
@@ -66,40 +54,6 @@ export default function CompanyNews() {
 
   return (
     <div className="space-y-0 -mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* ── Hero Carousel ───────────────────────────── */}
-      <div className="relative bg-black overflow-hidden" style={{ height: 340 }}>
-        {heroNews.map((n, i) => (
-          <div
-            key={n.id}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === heroIdx ? "opacity-100" : "opacity-0"}`}
-          >
-            <img src={n.image} alt={n.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded ${catBg[n.category] || "bg-gray-500"} text-white`}>{n.category}</span>
-                {n.tag && <span className="text-xs text-white/70">{n.tag}</span>}
-                <span className="text-xs text-white/50 ml-auto">{n.time}</span>
-              </div>
-              <h2 className="text-white font-black text-lg md:text-xl leading-snug line-clamp-2">{n.title}</h2>
-            </div>
-          </div>
-        ))}
-        {/* Arrows */}
-        <button onClick={() => goHero(-1)} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors z-10">
-          <ChevronLeft size={18} />
-        </button>
-        <button onClick={() => goHero(1)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors z-10">
-          <ChevronRight size={18} />
-        </button>
-        {/* Dots */}
-        <div className="absolute bottom-3 right-5 flex gap-1.5 z-10">
-          {heroNews.map((_, i) => (
-            <button key={i} onClick={() => setHeroIdx(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === heroIdx ? "bg-white w-4" : "bg-white/50"}`} />
-          ))}
-        </div>
-      </div>
-
       {/* ── Tabs ──────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 sticky top-[53px] z-10 px-4 md:px-6">
         <div className="flex gap-0 overflow-x-auto scrollbar-none">
