@@ -17,8 +17,7 @@ import DailyReport from './pages/work/DailyReport';
 import KPIReport from './pages/work/KPIReport';
 import CourseCenter from './pages/course/CourseCenter';
 import Approvals from './pages/admin/Approvals';
-import Analytics from './pages/superadmin/Analytics';
-import Directory from './pages/superadmin/Directory';
+import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
 
 const AuthenticatedApp = () => {
@@ -89,6 +88,7 @@ const AuthenticatedApp = () => {
         <Route path="/leader/certification" element={<Placeholder title="知識認證" icon="🏅" description="審批知識認證申請" />} />
         {/* 行政跟進 */}
         <Route path="/admin/approvals" element={<Approvals />} />
+        <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
         <Route path="/admin/staff" element={<Placeholder title="員工管理" icon="👤" description="管理員工資料及狀態" />} />
         <Route path="/admin/create-account" element={<Placeholder title="建立帳戶" icon="➕" description="為新員工建立系統帳戶" />} />
         <Route path="/admin/onboarding" element={<Placeholder title="新同事入職" icon="🎉" description="新員工入職流程管理" />} />

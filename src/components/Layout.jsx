@@ -37,6 +37,7 @@ const pageTitles = {
   "/leader/training": "🎯 安排培訓",
   "/leader/certification": "🏅 知識認證",
   "/admin/approvals": "✅ 批核申請",
+  "/admin/leave-approvals": "🌴 假期審批",
   "/admin/staff": "👤 員工管理",
   "/admin/create-account": "➕ 建立帳戶",
   "/admin/onboarding": "🎉 新同事入職",

@@ -109,6 +109,7 @@ const menuGroups = [
     border: "border-red-400",
     items: [
       { label: "✅ 批核申請", path: "/admin/approvals" },
+      { label: "🌴 假期審批", path: "/admin/leave-approvals" },
       { label: "👤 員工管理", path: "/admin/staff" },
       { label: "➕ 建立帳戶", path: "/admin/create-account" },
       { label: "🎉 新同事入職", path: "/admin/onboarding" },

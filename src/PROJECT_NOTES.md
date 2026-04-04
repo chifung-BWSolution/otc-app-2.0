@@ -5,16 +5,14 @@
 ## 📋 Update Log
 > This section records every update made to the system. Newest entries at the top.
 
-### [2026-04-04] v0.2 — 簽到地理定位功能
-- ✅ 建立 `CheckInRecord` 實體（存儲簽到/簽退記錄）
-- ✅ 將 `CheckIn.jsx` 從 setTimeout 模擬改為真實 Geolocation API
-- ✅ 實現公司地點範圍檢查（Haversine 公式計算距離，預設 500米半徑）
-- ✅ 簽到成功將 座標、時間、距離寫入資料庫
-- ✅ 新增定位狀態提示（locating / success / error / out_of_range）
-- ✅ 上方檢記從資料庫載入真實記錄
-- 📌 公司座標配置在 `CheckIn.jsx` 頂部 `OFFICE_LOCATIONS` 常數中，可直接修改
+### [2026-04-04] v0.3 — 假期審批後台
+- ✅ 建立 `LeaveRequest` 實體（含 status、reviewed_by、reviewed_at、review_note 欄位）
+- ✅ `LeaveApplication.jsx` 改為真實資料庫提交，顯示審批狀態與備注
+- ✅ 新增 `LeaveApprovals.jsx`（路由 `/admin/leave-approvals`）供上司審批
+- ✅ 審批人可加入備注，一鍵批准/拒絕並即時同步資料庫
+- ✅ 側邊欄新增「🌴 假期審批」入口
 
-### [2026-04-04] v0.1 — Initial System Build
+### [2026-04-04] v0.2 — Initial System Build
 
 ---
 

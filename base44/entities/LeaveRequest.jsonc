@@ -1,0 +1,80 @@
+{
+  "name": "LeaveRequest",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "title": "\u54e1\u5de5Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "dept": {
+      "type": "string",
+      "title": "\u90e8\u9580"
+    },
+    "leave_type": {
+      "type": "string",
+      "title": "\u5047\u671f\u985e\u578b",
+      "enum": [
+        "\u5e74\u5047",
+        "\u75c5\u5047",
+        "\u4e8b\u5047",
+        "\u5a5a\u5047",
+        "\u55aa\u5047",
+        "\u4f8d\u7522\u5047",
+        "\u54fa\u4e73\u5047"
+      ]
+    },
+    "from_date": {
+      "type": "string",
+      "title": "\u958b\u59cb\u65e5\u671f",
+      "format": "date"
+    },
+    "to_date": {
+      "type": "string",
+      "title": "\u7d50\u675f\u65e5\u671f",
+      "format": "date"
+    },
+    "days": {
+      "type": "number",
+      "title": "\u5929\u6578"
+    },
+    "reason": {
+      "type": "string",
+      "title": "\u8acb\u5047\u539f\u56e0"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u5f85\u5be9\u6279",
+        "\u5df2\u6279\u51c6",
+        "\u5df2\u62d2\u7d55"
+      ],
+      "default": "\u5f85\u5be9\u6279"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "title": "\u5be9\u6279\u4eba"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "title": "\u5be9\u6279\u6642\u9593"
+    },
+    "review_note": {
+      "type": "string",
+      "title": "\u5be9\u6279\u5099\u6ce8"
+    }
+  },
+  "required": [
+    "user_email",
+    "leave_type",
+    "from_date",
+    "to_date",
+    "days",
+    "reason",
+    "status"
+  ]
+}
