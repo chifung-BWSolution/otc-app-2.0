@@ -1,223 +1,176 @@
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Bookmark, Share2, Play } from "lucide-react";
 
-const sampleNews = [
+const heroNews = [
   {
     id: 1,
     title: "公司週年旅行通知 — 5月15至17日出發，全體員工確認出席",
-    summary: "今年公司週年旅行定於5月15-17日，請各部門同事盡快確認出席。行程包括酒店住宿、晚宴及各類團隊活動。",
     category: "活動",
-    date: "2小時前",
-    urgent: true,
-    author: "HR部門",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80",
-    related: [
-      "旅行報名截止日期為4月20日",
-      "行程詳情將於下週公佈",
-      "如有特殊飲食要求請提前通知HR",
-    ],
+    tag: "🔴 緊急",
+    time: "2小時前",
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80",
   },
   {
     id: 2,
-    title: "新版費用報銷流程更新",
-    summary: "請使用新版P9表格提交申請，舊版月底停用。",
-    category: "行政",
-    date: "1天前",
-    urgent: false,
-    author: "行政部",
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80",
+    title: "第一季度最佳員工評選現已開始，請於4月10日前提交提名",
+    category: "獎項",
+    tag: "精選",
+    time: "1天前",
+    image: "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1200&q=80",
   },
   {
     id: 3,
-    title: "第一季度最佳員工評選現已開始",
-    summary: "請各部門主管於4月10日前提交提名，評選結果將於月底公佈。",
-    category: "獎項",
-    date: "3天前",
-    urgent: false,
-    author: "人事部",
-    image: "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=600&q=80",
-  },
-  {
-    id: 4,
-    title: "IT系統週六凌晨維護，服務暫停6小時",
-    summary: "本週六凌晨2-6時進行系統維護，請提前備份重要文件。",
-    category: "IT",
-    date: "4天前",
-    urgent: true,
-    author: "IT部門",
-    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80",
-  },
-  {
-    id: 5,
-    title: "新同事入職歡迎 — 3名新成員加入市場部",
-    summary: "歡迎三位新同事加入！希望大家互相支持，共同成長。",
-    category: "公告",
-    date: "1週前",
-    urgent: false,
-    author: "HR部門",
-    image: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600&q=80",
-  },
-  {
-    id: 6,
-    title: "公司新福利：彈性上班時間由下月起實施",
-    summary: "員工可選擇8:00至10:00之間開始工作，靈活安排日程。",
+    title: "公司新福利：彈性上班時間由下月起實施，員工可選擇8:00至10:00開始",
     category: "行政",
-    date: "2週前",
-    urgent: false,
-    author: "人事部",
-    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80",
+    tag: "精選",
+    time: "2天前",
+    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80",
   },
 ];
 
-const catColor = {
-  活動: "text-red-600",
-  行政: "text-blue-600",
-  獎項: "text-yellow-600",
-  IT: "text-purple-600",
-  公告: "text-green-600",
-};
+const tabs = ["最新", "行政", "活動", "IT", "獎項", "公告"];
 
-const categories = ["全部", "活動", "行政", "獎項", "IT", "公告"];
+const allNews = [
+  { id: 1, title: "公司週年旅行通知 — 5月15至17日出發", category: "活動", time: "2小時前", urgent: true, image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80", author: "HR部門" },
+  { id: 2, title: "新版費用報銷流程更新，請使用新版P9表格", category: "行政", time: "1天前", urgent: false, image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80", author: "行政部" },
+  { id: 3, title: "第一季度最佳員工評選現已開始", category: "獎項", time: "3天前", urgent: false, image: "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=600&q=80", author: "人事部" },
+  { id: 4, title: "IT系統週六凌晨維護，服務暫停6小時", category: "IT", time: "4天前", urgent: true, image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80", author: "IT部門" },
+  { id: 5, title: "新同事入職歡迎 — 3名新成員加入市場部", category: "公告", time: "1週前", urgent: false, image: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600&q=80", author: "HR部門" },
+  { id: 6, title: "公司新福利：彈性上班時間由下月起實施", category: "行政", time: "2週前", urgent: false, image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80", author: "人事部" },
+  { id: 7, title: "年度培訓日程公佈，請各部門安排出席", category: "活動", time: "2週前", urgent: false, image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80", author: "培訓部" },
+  { id: 8, title: "辦公室冷氣系統維修通知", category: "行政", time: "3週前", urgent: false, image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&q=80", author: "行政部" },
+  { id: 9, title: "公司慈善跑步活動報名開始", category: "活動", time: "1個月前", urgent: false, image: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=600&q=80", author: "HR部門" },
+];
+
+const catColor = { 活動: "text-red-500", 行政: "text-blue-500", 獎項: "text-yellow-500", IT: "text-purple-500", 公告: "text-green-500" };
+const catBg = { 活動: "bg-red-500", 行政: "bg-blue-500", 獎項: "bg-yellow-500", IT: "bg-purple-500", 公告: "bg-green-500" };
 
 export default function CompanyNews() {
-  const [search, setSearch] = useState("");
-  const [selectedCat, setSelectedCat] = useState("全部");
-  const [featuredId, setFeaturedId] = useState(1);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [activeTab, setActiveTab] = useState("最新");
+  const autoRef = useRef(null);
 
-  const filtered = sampleNews.filter(
-    (n) =>
-      (selectedCat === "全部" || n.category === selectedCat) &&
-      (n.title.includes(search) || n.summary.includes(search))
-  );
+  useEffect(() => {
+    autoRef.current = setInterval(() => setHeroIdx((i) => (i + 1) % heroNews.length), 5000);
+    return () => clearInterval(autoRef.current);
+  }, []);
 
-  const featured = filtered.find((n) => n.id === featuredId) || filtered[0];
-  const leftCol = filtered.filter((n) => n.id !== featured?.id).slice(0, 3);
-  const rightCol = filtered.filter((n) => n.id !== featured?.id).slice(3);
+  const goHero = (dir) => {
+    clearInterval(autoRef.current);
+    setHeroIdx((i) => (i + dir + heroNews.length) % heroNews.length);
+  };
+
+  const filtered = activeTab === "最新" ? allNews : allNews.filter((n) => n.category === activeTab);
+  const mainCard = filtered[0];
+  const gridCards = filtered.slice(1);
 
   return (
-    <div className="space-y-3">
-      {/* Top bar: search + categories */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-col gap-3">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-2.5 text-gray-400" />
-          <input
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-gray-50"
-            placeholder="搜尋公告..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="space-y-0 -mx-4 md:-mx-6 -mt-4 md:-mt-6">
+      {/* ── Hero Carousel ───────────────────────────── */}
+      <div className="relative bg-black overflow-hidden" style={{ height: 340 }}>
+        {heroNews.map((n, i) => (
+          <div
+            key={n.id}
+            className={`absolute inset-0 transition-opacity duration-700 ${i === heroIdx ? "opacity-100" : "opacity-0"}`}
+          >
+            <img src={n.image} alt={n.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded ${catBg[n.category] || "bg-gray-500"} text-white`}>{n.category}</span>
+                {n.tag && <span className="text-xs text-white/70">{n.tag}</span>}
+                <span className="text-xs text-white/50 ml-auto">{n.time}</span>
+              </div>
+              <h2 className="text-white font-black text-lg md:text-xl leading-snug line-clamp-2">{n.title}</h2>
+            </div>
+          </div>
+        ))}
+        {/* Arrows */}
+        <button onClick={() => goHero(-1)} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors z-10">
+          <ChevronLeft size={18} />
+        </button>
+        <button onClick={() => goHero(1)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors z-10">
+          <ChevronRight size={18} />
+        </button>
+        {/* Dots */}
+        <div className="absolute bottom-3 right-5 flex gap-1.5 z-10">
+          {heroNews.map((_, i) => (
+            <button key={i} onClick={() => setHeroIdx(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === heroIdx ? "bg-white w-4" : "bg-white/50"}`} />
+          ))}
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-          {categories.map((cat) => (
+      </div>
+
+      {/* ── Tabs ──────────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-200 sticky top-[53px] z-10 px-4 md:px-6">
+        <div className="flex gap-0 overflow-x-auto scrollbar-none">
+          {tabs.map((t) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCat(cat)}
-              className={`px-4 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
-                selectedCat === cat
-                  ? "bg-red-600 text-white border-red-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-red-400"
-              }`}
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`px-4 py-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === t ? "border-red-500 text-red-600" : "border-transparent text-gray-500 hover:text-gray-800"}`}
             >
-              {cat}
+              {t}
             </button>
           ))}
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <div className="text-4xl mb-2">📭</div>
-          <p>沒有找到相關公告</p>
-        </div>
-      ) : (
-        /* CNN 3-column grid */
-        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_180px] gap-4 items-start">
-
-          {/* LEFT COLUMN — small stacked cards */}
-          <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible pb-1 md:pb-0">
-            {leftCol.map((news) => (
-              <div
-                key={news.id}
-                onClick={() => setFeaturedId(news.id)}
-                className="cursor-pointer group shrink-0 w-44 md:w-auto"
-              >
-                <div className="rounded-lg overflow-hidden">
-                  <img
-                    src={news.image}
-                    alt={news.title}
-                    className="w-full h-28 object-cover group-hover:opacity-90 transition-opacity"
-                  />
+      {/* ── Content ───────────────────────────────────── */}
+      <div className="px-4 md:px-6 py-4 space-y-6">
+        {/* Big featured card */}
+        {mainCard && (
+          <div className="cursor-pointer group">
+            <div className="relative rounded-2xl overflow-hidden">
+              <img src={mainCard.image} alt={mainCard.title} className="w-full h-52 md:h-64 object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  {mainCard.urgent && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded font-bold">緊急</span>}
+                  <span className={`text-xs font-bold ${catColor[mainCard.category] || "text-white"}`}>{mainCard.category}</span>
                 </div>
-                <p className="text-xs font-bold text-gray-900 mt-1.5 leading-snug group-hover:text-red-600 transition-colors line-clamp-3">
-                  {news.title}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">{news.author} · {news.date}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* CENTER — featured big story */}
-          {featured && (
-            <div>
-              <div className={`text-xs font-extrabold uppercase tracking-wider mb-1 ${catColor[featured.category] || "text-red-600"}`}>
-                {featured.urgent && "🔴 緊急 · "}{featured.category}
-              </div>
-              <h2 className="text-xl font-black text-gray-900 leading-tight mb-3">
-                {featured.title}
-              </h2>
-              <div className="relative rounded-xl overflow-hidden shadow-md">
-                <img
-                  src={featured.image}
-                  alt={featured.title}
-                  className="w-full h-64 object-cover"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
-                  <p className="text-white text-sm font-semibold leading-snug">{featured.summary}</p>
+                <h3 className="text-white font-black text-lg leading-snug">{mainCard.title}</h3>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-white/60 text-xs">{mainCard.author} · {mainCard.time}</span>
+                  <div className="flex gap-2">
+                    <button className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors"><Bookmark size={13} className="text-white" /></button>
+                    <button className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors"><Share2 size={13} className="text-white" /></button>
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-1.5 mb-3">by {featured.author} · {featured.date}</p>
-
-              {/* Related / bullet links */}
-              {featured.related && (
-                <div className="border-t border-gray-200 pt-3 space-y-2">
-                  {featured.related.map((item, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-red-600 font-medium hover:underline cursor-pointer">
-                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* RIGHT COLUMN — small text+thumb */}
-          <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible pb-1 md:pb-0">
-            {rightCol.map((news) => (
-              <div
-                key={news.id}
-                onClick={() => setFeaturedId(news.id)}
-                className="cursor-pointer group shrink-0 w-44 md:w-auto flex md:flex-col gap-2 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0"
-              >
-                <img
-                  src={news.image}
-                  alt={news.title}
-                  className="w-16 h-14 md:w-full md:h-20 object-cover rounded-lg shrink-0 group-hover:opacity-90 transition-opacity"
-                />
-                <div>
-                  <p className={`text-xs font-bold uppercase tracking-wide ${catColor[news.category] || "text-gray-500"}`}>
-                    {news.category}
-                  </p>
-                  <p className="text-xs font-bold text-gray-900 leading-snug group-hover:text-red-600 transition-colors line-clamp-3">
-                    {news.title}
-                  </p>
+        {/* 3-column grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {gridCards.map((n) => (
+            <div key={n.id} className="cursor-pointer group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="relative overflow-hidden">
+                <img src={n.image} alt={n.title} className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300" />
+                {n.urgent && (
+                  <span className="absolute top-2 left-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded font-bold">緊急</span>
+                )}
+              </div>
+              <div className="p-3">
+                <div className={`text-xs font-bold mb-1 ${catColor[n.category] || "text-gray-500"}`}>{n.category}</div>
+                <h4 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">{n.title}</h4>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-400">{n.author} · {n.time}</span>
+                  <button className="p-1 hover:text-red-500 transition-colors"><Bookmark size={13} className="text-gray-300" /></button>
                 </div>
               </div>
-            ))}
-          </div>
-
+            </div>
+          ))}
         </div>
-      )}
+
+        {/* List rows for remaining */}
+        {filtered.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <div className="text-4xl mb-2">📭</div>
+            <p>沒有相關公告</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
