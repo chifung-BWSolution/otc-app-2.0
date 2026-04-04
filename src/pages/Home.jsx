@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import BirthdayWidget from "../components/BirthdayWidget";
 import { ChevronRight } from "lucide-react";
 
 const modules = [
@@ -115,6 +116,7 @@ export default function Home() {
 
   return (
     <div className="space-y-3">
+      <BirthdayWidget />
       {modules.map((mod) => (
         <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Module Header */}
