@@ -22,6 +22,7 @@ import Approvals from './pages/admin/Approvals';
 import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
 import ResourceBorrow from './pages/company/ResourceBorrow';
+import AdminHelp from './pages/company/AdminHelp';
 import CompanyFAQ from './pages/company/CompanyFAQ';
 import TechNews from './pages/app/TechNews';
 
@@ -61,7 +62,7 @@ const AuthenticatedApp = () => {
         <Route path="/company/faq" element={<CompanyFAQ />} />
         <Route path="/company/resources" element={<ResourceBorrow />} />
         <Route path="/company/expense" element={<ExpenseReport />} />
-        <Route path="/company/admin-help" element={<Placeholder title="行政協助" icon="🛎️" description="提交行政協助申請" />} />
+        <Route path="/company/admin-help" element={<AdminHelp />} />
         {/* App資訊 */}
         <Route path="/app/tech-news" element={<TechNews />} />
         <Route path="/app/store" element={<Placeholder title="App Store" icon="🛒" description="公司推薦應用程式" />} />
