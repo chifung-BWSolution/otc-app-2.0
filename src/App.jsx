@@ -16,6 +16,8 @@ import LeaveApplication from './pages/attendance/LeaveApplication';
 import DailyReport from './pages/work/DailyReport';
 import KPIReport from './pages/work/KPIReport';
 import CourseCenter from './pages/course/CourseCenter';
+import Analytics from './pages/superadmin/Analytics';
+import Directory from './pages/superadmin/Directory';
 import Approvals from './pages/admin/Approvals';
 import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
