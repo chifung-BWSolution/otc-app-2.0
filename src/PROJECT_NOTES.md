@@ -1,5 +1,20 @@
 # 企業管理系統 — Project Notes
 
+---
+
+## 📋 Update Log
+> This section records every update made to the system. Newest entries at the top.
+
+### [2026-04-04] — Initial System Build
+- ✅ Set up project architecture: `App.jsx` router, `Layout.jsx`, `Sidebar.jsx`
+- ✅ Built Home dashboard with welcome banner, stats, quick links, module grid
+- ✅ Built 13 fully functional pages (see Page Structure below)
+- ✅ Set up 35 routes total (20+ as Placeholder stubs)
+- ✅ Created `PROJECT_NOTES.md` for documentation
+- ✅ Added Update Log section to track all future changes
+
+---
+
 ## Overview
 An internal administrative management system for a medium-sized company (51–200 employees).
 Built with **React + Tailwind CSS** on the **Base44** platform.
