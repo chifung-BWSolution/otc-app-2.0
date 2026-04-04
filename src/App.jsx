@@ -22,6 +22,7 @@ import Approvals from './pages/admin/Approvals';
 import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
 import ResourceBorrow from './pages/company/ResourceBorrow';
+import CompanyFAQ from './pages/company/CompanyFAQ';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,7 +57,7 @@ const AuthenticatedApp = () => {
         <Route path="/company/calendar" element={<CompanyCalendar />} />
         <Route path="/company/forms" element={<Placeholder title="表格下載" icon="📂" description="下載公司各種行政表格" />} />
         <Route path="/company/contact" element={<ContactColleagues />} />
-        <Route path="/company/faq" element={<Placeholder title="公司FAQ" icon="❓" description="常見問題解答" />} />
+        <Route path="/company/faq" element={<CompanyFAQ />} />
         <Route path="/company/resources" element={<ResourceBorrow />} />
         <Route path="/company/expense" element={<ExpenseReport />} />
         <Route path="/company/admin-help" element={<Placeholder title="行政協助" icon="🛎️" description="提交行政協助申請" />} />
