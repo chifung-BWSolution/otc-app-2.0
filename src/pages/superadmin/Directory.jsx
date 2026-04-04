@@ -1,130 +1,186 @@
 import { useState } from "react";
-import { Search, Phone, Mail } from "lucide-react";
+import { Search, Phone, Mail, MessageCircle, Plus, Edit2 } from "lucide-react";
+import { staffList } from "../../data/staffData";
 
-const staff = [
-  { id: 1, name: "陳大文", dept: "市場部", role: "市場總監", email: "chan@company.com", phone: "9123 4567", status: "在職", avatar: "陳" },
-  { id: 2, name: "李小明", dept: "銷售部", role: "銷售代表", email: "lee@company.com", phone: "9234 5678", status: "在職", avatar: "李" },
-  { id: 3, name: "張美麗", dept: "IT部", role: "系統工程師", email: "cheung@company.com", phone: "9345 6789", status: "在職", avatar: "張" },
-  { id: 4, name: "王志偉", dept: "財務部", role: "財務主任", email: "wong@company.com", phone: "9456 7890", status: "在職", avatar: "王" },
-  { id: 5, name: "林曉琳", dept: "人事部", role: "HR主任", email: "lam@company.com", phone: "9567 8901", status: "在職", avatar: "林" },
-  { id: 6, name: "黃俊傑", dept: "市場部", role: "設計師", email: "wong2@company.com", phone: "9678 9012", status: "在職", avatar: "黃" },
-  { id: 7, name: "劉偉明", dept: "銷售部", role: "銷售主任", email: "lau@company.com", phone: "9789 0123", status: "假期中", avatar: "劉" },
-  { id: 8, name: "趙小燕", dept: "行政部", role: "行政助理", email: "chiu@company.com", phone: "9890 1234", status: "在職", avatar: "趙" },
-];
-
-const depts = ["全部", "市場部", "銷售部", "IT部", "財務部", "人事部", "行政部"];
-const colors = ["bg-blue-400", "bg-green-400", "bg-purple-400", "bg-orange-400", "bg-pink-400", "bg-teal-400", "bg-yellow-400", "bg-red-400"];
+const offices = ["全部", "CFA HK"];
+const teams = ["全部", ...Array.from(new Set(staffList.map((s) => s.team)))];
+const roles = ["全部", "Director", "Team Leader", "Assistant Team Leader", "Team Member"];
+const statuses = ["全部", "Active", "Inactive"];
 
 export default function Directory() {
   const [search, setSearch] = useState("");
-  const [selectedDept, setSelectedDept] = useState("全部");
-  const [view, setView] = useState("grid");
+  const [officeFilter, setOfficeFilter] = useState("全部");
+  const [teamFilter, setTeamFilter] = useState("全部");
+  const [roleFilter, setRoleFilter] = useState("全部");
+  const [tab, setTab] = useState("職員外表");
 
-  const filtered = staff.filter(
-    (s) =>
-      (selectedDept === "全部" || s.dept === selectedDept) &&
-      (s.name.includes(search) || s.role.includes(search) || s.dept.includes(search))
+  const filtered = staffList.filter((s) =>
+    (officeFilter === "全部" || s.office === officeFilter) &&
+    (teamFilter === "全部" || s.team === teamFilter) &&
+    (roleFilter === "全部" || s.role === roleFilter) &&
+    (s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.nameZh.includes(search) ||
+      s.team.includes(search))
   );
 
   return (
-    <div className="space-y-4">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-          <div className="text-2xl font-bold text-blue-600">{staff.length}</div>
-          <div className="text-xs text-gray-500 mt-0.5">總員工數</div>
-        </div>
-        <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
-          <div className="text-2xl font-bold text-green-600">{staff.filter(s => s.status === "在職").length}</div>
-          <div className="text-xs text-gray-500 mt-0.5">在職</div>
-        </div>
-        <div className="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-100">
-          <div className="text-2xl font-bold text-yellow-600">{staff.filter(s => s.status === "假期中").length}</div>
-          <div className="text-xs text-gray-500 mt-0.5">假期中</div>
-        </div>
-      </div>
-
-      {/* Search & View Toggle */}
+    <div className="space-y-3">
+      {/* Tabs */}
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-          <input
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            placeholder="搜尋同事姓名、職位..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex bg-gray-100 p-1 rounded-lg gap-1">
-          <button onClick={() => setView("grid")} className={`px-3 py-1 rounded text-sm ${view === "grid" ? "bg-white shadow" : "text-gray-500"}`}>⊞</button>
-          <button onClick={() => setView("list")} className={`px-3 py-1 rounded text-sm ${view === "list" ? "bg-white shadow" : "text-gray-500"}`}>☰</button>
-        </div>
-      </div>
-
-      {/* Dept Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {depts.map((d) => (
+        {["職員外表", "技能&問題"].map((t) => (
           <button
-            key={d}
-            onClick={() => setSelectedDept(d)}
-            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-              selectedDept === d ? "bg-indigo-500 text-white" : "bg-white text-gray-600 border border-gray-200"
-            }`}
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-blue-300"}`}
           >
-            {d}
+            {t}
           </button>
         ))}
       </div>
 
-      {/* Staff Grid */}
-      {view === "grid" ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map((s, i) => (
-            <div key={s.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-              <div className={`w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto`}>
-                {s.avatar}
-              </div>
-              <div className="font-semibold text-gray-800 mt-2 text-sm">{s.name}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{s.role}</div>
-              <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${s.status === "在職" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}`}>
-                {s.status}
-              </span>
-              <div className="text-xs text-indigo-500 mt-1">{s.dept}</div>
-              <div className="flex justify-center gap-2 mt-2">
-                <a href={`tel:${s.phone}`} className="p-1.5 bg-blue-50 rounded-lg text-blue-500 hover:bg-blue-100 transition-colors">
-                  <Phone size={14} />
-                </a>
-                <a href={`mailto:${s.email}`} className="p-1.5 bg-green-50 rounded-lg text-green-500 hover:bg-green-100 transition-colors">
-                  <Mail size={14} />
-                </a>
-              </div>
-            </div>
-          ))}
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+          <div className="text-2xl font-bold text-blue-600">{staffList.length}</div>
+          <div className="text-xs text-gray-500 mt-0.5">職員 {staffList.length}</div>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {filtered.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0 border-gray-50 hover:bg-gray-50 transition-colors">
-              <div className={`w-10 h-10 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                {s.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-gray-800">{s.name}</div>
-                <div className="text-xs text-gray-500">{s.role} · {s.dept}</div>
-              </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${s.status === "在職" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}`}>
-                {s.status}
-              </span>
-              <div className="flex gap-1">
-                <a href={`tel:${s.phone}`} className="p-1.5 bg-blue-50 rounded-lg text-blue-500 hover:bg-blue-100">
-                  <Phone size={14} />
-                </a>
-                <a href={`mailto:${s.email}`} className="p-1.5 bg-green-50 rounded-lg text-green-500 hover:bg-green-100">
-                  <Mail size={14} />
-                </a>
-              </div>
+        <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+          <div className="text-2xl font-bold text-green-600">{staffList.filter(s => s.status === "正式員工").length}</div>
+          <div className="text-xs text-gray-500 mt-0.5">正式員工</div>
+        </div>
+        <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-100">
+          <div className="text-2xl font-bold text-purple-600">{Array.from(new Set(staffList.map(s => s.team))).length}</div>
+          <div className="text-xs text-gray-500 mt-0.5">團隊數量</div>
+        </div>
+      </div>
+
+      {tab === "職員外表" && (
+        <>
+          {/* Filters + Actions */}
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex flex-wrap gap-2 items-center">
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none">
+              {statuses.map((o) => <option key={o}>{o}</option>)}
+            </select>
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" value={officeFilter} onChange={(e) => setOfficeFilter(e.target.value)}>
+              {offices.map((o) => <option key={o}>{o === "全部" ? "公司單位" : o}</option>)}
+            </select>
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              {teams.map((t) => <option key={t}>{t === "全部" ? "辦公位置" : t}</option>)}
+            </select>
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none">
+              <option>工作年資</option>
+            </select>
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none">
+              <option>電話分類</option>
+            </select>
+            <div className="relative flex-1 min-w-32">
+              <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+              <input
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-50"
+                placeholder="搜尋..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-          ))}
+            <div className="flex gap-2 ml-auto">
+              <button className="flex items-center gap-1.5 bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors">
+                ✉ 發送 Offer
+              </button>
+              <button className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
+                <Plus size={13} /> 建立職員
+              </button>
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-500 px-1">職員: {filtered.length}</div>
+
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+            <table className="w-full text-sm min-w-[1100px]">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-500 font-semibold bg-gray-50">
+                  <th className="px-3 py-3 text-left">辦公位置</th>
+                  <th className="px-3 py-3 text-left">狀態</th>
+                  <th className="px-3 py-3 text-left">年資</th>
+                  <th className="px-3 py-3 text-left">職員名稱</th>
+                  <th className="px-3 py-3 text-left">團隊</th>
+                  <th className="px-3 py-3 text-left">Leader</th>
+                  <th className="px-3 py-3 text-left">BU</th>
+                  <th className="px-3 py-3 text-left">身份</th>
+                  <th className="px-3 py-3 text-left">工作手機</th>
+                  <th className="px-3 py-3 text-left">直線電話</th>
+                  <th className="px-3 py-3 text-left">Gmail</th>
+                  <th className="px-3 py-3 text-left">工作電郵</th>
+                  <th className="px-3 py-3 text-left">居住地區</th>
+                  <th className="px-3 py-3 text-left">Whatsapp</th>
+                  <th className="px-3 py-3 text-left">動作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => (
+                  <tr key={s.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.office}</td>
+                    <td className="px-3 py-3">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">{s.status}</span>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.seniority}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-7 h-7 ${s.color} rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0`}>{s.avatar}</div>
+                        <div>
+                          <div className="font-semibold text-gray-900 text-xs whitespace-nowrap">{s.name}</div>
+                          <div className="text-xs text-gray-400">{s.nameZh}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{s.team}</td>
+                    <td className="px-3 py-3 text-xs text-blue-500 whitespace-nowrap">{s.leader || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.bu}</td>
+                    <td className="px-3 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${
+                        s.role === "Director" ? "bg-red-100 text-red-700" :
+                        s.role.includes("Leader") ? "bg-blue-100 text-blue-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>{s.role}</span>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
+                      {s.mobile ? <a href={`tel:${s.mobile}`} className="hover:text-blue-600 flex items-center gap-1"><Phone size={11} className="shrink-0" />{s.mobile}</a> : "—"}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap max-w-32 truncate">{s.directLine || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-gray-600 max-w-40 truncate">
+                      {s.gmail !== "N/A" ? <a href={`mailto:${s.gmail}`} className="hover:text-blue-600 flex items-center gap-1 truncate"><Mail size={11} className="shrink-0" />{s.gmail}</a> : "N/A"}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-500 max-w-36 truncate">
+                      {s.workEmail !== "N/A" ? <a href={`mailto:${s.workEmail}`} className="hover:text-blue-600 truncate">{s.workEmail}</a> : "N/A"}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.region}</td>
+                    <td className="px-3 py-3">
+                      {s.mobile && (
+                        <a href={`https://wa.me/852${s.mobile}`} target="_blank" rel="noreferrer" className="p-1.5 bg-emerald-50 rounded-lg text-emerald-500 hover:bg-emerald-100 transition-colors inline-flex">
+                          <MessageCircle size={13} />
+                        </a>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <button className="p-1.5 bg-gray-50 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+                        <Edit2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-gray-400 text-sm">沒有符合條件的員工</div>
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === "技能&問題" && (
+        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center text-gray-400">
+          <div className="text-4xl mb-2">🛠️</div>
+          <p>技能&問題功能開發中</p>
         </div>
       )}
     </div>
