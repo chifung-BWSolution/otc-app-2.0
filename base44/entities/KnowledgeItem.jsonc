@@ -6,6 +6,20 @@
       "type": "string",
       "title": "\u77e5\u8b58\u6a19\u984c"
     },
+    "category": {
+      "type": "string",
+      "title": "\u5206\u985e",
+      "enum": [
+        "\u7ba1\u7406\u8207\u9818\u5c0e",
+        "\u92b7\u552e\u6280\u5de7",
+        "IT\u6280\u80fd",
+        "\u8ca1\u52d9\u77e5\u8b58",
+        "\u6e9d\u901a\u6280\u5de7",
+        "\u5408\u898f\u8207\u6cd5\u5f8b",
+        "\u7522\u54c1\u77e5\u8b58",
+        "\u5176\u4ed6"
+      ]
+    },
     "content": {
       "type": "string",
       "title": "\u77e5\u8b58\u5167\u5bb9"
@@ -45,6 +59,16 @@
       ],
       "default": "\u8349\u7a3f"
     },
+    "score": {
+      "type": "number",
+      "title": "\u884c\u653f\u8a55\u5206 (1-5)",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "score_note": {
+      "type": "string",
+      "title": "\u8a55\u5206\u5099\u6ce8"
+    },
     "reviewed_by": {
       "type": "string",
       "title": "\u5be9\u6838\u4eba"
@@ -63,10 +87,19 @@
       "items": {
         "type": "string"
       }
+    },
+    "certified_title": {
+      "type": "string",
+      "title": "\u8a8d\u8b49\u77e5\u8b58\u6a19\u984c\uff08\u53ef\u4fee\u6539\uff09"
+    },
+    "certified_content": {
+      "type": "string",
+      "title": "\u8a8d\u8b49\u77e5\u8b58\u5167\u5bb9\uff08\u53ef\u4fee\u6539\uff09"
     }
   },
   "required": [
     "title",
+    "category",
     "content",
     "user_email",
     "week_start",

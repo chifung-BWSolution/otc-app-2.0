@@ -21,6 +21,7 @@ import Directory from './pages/superadmin/Directory';
 import Approvals from './pages/admin/Approvals';
 import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
+import WeeklyLearning from './pages/work/WeeklyLearning';
 import ResourceBorrow from './pages/company/ResourceBorrow';
 import AdminHelp from './pages/company/AdminHelp';
 import CompanyFAQ from './pages/company/CompanyFAQ';
@@ -69,7 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/app/suggest" element={<Placeholder title="建議購買" icon="💡" description="提交購買建議" />} />
         {/* 工作匯報 */}
         <Route path="/work/daily" element={<DailyReport />} />
-        <Route path="/work/weekly" element={<Placeholder title="每星期學習匯報" icon="📚" description="提交本週學習匯報" />} />
+        <Route path="/work/weekly" element={<WeeklyLearning />} /> icon="📚" description="提交本週學習匯報" />} />
         <Route path="/work/kpi" element={<KPIReport />} />
         <Route path="/work/projects" element={<Placeholder title="主要項目" icon="🚀" description="查看及管理主要項目進度" />} />
         <Route path="/work/special-approval" element={<Placeholder title="特別批核" icon="✅" description="提交特別批核申請" />} />
