@@ -1,0 +1,115 @@
+{
+  "name": "CourseResource",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "\u8cc7\u6e90\u6a19\u984c"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u8cc7\u6e90\u63cf\u8ff0"
+    },
+    "category": {
+      "type": "string",
+      "title": "\u5927\u5206\u985e",
+      "enum": [
+        "\u7ba1\u7406\u8207\u9818\u5c0e",
+        "\u92b7\u552e\u6280\u5de7",
+        "IT\u6280\u80fd",
+        "\u8ca1\u52d9\u77e5\u8b58",
+        "\u6e9d\u901a\u6280\u5de7",
+        "\u5408\u898f\u8207\u6cd5\u5f8b",
+        "\u7522\u54c1\u77e5\u8b58",
+        "\u5176\u4ed6"
+      ]
+    },
+    "format": {
+      "type": "string",
+      "title": "\u683c\u5f0f",
+      "enum": [
+        "PPT",
+        "YouTube",
+        "PDF",
+        "Workbook",
+        "\u5716\u6587\u7b46\u8a18",
+        "\u5176\u4ed6"
+      ]
+    },
+    "url": {
+      "type": "string",
+      "title": "\u9023\u7d50/\u7db2\u5740"
+    },
+    "file_url": {
+      "type": "string",
+      "title": "\u6a94\u6848URL"
+    },
+    "tags": {
+      "type": "array",
+      "title": "\u6a19\u7c64",
+      "items": {
+        "type": "string"
+      }
+    },
+    "difficulty": {
+      "type": "number",
+      "title": "\u96e3\u5ea6Level (1-5)",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "target_dept": {
+      "type": "array",
+      "title": "\u76ee\u6a19\u90e8\u9580",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target_role": {
+      "type": "string",
+      "title": "\u76ee\u6a19\u5c0d\u8c61"
+    },
+    "learning_method": {
+      "type": "string",
+      "title": "\u5b78\u7fd2\u65b9\u5f0f",
+      "enum": [
+        "\u81ea\u5b78",
+        "\u8ab2\u5802",
+        "\u6df7\u5408"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u5f85\u5be9\u6838",
+        "\u5df2\u767c\u4f48",
+        "\u5df2\u62d2\u7d55"
+      ],
+      "default": "\u5f85\u5be9\u6838"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "title": "\u5be9\u6838\u4eba"
+    },
+    "review_note": {
+      "type": "string",
+      "title": "\u5be9\u6838\u5099\u6ce8"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "title": "\u9810\u8a08\u5b78\u7fd2\u6642\u9593(\u5206\u9418)"
+    },
+    "uploaded_by": {
+      "type": "string",
+      "title": "\u4e0a\u50b3\u8005"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "format",
+    "difficulty",
+    "learning_method",
+    "status"
+  ]
+}

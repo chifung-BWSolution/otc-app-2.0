@@ -1,0 +1,41 @@
+{
+  "name": "WorkshopAttendance",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "\u5de5\u4f5c\u574aID"
+    },
+    "workshop_title": {
+      "type": "string",
+      "title": "\u5de5\u4f5c\u574a\u6a19\u984c"
+    },
+    "user_email": {
+      "type": "string",
+      "title": "\u54e1\u5de5Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u5df2\u5831\u540d",
+        "\u51fa\u5e2d",
+        "\u7f3a\u5e2d"
+      ],
+      "default": "\u5df2\u5831\u540d"
+    },
+    "registered_at": {
+      "type": "string",
+      "title": "\u5831\u540d\u6642\u9593"
+    }
+  },
+  "required": [
+    "workshop_id",
+    "user_email",
+    "status"
+  ]
+}

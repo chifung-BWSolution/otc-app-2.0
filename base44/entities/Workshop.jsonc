@@ -1,0 +1,84 @@
+{
+  "name": "Workshop",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "\u5de5\u4f5c\u574a\u4e3b\u984c"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u63cf\u8ff0"
+    },
+    "trainer_email": {
+      "type": "string",
+      "title": "\u4e3b\u8b1b\u4ebaEmail"
+    },
+    "trainer_name": {
+      "type": "string",
+      "title": "\u4e3b\u8b1b\u4eba\u59d3\u540d"
+    },
+    "date": {
+      "type": "string",
+      "title": "\u65e5\u671f",
+      "format": "date"
+    },
+    "start_time": {
+      "type": "string",
+      "title": "\u958b\u59cb\u6642\u9593"
+    },
+    "end_time": {
+      "type": "string",
+      "title": "\u7d50\u675f\u6642\u9593"
+    },
+    "duration_hours": {
+      "type": "number",
+      "title": "\u6642\u9577(\u5c0f\u6642)"
+    },
+    "location": {
+      "type": "string",
+      "title": "\u5730\u9ede"
+    },
+    "max_capacity": {
+      "type": "number",
+      "title": "\u6700\u5927\u4eba\u6578"
+    },
+    "target_dept": {
+      "type": "array",
+      "title": "\u76ee\u6a19\u90e8\u9580",
+      "items": {
+        "type": "string"
+      }
+    },
+    "materials_url": {
+      "type": "string",
+      "title": "\u76f8\u95dc\u8cc7\u6599\u9023\u7d50"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u5831\u540d\u4e2d",
+        "\u5df2\u5b8c\u6210",
+        "\u5df2\u53d6\u6d88"
+      ],
+      "default": "\u5831\u540d\u4e2d"
+    },
+    "is_valid": {
+      "type": "boolean",
+      "title": "\u6709\u6548\u57f9\u8a13(\u22653\u4eba\u51fa\u5e2d)"
+    },
+    "trainer_hours_logged": {
+      "type": "number",
+      "title": "\u57f9\u8a13\u5e2b\u8a18\u9304\u6642\u6578"
+    }
+  },
+  "required": [
+    "title",
+    "trainer_name",
+    "date",
+    "start_time",
+    "end_time",
+    "status"
+  ]
+}

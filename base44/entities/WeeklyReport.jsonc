@@ -1,0 +1,89 @@
+{
+  "name": "WeeklyReport",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "title": "\u54e1\u5de5Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "dept": {
+      "type": "string",
+      "title": "\u90e8\u9580"
+    },
+    "week_start": {
+      "type": "string",
+      "title": "\u9031\u958b\u59cb\u65e5\u671f",
+      "format": "date"
+    },
+    "week_end": {
+      "type": "string",
+      "title": "\u9031\u7d50\u675f\u65e5\u671f",
+      "format": "date"
+    },
+    "work_progress": {
+      "type": "string",
+      "title": "\u5de5\u4f5c\u9032\u5ea6"
+    },
+    "learning_notes": {
+      "type": "string",
+      "title": "\u5b78\u7fd2\u5fc3\u5f97"
+    },
+    "completed_courses": {
+      "type": "array",
+      "title": "\u5b8c\u6210\u8ab2\u7a0b",
+      "items": {
+        "type": "string"
+      }
+    },
+    "training_hours": {
+      "type": "number",
+      "title": "\u57f9\u8a13\u6642\u6578"
+    },
+    "next_week_plan": {
+      "type": "string",
+      "title": "\u4e0b\u9031\u8a08\u5283"
+    },
+    "issues": {
+      "type": "string",
+      "title": "\u9047\u5230\u554f\u984c"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u8349\u7a3f",
+        "\u5df2\u63d0\u4ea4",
+        "\u5df2\u5be9\u6838",
+        "\u9700\u4fee\u6539"
+      ],
+      "default": "\u8349\u7a3f"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "title": "\u5be9\u6838\u4eba"
+    },
+    "review_note": {
+      "type": "string",
+      "title": "\u5be9\u6838\u5099\u6ce8"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "title": "\u5be9\u6838\u6642\u9593"
+    },
+    "is_overdue": {
+      "type": "boolean",
+      "title": "\u662f\u5426\u903e\u671f"
+    }
+  },
+  "required": [
+    "user_email",
+    "week_start",
+    "week_end",
+    "work_progress",
+    "status"
+  ]
+}
