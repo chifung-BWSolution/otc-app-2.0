@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { BookOpen, FileText, Calendar } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ResourceLibrary from "../../components/course/ResourceLibrary";
-import WeeklyReportTab from "../../components/course/WeeklyReportTab";
+import WeeklyKnowledgeTab from "../../components/course/WeeklyKnowledgeTab";
 import WorkshopTab from "../../components/course/WorkshopTab";
 
 const TABS = [
   { key: "resources", label: "課程資源庫", icon: BookOpen },
-  { key: "weekly", label: "每週匯報", icon: FileText },
+  { key: "weekly", label: "每週知識匯報", icon: FileText },
   { key: "workshops", label: "培訓工作坊", icon: Calendar },
 ];
 
@@ -46,7 +46,7 @@ export default function CourseCenter() {
 
       {/* Tab Content */}
       {tab === "resources" && <ResourceLibrary currentUser={currentUser} />}
-      {tab === "weekly" && <WeeklyReportTab currentUser={currentUser} />}
+      {tab === "weekly" && <WeeklyKnowledgeTab currentUser={currentUser} />}
       {tab === "workshops" && <WorkshopTab currentUser={currentUser} />}
     </div>
   );

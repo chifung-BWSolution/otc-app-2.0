@@ -1,0 +1,75 @@
+{
+  "name": "KnowledgeItem",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u6a19\u984c"
+    },
+    "content": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u5167\u5bb9"
+    },
+    "image_url": {
+      "type": "string",
+      "title": "\u5716\u7247URL"
+    },
+    "tags": {
+      "type": "array",
+      "title": "\u6a19\u7c64",
+      "items": {
+        "type": "string"
+      }
+    },
+    "user_email": {
+      "type": "string",
+      "title": "\u63d0\u4ea4\u8005Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u63d0\u4ea4\u8005\u59d3\u540d"
+    },
+    "week_start": {
+      "type": "string",
+      "title": "\u9031\u958b\u59cb\u65e5\u671f",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u8349\u7a3f",
+        "\u5f85\u5be9\u6838",
+        "\u5df2\u8a8d\u8b49",
+        "\u5df2\u62d2\u7d55"
+      ],
+      "default": "\u8349\u7a3f"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "title": "\u5be9\u6838\u4eba"
+    },
+    "review_note": {
+      "type": "string",
+      "title": "\u5be9\u6838\u5099\u6ce8"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "title": "\u5be9\u6838\u6642\u9593"
+    },
+    "linked_courses": {
+      "type": "array",
+      "title": "\u95dc\u806f\u8ab2\u7a0b\u5206\u985e",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "user_email",
+    "week_start",
+    "status"
+  ]
+}
