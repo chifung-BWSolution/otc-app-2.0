@@ -30,6 +30,11 @@ function AppDetailPanel({ app, currentUser, onClose, onRefresh }) {
   const [tab, setTab] = useState("info");
   const [feedbacks, setFeedbacks] = useState([]);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestForm, setRequestForm] = useState({ reason: "", department: "" });
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+  const [existingRequest, setExistingRequest] = useState(null);
+  const [hasLicense, setHasLicense] = useState(false);
   const [fbForm, setFbForm] = useState({ type: "問題報告", content: "", priority: "中" });
   const [submitting, setSubmitting] = useState(false);
   const [allFeedbacks, setAllFeedbacks] = useState([]);
@@ -38,7 +43,29 @@ function AppDetailPanel({ app, currentUser, onClose, onRefresh }) {
   useEffect(() => {
     base44.entities.AppFeedback.filter({ app_id: app.id }, "-created_date", 50).then(setFeedbacks);
     if (isAdmin) base44.entities.AppFeedback.filter({ app_id: app.id }, "-created_date", 100).then(setAllFeedbacks);
+    if (currentUser?.email) {
+      base44.entities.AppAccessRequest.filter({ app_id: app.id, user_email: currentUser.email }, "-created_date", 1).then(res => setExistingRequest(res[0] || null));
+      base44.entities.AppLicenseAssignment.filter({ app_id: app.id, user_email: currentUser.email, status: "使用中" }).then(res => setHasLicense(res.length > 0));
+    }
   }, [app.id]);
+
+  const submitRequest = async () => {
+    if (!requestForm.reason.trim()) return;
+    setRequestSubmitting(true);
+    await base44.entities.AppAccessRequest.create({
+      app_id: app.id,
+      app_name: app.name,
+      user_email: currentUser.email,
+      user_name: currentUser.full_name,
+      department: requestForm.department,
+      reason: requestForm.reason,
+      status: "待審批",
+    });
+    setRequestSubmitting(false);
+    setShowRequestForm(false);
+    setRequestForm({ reason: "", department: "" });
+    base44.entities.AppAccessRequest.filter({ app_id: app.id, user_email: currentUser.email }, "-created_date", 1).then(res => setExistingRequest(res[0] || null));
+  };
 
   const submitFeedback = async () => {
     setSubmitting(true);
@@ -87,6 +114,43 @@ function AppDetailPanel({ app, currentUser, onClose, onRefresh }) {
           <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
         </div>
 
+        {/* Request Access Banner (non-admin, no license) */}
+        {!isAdmin && !hasLicense && (
+          <div className="mx-4 mt-3">
+            {existingRequest ? (
+              <div className={`rounded-xl px-3 py-2 text-xs font-semibold flex items-center gap-2 ${
+                existingRequest.status === "待審批" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" :
+                existingRequest.status === "已批准" ? "bg-green-50 text-green-700 border border-green-200" :
+                "bg-red-50 text-red-600 border border-red-200"
+              }`}>
+                {existingRequest.status === "待審批" ? "⏳" : existingRequest.status === "已批准" ? "✅" : "❌"}
+                申請狀態：{existingRequest.status}
+                {existingRequest.review_note && <span className="ml-1 text-xs opacity-70">({existingRequest.review_note})</span>}
+              </div>
+            ) : (
+              <div>
+                {!showRequestForm ? (
+                  <button onClick={() => setShowRequestForm(true)} className="w-full bg-blue-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors">
+                    📋 申請使用此 App
+                  </button>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                    <div className="text-xs font-bold text-blue-800">申請使用：{app.name}</div>
+                    <select className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white" value={requestForm.department} onChange={e => setRequestForm(f => ({...f, department: e.target.value}))}>
+                      <option value="">-- 選擇部門 --</option>
+                      {["市場部","銷售部","IT部","財務部","人事部","行政部"].map(d => <option key={d}>{d}</option>)}
+                    </select>
+                    <textarea className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none bg-white" rows={3} placeholder="申請原因（必填）..." value={requestForm.reason} onChange={e => setRequestForm(f => ({...f, reason: e.target.value}))} />
+                    <div className="flex gap-2">
+                      <button onClick={submitRequest} disabled={requestSubmitting || !requestForm.reason.trim()} className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-xs font-bold disabled:opacity-60">{requestSubmitting ? "提交中..." : "提交申請"}</button>
+                      <button onClick={() => setShowRequestForm(false)} className="flex-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-xs">取消</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {/* Tabs */}
         <div className="flex border-b border-gray-100 bg-gray-50/50">
           {[["info","資訊"],["login","登入"],["learn","學習"],["feedback","意見"]].map(([k,l]) => (
@@ -536,6 +600,11 @@ export default function AppStore() {
         {isAdmin && (
           <button onClick={() => navigate("/app/store/licenses")} className="flex items-center gap-1.5 bg-teal-100 text-teal-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-teal-200 transition-colors">
             🔑 授權管理
+          </button>
+        )}
+        {isAdmin && (
+          <button onClick={() => navigate("/app/store/requests")} className="flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-orange-200 transition-colors relative">
+            📋 使用申請
           </button>
         )}
         {isAdmin && (

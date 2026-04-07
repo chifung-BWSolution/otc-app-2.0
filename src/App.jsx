@@ -29,6 +29,7 @@ import TechNews from './pages/app/TechNews';
 import AppStore from './pages/app/AppStore';
 import AppStoreAnalytics from './pages/app/AppStoreAnalytics';
 import AppLicenseManager from './pages/app/AppLicenseManager';
+import AppAccessRequests from './pages/app/AppAccessRequests';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,7 +72,8 @@ const AuthenticatedApp = () => {
         <Route path="/app/tech-news" element={<TechNews />} />
         <Route path="/app/store" element={<AppStore />} />
         <Route path="/app/store/analytics" element={<AppStoreAnalytics />} />
-        <Route path="/app/store/licenses" element={<AppLicenseManager />} /> icon="🛒" description="公司推薦應用程式" />} />
+        <Route path="/app/store/licenses" element={<AppLicenseManager />} />
+        <Route path="/app/store/requests" element={<AppAccessRequests />} /> icon="🛒" description="公司推薦應用程式" />} />
         <Route path="/app/suggest" element={<Placeholder title="建議購買" icon="💡" description="提交購買建議" />} />
         {/* 工作匯報 */}
         <Route path="/work/daily" element={<DailyReport />} />
