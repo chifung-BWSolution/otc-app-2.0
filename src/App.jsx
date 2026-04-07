@@ -26,6 +26,7 @@ import ResourceBorrow from './pages/company/ResourceBorrow';
 import AdminHelp from './pages/company/AdminHelp';
 import CompanyFAQ from './pages/company/CompanyFAQ';
 import TechNews from './pages/app/TechNews';
+import AppStore from './pages/app/AppStore';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -66,7 +67,7 @@ const AuthenticatedApp = () => {
         <Route path="/company/admin-help" element={<AdminHelp />} />
         {/* App資訊 */}
         <Route path="/app/tech-news" element={<TechNews />} />
-        <Route path="/app/store" element={<Placeholder title="App Store" icon="🛒" description="公司推薦應用程式" />} />
+        <Route path="/app/store" element={<AppStore />} /> icon="🛒" description="公司推薦應用程式" />} />
         <Route path="/app/suggest" element={<Placeholder title="建議購買" icon="💡" description="提交購買建議" />} />
         {/* 工作匯報 */}
         <Route path="/work/daily" element={<DailyReport />} />
