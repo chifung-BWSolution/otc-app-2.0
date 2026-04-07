@@ -508,6 +508,11 @@ export default function AppStore() {
           </button>
         )}
         {isAdmin && (
+          <button onClick={() => navigate("/app/store/licenses")} className="flex items-center gap-1.5 bg-teal-100 text-teal-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-teal-200 transition-colors">
+            🔑 授權管理
+          </button>
+        )}
+        {isAdmin && (
           <button onClick={() => { setEditApp(null); setShowForm(true); }} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
             <Plus size={14} /> 新增App
           </button>
