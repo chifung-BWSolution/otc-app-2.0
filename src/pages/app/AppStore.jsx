@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, X, Search, ExternalLink, CreditCard, Calendar, Users, BookOpen, MessageSquare, ChevronRight, Edit2, Play, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { Plus, X, Search, ExternalLink, CreditCard, Calendar, Users, BookOpen, MessageSquare, ChevronRight, Edit2, Play, AlertCircle, CheckCircle, Clock, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const CATEGORIES = ["全部", "生產力工具", "溝通協作", "銷售CRM", "財務會計", "HR管理", "設計創意", "IT安全", "數據分析", "其他"];
+const DEPTS_FILTER = ["全部部門", "市場部", "銷售部", "IT部", "財務部", "人事部", "行政部", "全體"];
 const DEPTS = ["市場部", "銷售部", "IT部", "財務部", "人事部", "行政部", "全體"];
 const catColor = {
   "生產力工具": "bg-blue-100 text-blue-700", "溝通協作": "bg-purple-100 text-purple-700",
@@ -437,6 +438,11 @@ export default function AppStore() {
   const [currentUser, setCurrentUser] = useState(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("全部");
+  const [deptFilter, setDeptFilter] = useState("全部部門");
+  const [specialFilter, setSpecialFilter] = useState("全部"); // 全部 | 收藏 | 最常用
+  const [favorites, setFavorites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("appstore_favorites") || "[]"); } catch { return []; }
+  });
   const [selectedApp, setSelectedApp] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editApp, setEditApp] = useState(null);
@@ -455,10 +461,26 @@ export default function AppStore() {
 
   const isAdmin = currentUser?.role === "admin";
 
-  const filtered = apps.filter(a =>
-    (catFilter === "全部" || a.category === catFilter) &&
-    (a.name?.toLowerCase().includes(search.toLowerCase()) || a.description?.includes(search))
-  );
+  const toggleFavorite = (appId, e) => {
+    e.stopPropagation();
+    const next = favorites.includes(appId) ? favorites.filter(id => id !== appId) : [...favorites, appId];
+    setFavorites(next);
+    localStorage.setItem("appstore_favorites", JSON.stringify(next));
+  };
+
+  // "最常用" = apps assigned to most departments
+  const sortedByUsage = [...apps].sort((a, b) => (b.departments?.length || 0) - (a.departments?.length || 0));
+  const mostUsedIds = new Set(sortedByUsage.slice(0, 6).map(a => a.id));
+
+  const filtered = apps.filter(a => {
+    const matchSearch = a.name?.toLowerCase().includes(search.toLowerCase()) || a.description?.includes(search);
+    const matchCat = catFilter === "全部" || a.category === catFilter;
+    const matchDept = deptFilter === "全部部門" || (a.departments || []).includes(deptFilter);
+    const matchSpecial = specialFilter === "全部" ||
+      (specialFilter === "收藏" && favorites.includes(a.id)) ||
+      (specialFilter === "最常用" && mostUsedIds.has(a.id));
+    return matchSearch && matchCat && matchDept && matchSpecial;
+  });
 
   const expiringApps = apps.filter(a => { const d = daysUntil(a.expiry_date); return d !== null && d <= 30 && d >= 0; });
   const totalMonthly = apps.filter(a => a.status === "使用中").reduce((s, a) => s + (a.monthly_cost || 0), 0);
@@ -494,6 +516,7 @@ export default function AppStore() {
       )}
 
       {/* Toolbar */}
+      <div className="space-y-2">
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-36">
           <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
@@ -501,6 +524,9 @@ export default function AppStore() {
         </div>
         <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
           {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+        </select>
+        <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+          {DEPTS_FILTER.map(d => <option key={d}>{d}</option>)}
         </select>
         {isAdmin && (
           <button onClick={() => navigate("/app/store/analytics")} className="flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-purple-200 transition-colors">
@@ -518,6 +544,22 @@ export default function AppStore() {
           </button>
         )}
       </div>
+      {/* Special filter chips */}
+      <div className="flex gap-2">
+        {["全部", "收藏", "最常用"].map(f => (
+          <button key={f} onClick={() => setSpecialFilter(f)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              specialFilter === f ? "bg-yellow-400 text-white border-yellow-400" : "bg-white text-gray-500 border-gray-200 hover:border-yellow-300"
+            }`}>
+            {f === "收藏" && <Star size={11} />}{f === "最常用" && "🔥"} {f}
+          </button>
+        ))}
+        {(catFilter !== "全部" || deptFilter !== "全部部門" || specialFilter !== "全部" || search) && (
+          <button onClick={() => { setCatFilter("全部"); setDeptFilter("全部部門"); setSpecialFilter("全部"); setSearch(""); }} className="ml-auto text-xs text-red-400 hover:text-red-600">清除篩選</button>
+        )}
+        <span className="ml-auto text-xs text-gray-400">共 {filtered.length} 個</span>
+      </div>
+      </div>
 
       {/* App Grid */}
       {loading ? (
@@ -532,7 +574,14 @@ export default function AppStore() {
           {filtered.map(app => {
             const days = daysUntil(app.expiry_date);
             return (
-              <button key={app.id} onClick={() => setSelectedApp(app)} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left hover:shadow-md transition-shadow group">
+              <button key={app.id} onClick={() => setSelectedApp(app)} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left hover:shadow-md transition-shadow group relative">
+                {/* Favorite button */}
+                <button
+                  onClick={e => toggleFavorite(app.id, e)}
+                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-yellow-50 transition-colors z-10"
+                >
+                  <Star size={14} className={favorites.includes(app.id) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                </button>
                 <div className="flex items-start gap-3">
                   {app.icon_url ? (
                     <img src={app.icon_url} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0" />
