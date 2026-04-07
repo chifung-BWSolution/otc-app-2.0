@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, X, Search, ExternalLink, CreditCard, Calendar, Users, BookOpen, MessageSquare, ChevronRight, Edit2, Play, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
@@ -430,6 +431,7 @@ function AppFormModal({ app, onClose, onSaved }) {
 
 // ── Main Page ──────────────────────────────────────────
 export default function AppStore() {
+  const navigate = useNavigate();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -500,6 +502,11 @@ export default function AppStore() {
         <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
           {CATEGORIES.map(c => <option key={c}>{c}</option>)}
         </select>
+        {isAdmin && (
+          <button onClick={() => navigate("/app/store/analytics")} className="flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-purple-200 transition-colors">
+            📊 分析報表
+          </button>
+        )}
         {isAdmin && (
           <button onClick={() => { setEditApp(null); setShowForm(true); }} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
             <Plus size={14} /> 新增App
