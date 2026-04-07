@@ -1,0 +1,60 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "title": "\u6536\u4ef6\u4ebaEmail"
+    },
+    "title": {
+      "type": "string",
+      "title": "\u6a19\u984c"
+    },
+    "message": {
+      "type": "string",
+      "title": "\u8a0a\u606f\u5167\u5bb9"
+    },
+    "type": {
+      "type": "string",
+      "title": "\u985e\u578b",
+      "enum": [
+        "app_expiry",
+        "general"
+      ],
+      "default": "general"
+    },
+    "ref_id": {
+      "type": "string",
+      "title": "\u95dc\u806fID\uff08App ID\u7b49\uff09"
+    },
+    "ref_name": {
+      "type": "string",
+      "title": "\u95dc\u806f\u540d\u7a31"
+    },
+    "days_remaining": {
+      "type": "number",
+      "title": "\u5269\u9918\u5929\u6578"
+    },
+    "is_read": {
+      "type": "boolean",
+      "title": "\u5df2\u8b80",
+      "default": false
+    },
+    "action_taken": {
+      "type": "string",
+      "title": "\u5df2\u57f7\u884c\u52d5\u4f5c",
+      "enum": [
+        "pending",
+        "renew",
+        "cancel"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "title",
+    "message",
+    "type"
+  ]
+}

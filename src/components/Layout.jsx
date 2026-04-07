@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { Menu, Bell, User } from "lucide-react";
+import { Menu, User } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import NotificationBell from "./NotificationBell";
 
 const pageTitles = {
   "/": "🏠 主頁",
@@ -52,8 +54,13 @@ const pageTitles = {
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const location = useLocation();
   const title = pageTitles[location.pathname] || "企業管理系統";
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -70,10 +77,7 @@ export default function Layout() {
             <h1 className="text-lg font-bold text-gray-800">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-full hover:bg-gray-100 relative">
-              <Bell size={20} className="text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <NotificationBell currentUser={currentUser} />
             <button className="p-2 rounded-full hover:bg-gray-100">
               <User size={20} className="text-gray-600" />
             </button>
