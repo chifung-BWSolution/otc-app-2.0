@@ -1,0 +1,79 @@
+{
+  "name": "AssessmentResult",
+  "type": "object",
+  "properties": {
+    "student_email": {
+      "type": "string",
+      "title": "\u5b78\u54e1 Email"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "\u5b78\u54e1\u59d3\u540d"
+    },
+    "course_name": {
+      "type": "string",
+      "title": "\u8003\u6838\u8ab2\u7a0b"
+    },
+    "team": {
+      "type": "string",
+      "title": "\u6240\u5c6c\u5718\u968a"
+    },
+    "office": {
+      "type": "string",
+      "title": "\u8fa6\u516c\u5ba4"
+    },
+    "score": {
+      "type": "number",
+      "title": "\u8003\u6838\u6210\u7e3e"
+    },
+    "passing_status": {
+      "type": "string",
+      "title": "\u6700\u7d42\u7d50\u679c",
+      "enum": [
+        "\u5408\u683c",
+        "\u4e0d\u5408\u683c",
+        "\u9700\u88dc\u8003"
+      ],
+      "default": "\u4e0d\u5408\u683c"
+    },
+    "primary_exam_date": {
+      "type": "string",
+      "title": "\u6b63\u8003\u6642\u9593",
+      "format": "date"
+    },
+    "primary_exam_score": {
+      "type": "number",
+      "title": "\u6b63\u8003\u5206\u6578"
+    },
+    "retest_exam_date": {
+      "type": "string",
+      "title": "\u88dc\u8003\u6642\u9593",
+      "format": "date"
+    },
+    "retest_exam_score": {
+      "type": "number",
+      "title": "\u88dc\u8003\u5206\u6578"
+    },
+    "exam_result_id": {
+      "type": "string",
+      "title": "\u95dc\u806f ExamResult ID"
+    },
+    "remarks": {
+      "type": "string",
+      "title": "\u5099\u8a3b"
+    },
+    "assessment_type": {
+      "type": "string",
+      "title": "\u8003\u6838\u985e\u578b"
+    }
+  },
+  "required": [
+    "student_email",
+    "student_name",
+    "course_name",
+    "team",
+    "score",
+    "passing_status",
+    "primary_exam_date"
+  ]
+}

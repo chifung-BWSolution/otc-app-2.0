@@ -1,0 +1,65 @@
+{
+  "name": "AssessmentArrangement",
+  "type": "object",
+  "properties": {
+    "course_name": {
+      "type": "string",
+      "title": "\u95dc\u806f\u8ab2\u7a0b"
+    },
+    "student_email": {
+      "type": "string",
+      "title": "\u8003\u6838\u4eba\u54e1 Email"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "\u8003\u6838\u4eba\u54e1\u59d3\u540d"
+    },
+    "team": {
+      "type": "string",
+      "title": "\u6240\u5c6c\u5718\u968a"
+    },
+    "assessment_date": {
+      "type": "string",
+      "title": "\u8003\u6838\u6642\u9593",
+      "format": "date-time"
+    },
+    "assessment_end_date": {
+      "type": "string",
+      "title": "\u8003\u6838\u7d50\u675f\u6642\u9593",
+      "format": "date-time"
+    },
+    "question_file_url": {
+      "type": "string",
+      "title": "\u8003\u6838\u8a66\u984c URL"
+    },
+    "max_attempts": {
+      "type": "number",
+      "title": "\u8003\u6838\u6b21\u6578"
+    },
+    "passing_score": {
+      "type": "number",
+      "title": "\u5408\u683c\u5206\u6578"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u672a\u958b\u59cb",
+        "\u9032\u884c\u4e2d",
+        "\u5df2\u5b8c\u6210"
+      ],
+      "default": "\u672a\u958b\u59cb"
+    },
+    "remarks": {
+      "type": "string",
+      "title": "\u5099\u8a3b"
+    }
+  },
+  "required": [
+    "course_name",
+    "student_email",
+    "assessment_date",
+    "max_attempts",
+    "passing_score"
+  ]
+}

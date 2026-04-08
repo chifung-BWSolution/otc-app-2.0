@@ -1,0 +1,60 @@
+{
+  "name": "ExamQuestion",
+  "type": "object",
+  "properties": {
+    "course_name": {
+      "type": "string",
+      "title": "\u95dc\u806f\u8ab2\u7a0b"
+    },
+    "question_text": {
+      "type": "string",
+      "title": "\u984c\u76ee\u6587\u672c"
+    },
+    "question_type": {
+      "type": "string",
+      "title": "\u984c\u76ee\u985e\u578b",
+      "enum": [
+        "\u55ae\u9078",
+        "\u591a\u9078",
+        "\u5224\u65b7"
+      ],
+      "default": "\u55ae\u9078"
+    },
+    "options": {
+      "type": "array",
+      "title": "\u9078\u9805",
+      "items": {
+        "type": "string"
+      }
+    },
+    "correct_answer": {
+      "type": "string",
+      "title": "\u6b63\u78ba\u7b54\u6848"
+    },
+    "points": {
+      "type": "number",
+      "title": "\u5206\u503c"
+    },
+    "explanation": {
+      "type": "string",
+      "title": "\u89e3\u91cb"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "\u8349\u7a3f",
+        "\u5df2\u767c\u5e03",
+        "\u5df2\u505c\u7528"
+      ],
+      "default": "\u5df2\u767c\u5e03"
+    }
+  },
+  "required": [
+    "course_name",
+    "question_text",
+    "question_type",
+    "correct_answer",
+    "points"
+  ]
+}

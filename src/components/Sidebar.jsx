@@ -75,7 +75,7 @@ const menuGroups = [
       { label: "🗓️ 培訓日程", path: "/course/schedule" },
       { label: "📝 每星期匯報", path: "/course/weekly" },
       { label: "🧠 我的知識", path: "/course/my-knowledge" },
-      { label: "📜 考核申請", path: "/course/exam" },
+      { label: "📚 考試中心", path: "/course/exam" },
     ],
   },
   {
@@ -110,6 +110,8 @@ const menuGroups = [
     items: [
       { label: "✅ 批核申請", path: "/admin/approvals" },
       { label: "🌴 假期審批", path: "/admin/leave-approvals" },
+      { label: "📋 考核安排", path: "/admin/assessment-arrangement" },
+      { label: "📊 考核成績登記", path: "/admin/assessment-results" },
       { label: "👤 員工管理", path: "/admin/staff" },
       { label: "➕ 建立帳戶", path: "/admin/create-account" },
       { label: "🎉 新同事入職", path: "/admin/onboarding" },

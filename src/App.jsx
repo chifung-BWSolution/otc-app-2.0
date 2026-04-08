@@ -30,6 +30,9 @@ import AppStore from './pages/app/AppStore';
 import AppStoreAnalytics from './pages/app/AppStoreAnalytics';
 import AppLicenseManager from './pages/app/AppLicenseManager';
 import AppAccessRequests from './pages/app/AppAccessRequests';
+import AssessmentArrangement from './pages/admin/AssessmentArrangement';
+import ExamCenter from './pages/course/ExamCenter';
+import AssessmentResultRegistry from './pages/admin/AssessmentResultRegistry';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -89,6 +92,7 @@ const AuthenticatedApp = () => {
         <Route path="/attendance/overtime" element={<Placeholder title="活動加班" icon="⚡" description="申請加班記錄" />} />
         {/* 課程管理 */}
         <Route path="/course/center" element={<CourseCenter />} />
+        <Route path="/course/exam" element={<ExamCenter />} />
         <Route path="/course/schedule" element={<Placeholder title="培訓日程" icon="🗓️" description="查看即將舉行的培訓" />} />
         <Route path="/course/weekly" element={<Placeholder title="每星期匯報" icon="📝" description="提交每週課程學習匯報" />} />
         <Route path="/course/my-knowledge" element={<Placeholder title="我的知識" icon="🧠" description="個人學習成果及知識庫" />} />
@@ -103,6 +107,8 @@ const AuthenticatedApp = () => {
         {/* 行政跟進 */}
         <Route path="/admin/approvals" element={<Approvals />} />
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
+        <Route path="/admin/assessment-arrangement" element={<AssessmentArrangement />} />
+        <Route path="/admin/assessment-results" element={<AssessmentResultRegistry />} />
         <Route path="/admin/staff" element={<Placeholder title="員工管理" icon="👤" description="管理員工資料及狀態" />} />
         <Route path="/admin/create-account" element={<Placeholder title="建立帳戶" icon="➕" description="為新員工建立系統帳戶" />} />
         <Route path="/admin/onboarding" element={<Placeholder title="新同事入職" icon="🎉" description="新員工入職流程管理" />} />
