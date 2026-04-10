@@ -90,7 +90,8 @@ const modules = [
     items: [
       { label: "批核申請", path: "/admin/approvals", icon: "✅" },
       { label: "假期審批", path: "/admin/leave-approvals", icon: "🌴" },
-      { label: "員工管理", path: "/admin/staff", icon: "👤" },
+      { label: "員工目錄", path: "/admin/staff", icon: "👤" },
+      { label: "組織架構設定", path: "/admin/org-settings", icon: "🏗️" },
       { label: "建立帳戶", path: "/admin/create-account", icon: "➕" },
       { label: "新同事入職", path: "/admin/onboarding", icon: "🎉" },
       { label: "同事離職", path: "/admin/offboarding", icon: "👋" },

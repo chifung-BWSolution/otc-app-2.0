@@ -1,0 +1,26 @@
+{
+  "name": "NOSTeamRole",
+  "type": "object",
+  "properties": {
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID"
+    },
+    "display": {
+      "type": "string",
+      "title": "Role \u540d\u7a31"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u63cf\u8ff0"
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    }
+  },
+  "required": [
+    "display"
+  ]
+}

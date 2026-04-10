@@ -33,6 +33,8 @@ import AppAccessRequests from './pages/app/AppAccessRequests';
 import AssessmentArrangement from './pages/admin/AssessmentArrangement';
 import ExamCenter from './pages/course/ExamCenter';
 import AssessmentResultRegistry from './pages/admin/AssessmentResultRegistry';
+import StaffDirectory from './pages/admin/StaffDirectory';
+import OrgSettings from './pages/admin/OrgSettings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -109,7 +111,8 @@ const AuthenticatedApp = () => {
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
         <Route path="/admin/assessment-arrangement" element={<AssessmentArrangement />} />
         <Route path="/admin/assessment-results" element={<AssessmentResultRegistry />} />
-        <Route path="/admin/staff" element={<Placeholder title="員工管理" icon="👤" description="管理員工資料及狀態" />} />
+        <Route path="/admin/staff" element={<StaffDirectory />} />
+        <Route path="/admin/org-settings" element={<OrgSettings />} />
         <Route path="/admin/create-account" element={<Placeholder title="建立帳戶" icon="➕" description="為新員工建立系統帳戶" />} />
         <Route path="/admin/onboarding" element={<Placeholder title="新同事入職" icon="🎉" description="新員工入職流程管理" />} />
         <Route path="/admin/offboarding" element={<Placeholder title="同事離職" icon="👋" description="員工離職流程管理" />} />
