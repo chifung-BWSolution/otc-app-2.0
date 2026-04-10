@@ -11,7 +11,7 @@ async function bubbleFetchAll(dataType) {
   let all = [];
   let cursor = 0;
   while (true) {
-    const url = `${BUBBLE_URL}/${dataType}?limit=100&cursor=${cursor}`;
+    const url = `${BUBBLE_URL}/${encodeURIComponent(dataType)}?limit=100&cursor=${cursor}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${BUBBLE_TOKEN}` } });
     if (!res.ok) {
       console.log(`Bubble ${dataType} error: ${res.status}`);
@@ -41,32 +41,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    // 1. Fetch Staff from Bubble
-    console.log('Fetching Staff...');
-    const staffList = await bubbleFetchAll('Staff');
-    console.log(`Total staff: ${staffList.length}`);
-    await sleep(500);
+    // 1. Fetch all related lookup tables in parallel
+    console.log('Fetching lookup tables...');
+    const [staffList, teamList, buList, teamRoleList] = await Promise.all([
+      bubbleFetchAll('Staff'),
+      bubbleFetchAll('NOS Team'),
+      bubbleFetchAll('NOS BU'),
+      bubbleFetchAll('NOS Team Role'),
+    ]);
 
-    // Try common Bubble type name variants for Team/BU/TeamRole
-    console.log('Fetching Teams...');
-    const teamList = await bubbleFetchAll('team');
-    await sleep(300);
+    console.log(`Staff: ${staffList.length}, Teams: ${teamList.length}, BUs: ${buList.length}, Team Roles: ${teamRoleList.length}`);
 
-    console.log('Fetching BUs...');
-    const buList = await bubbleFetchAll('bu');
-    await sleep(300);
-
-    console.log('Fetching Team Roles...');
-    const teamRoleList = await bubbleFetchAll('team_role');
-
-    // 2. Build lookup maps
+    // 2. Build lookup maps (ID → Display name)
     const teamMap = {};
     const buMap = {};
     const teamRoleMap = {};
     const staffNameMap = {};
-    for (const t of teamList) teamMap[t['_id']] = t['Name'] || t['name'] || '';
-    for (const b of buList) buMap[b['_id']] = b['Name'] || b['name'] || '';
-    for (const r of teamRoleList) teamRoleMap[r['_id']] = r['Name'] || r['name'] || '';
+
+    for (const t of teamList) teamMap[t['_id']] = t['Display'] || '';
+    for (const b of buList) buMap[b['_id']] = b['Display'] || '';
+    for (const r of teamRoleList) teamRoleMap[r['_id']] = r['Display'] || '';
     for (const s of staffList) staffNameMap[s['_id']] = s['Display Name'] || s['Full Name'] || '';
 
     // 3. Get existing base44 Staff records
@@ -87,6 +81,11 @@ Deno.serve(async (req) => {
     const toUpdate = [];
 
     for (const s of staffList) {
+      const teamId = s['N_Team'] || '';
+      const buId = s['N_BU'] || '';
+      const teamRoleId = s['N_Team Role'] || '';
+      const teamLeaderId = s['Team Leader'] || '';
+
       const record = {
         bubble_id: s['_id'],
         bubble_created_date: s['Created Date'] || null,
@@ -124,14 +123,15 @@ Deno.serve(async (req) => {
         brands: Array.isArray(s['Brands']) ? s['Brands'] : [],
         new_direct_phone: Array.isArray(s['New Direct Phone']) ? s['New Direct Phone'] : [],
         other_phone: Array.isArray(s['Other Phone']) ? s['Other Phone'] : [],
-        n_team: s['N_Team'] || '',
-        team_name: s['N_Team'] ? (teamMap[s['N_Team']] || '') : '',
-        n_bu: s['N_BU'] || '',
-        bu_name: s['N_BU'] ? (buMap[s['N_BU']] || '') : '',
-        n_team_role: s['N_Team Role'] || '',
-        team_role_name: s['N_Team Role'] ? (teamRoleMap[s['N_Team Role']] || '') : '',
-        team_leader: s['Team Leader'] || '',
-        team_leader_name: s['Team Leader'] ? (staffNameMap[s['Team Leader']] || '') : '',
+        // Team/BU/Role with resolved Display names
+        n_team: teamId,
+        team_name: teamMap[teamId] || '',
+        n_bu: buId,
+        bu_name: buMap[buId] || '',
+        n_team_role: teamRoleId,
+        team_role_name: teamRoleMap[teamRoleId] || '',
+        team_leader: teamLeaderId,
+        team_leader_name: staffNameMap[teamLeaderId] || '',
       };
 
       const bid = s['_id'];
@@ -170,6 +170,9 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       bubble_total: staffList.length,
+      teams_loaded: teamList.length,
+      bus_loaded: buList.length,
+      team_roles_loaded: teamRoleList.length,
       created,
       updated,
       skipped: staffList.length - created - updated,
