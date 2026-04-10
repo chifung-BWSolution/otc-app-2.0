@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'dataType is required' }, { status: 400 });
     }
 
-    const baseUrl = Deno.env.get('BUBBLE_API_URL');
+    const baseUrl = Deno.env.get('BUBBLE_API_URL'); // e.g. https://chifung.net/api/1.1/obj
     const token = Deno.env.get('BUBBLE_API_TOKEN');
 
-    let url = `${baseUrl}/obj/${dataType}?limit=${limit}&cursor=${cursor}`;
+    let url = `${baseUrl}/${dataType}?limit=${limit}&cursor=${cursor}`;
 
     if (constraints && constraints.length > 0) {
       url += `&constraints=${encodeURIComponent(JSON.stringify(constraints))}`;
