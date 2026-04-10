@@ -14,14 +14,13 @@ async function bubbleFetchAll(dataType) {
     const url = `${BUBBLE_URL}/${dataType}?limit=100&cursor=${cursor}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${BUBBLE_TOKEN}` } });
     if (!res.ok) {
-      console.log(`Bubble ${dataType} error: ${res.status} ${await res.text()}`);
+      console.log(`Bubble ${dataType} error: ${res.status}`);
       break;
     }
     const data = await res.json();
     const results = data.response?.results || [];
     all = all.concat(results);
     const remaining = data.response?.remaining || 0;
-    console.log(`${dataType}: got ${results.length}, remaining ${remaining}`);
     if (remaining === 0 || results.length === 0) break;
     cursor += results.length;
     await sleep(300);
@@ -42,22 +41,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    // 1. Fetch Bubble data sequentially
+    // 1. Fetch Staff from Bubble
     console.log('Fetching Staff...');
     const staffList = await bubbleFetchAll('Staff');
     console.log(`Total staff: ${staffList.length}`);
     await sleep(500);
 
+    // Try common Bubble type name variants for Team/BU/TeamRole
     console.log('Fetching Teams...');
-    const teamList = await bubbleFetchAll('Team');
+    const teamList = await bubbleFetchAll('team');
     await sleep(300);
 
     console.log('Fetching BUs...');
-    const buList = await bubbleFetchAll('BU');
+    const buList = await bubbleFetchAll('bu');
     await sleep(300);
 
     console.log('Fetching Team Roles...');
-    const teamRoleList = await bubbleFetchAll('Team_Role');
+    const teamRoleList = await bubbleFetchAll('team_role');
 
     // 2. Build lookup maps
     const teamMap = {};
@@ -71,19 +71,18 @@ Deno.serve(async (req) => {
 
     // 3. Get existing base44 Staff records
     const existing = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
-    const existingMap = {};
-    for (const e of existing) {
-      if (e.bubble_id) existingMap[e.bubble_id] = e.id;
-    }
     console.log(`Existing base44 staff: ${existing.length}`);
 
-    // Build modified date map for change detection
+    const existingMap = {};
     const existingModifiedMap = {};
     for (const e of existing) {
-      if (e.bubble_id) existingModifiedMap[e.bubble_id] = e.bubble_modified_date;
+      if (e.bubble_id) {
+        existingMap[e.bubble_id] = e.id;
+        existingModifiedMap[e.bubble_id] = e.bubble_modified_date || '';
+      }
     }
 
-    // 4. Map records
+    // 4. Classify records
     const toCreate = [];
     const toUpdate = [];
 
@@ -135,12 +134,12 @@ Deno.serve(async (req) => {
         team_leader_name: s['Team Leader'] ? (staffNameMap[s['Team Leader']] || '') : '',
       };
 
-      if (existingMap[s['_id']]) {
-        // Only update if modified date changed
-        const existingMod = existingModifiedMap[s['_id']];
-        const bubbleMod = s['Modified Date'] || null;
-        if (existingMod !== bubbleMod) {
-          toUpdate.push({ id: existingMap[s['_id']], data: record });
+      const bid = s['_id'];
+      if (existingMap[bid]) {
+        const bubbleMod = s['Modified Date'] || '';
+        const localMod = existingModifiedMap[bid] || '';
+        if (bubbleMod !== localMod) {
+          toUpdate.push({ id: existingMap[bid], data: record });
         }
       } else {
         toCreate.push(record);
@@ -149,7 +148,7 @@ Deno.serve(async (req) => {
 
     console.log(`To create: ${toCreate.length}, to update: ${toUpdate.length}`);
 
-    // 5. Create new in batches of 5
+    // 5. Bulk create in batches of 5
     let created = 0;
     for (let i = 0; i < toCreate.length; i += 5) {
       const batch = toCreate.slice(i, i + 5);
@@ -159,7 +158,7 @@ Deno.serve(async (req) => {
       await sleep(1500);
     }
 
-    // 6. Update existing one by one
+    // 6. Update changed records
     let updated = 0;
     for (const item of toUpdate) {
       await base44.asServiceRole.entities.Staff.update(item.id, item.data);
@@ -171,11 +170,9 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       bubble_total: staffList.length,
-      teams: teamList.length,
-      bus: buList.length,
-      team_roles: teamRoleList.length,
       created,
       updated,
+      skipped: staffList.length - created - updated,
     });
 
   } catch (error) {
