@@ -33,6 +33,7 @@ import AppAccessRequests from './pages/app/AppAccessRequests';
 import AssessmentArrangement from './pages/admin/AssessmentArrangement';
 import ExamCenter from './pages/course/ExamCenter';
 import AssessmentResultRegistry from './pages/admin/AssessmentResultRegistry';
+import AssessmentDashboard from './pages/admin/AssessmentDashboard';
 import StaffDirectory from './pages/admin/StaffDirectory';
 import OrgSettings from './pages/admin/OrgSettings';
 
@@ -111,6 +112,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
         <Route path="/admin/assessment-arrangement" element={<AssessmentArrangement />} />
         <Route path="/admin/assessment-results" element={<AssessmentResultRegistry />} />
+        <Route path="/admin/assessment-dashboard" element={<AssessmentDashboard />} />
         <Route path="/admin/staff" element={<StaffDirectory />} />
         <Route path="/admin/org-settings" element={<OrgSettings />} />
         <Route path="/admin/create-account" element={<Placeholder title="建立帳戶" icon="➕" description="為新員工建立系統帳戶" />} />

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Download, Edit2, Plus, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Edit2, Plus, X, BarChart2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function AssessmentResultRegistry() {
+  const navigate = useNavigate();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -63,9 +65,14 @@ export default function AssessmentResultRegistry() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black text-gray-900">考核成績登記</h2>
-        <button onClick={() => { setShowForm(true); setEditItem(null); }} className="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
-          <Plus size={16} /> 新增記錄
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => navigate("/admin/assessment-dashboard")} className="flex items-center gap-1.5 bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-200 transition-colors">
+            <BarChart2 size={16} /> 成績儀表板
+          </button>
+          <button onClick={() => { setShowForm(true); setEditItem(null); }} className="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
+            <Plus size={16} /> 新增記錄
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
