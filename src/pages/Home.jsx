@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import BirthdayWidget from "../components/BirthdayWidget";
-import { ChevronRight } from "lucide-react";
 
 const modules = [
   {
@@ -116,27 +115,22 @@ export default function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-6">
       <BirthdayWidget />
       {modules.map((mod) => (
-        <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Module Header */}
-          <div className={`${mod.color} px-4 py-3 flex items-center gap-2`}>
-            <span className="text-xl">{mod.icon}</span>
-            <span className="text-white font-black text-base">{mod.label}</span>
-          </div>
-
-          {/* Sub-items */}
-          <div className="divide-y divide-gray-50">
+        <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 pt-4 pb-2">
+          <h3 className="text-sm font-bold text-gray-700 mb-3">{mod.icon} {mod.label}</h3>
+          <div className="grid grid-cols-4 gap-y-4 gap-x-2">
             {mod.items.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
+                className="flex flex-col items-center gap-1.5 group"
               >
-                <span className="text-xl w-7 text-center">{item.icon}</span>
-                <span className="flex-1 text-sm font-medium text-gray-800 group-hover:text-gray-900">{item.label}</span>
-                <ChevronRight size={15} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl group-hover:bg-gray-100 group-active:scale-95 transition-all shadow-sm">
+                  {item.icon}
+                </div>
+                <span className="text-xs text-gray-600 text-center leading-tight w-full truncate px-0.5">{item.label}</span>
               </button>
             ))}
           </div>
