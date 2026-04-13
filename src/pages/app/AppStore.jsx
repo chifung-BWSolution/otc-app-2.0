@@ -85,7 +85,7 @@ function AppDetailPanel({ app, currentUser, onClose, onRefresh }) {
       admin_reply: reply, replied_by: currentUser.full_name,
       replied_at: new Date().toLocaleString("zh-HK"), status: "已完成",
     });
-    base64 = null;
+
     if (isAdmin) base44.entities.AppFeedback.filter({ app_id: app.id }, "-created_date", 100).then(setAllFeedbacks);
   };
 

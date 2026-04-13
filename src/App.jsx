@@ -79,11 +79,11 @@ const AuthenticatedApp = () => {
         <Route path="/app/store" element={<AppStore />} />
         <Route path="/app/store/analytics" element={<AppStoreAnalytics />} />
         <Route path="/app/store/licenses" element={<AppLicenseManager />} />
-        <Route path="/app/store/requests" element={<AppAccessRequests />} /> icon="🛒" description="公司推薦應用程式" />} />
+        <Route path="/app/store/requests" element={<AppAccessRequests />} />
         <Route path="/app/suggest" element={<Placeholder title="建議購買" icon="💡" description="提交購買建議" />} />
         {/* 工作匯報 */}
         <Route path="/work/daily" element={<DailyReport />} />
-        <Route path="/work/weekly" element={<WeeklyLearning />} /> icon="📚" description="提交本週學習匯報" />} />
+        <Route path="/work/weekly" element={<WeeklyLearning />} />
         <Route path="/work/kpi" element={<KPIReport />} />
         <Route path="/work/projects" element={<Placeholder title="主要項目" icon="🚀" description="查看及管理主要項目進度" />} />
         <Route path="/work/special-approval" element={<Placeholder title="特別批核" icon="✅" description="提交特別批核申請" />} />
