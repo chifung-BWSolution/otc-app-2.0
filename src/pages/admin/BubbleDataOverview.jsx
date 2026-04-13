@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Database, ChevronDown, ChevronRight, BarChart2, RefreshCw, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Database, ChevronDown, ChevronRight, BarChart2, RefreshCw, AlertTriangle, CheckCircle, XCircle, Link2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { buildFieldComparison } from "@/lib/bubbleFieldMapping";
 
 const ENTITIES = [
   { name: "Staff", label: "Staff（員工）" },
@@ -14,93 +15,95 @@ const ENTITIES = [
   { name: "BubbleStaffKPIMonth", label: "Staff KPI Month（KPI月份）" },
 ];
 
-function pctColor(pct) {
-  if (pct >= 80) return "bg-green-500";
-  if (pct >= 50) return "bg-yellow-400";
-  if (pct >= 20) return "bg-orange-400";
-  return "bg-red-400";
-}
-function pctTextColor(pct) {
-  if (pct >= 80) return "text-green-600";
-  if (pct >= 50) return "text-yellow-600";
-  if (pct >= 20) return "text-orange-600";
-  return "text-red-500";
-}
-
 function RowMatchBadge({ bubbleRows, dbRows }) {
   if (bubbleRows === null || dbRows === null) return null;
   const diff = dbRows - bubbleRows;
   if (diff === 0) return <span className="flex items-center gap-1 text-xs text-green-600 font-bold"><CheckCircle size={12} /> 一致</span>;
-  if (diff > 0) return <span className="flex items-center gap-1 text-xs text-orange-600 font-bold"><AlertTriangle size={12} /> DB多{diff}</span>;
-  return <span className="flex items-center gap-1 text-xs text-red-600 font-bold"><XCircle size={12} /> DB少{Math.abs(diff)}</span>;
+  if (diff > 0) return <span className="flex items-center gap-1 text-xs text-orange-600 font-bold"><AlertTriangle size={12} /> +{diff}</span>;
+  return <span className="flex items-center gap-1 text-xs text-red-600 font-bold"><XCircle size={12} /> {diff}</span>;
 }
 
-function FieldCompareRow({ fieldName, bubbleField, dbField }) {
-  const bubbleFilled = bubbleField?.estimatedFilled ?? null;
-  const bubbleTotal = bubbleField?.estimatedTotal ?? null;
-  const dbFilled = dbField?.filled ?? null;
-  const dbTotal = dbField ? (dbField.filled + dbField.empty) : null;
+function FieldRow({ row }) {
+  const { bubbleName, dbName, bubbleStats, dbStats } = row;
+  const bFilled = bubbleStats?.estimatedFilled ?? null;
+  const bTotal = bubbleStats?.estimatedTotal ?? null;
+  const dFilled = dbStats?.filled ?? null;
+  const dTotal = dbStats ? (dbStats.filled + dbStats.empty) : null;
+  const matched = bubbleName && dbName;
+  const hasBoth = bFilled !== null && dFilled !== null;
+  const diff = hasBoth ? dFilled - bFilled : null;
 
-  // If we have both, show comparison
-  const hasBoth = bubbleFilled !== null && dbFilled !== null;
-  const match = hasBoth && dbFilled === bubbleFilled;
-  const diff = hasBoth ? dbFilled - bubbleFilled : null;
+  // Bar width based on max of both
+  const maxVal = Math.max(bFilled || 0, dFilled || 0, 1);
 
   return (
-    <div className="flex items-center gap-2 text-xs py-1 border-b border-gray-50 last:border-0">
-      <span className="w-48 truncate text-gray-700 font-medium shrink-0" title={fieldName}>{fieldName}</span>
+    <div className={`flex items-center gap-1 text-xs py-1.5 border-b border-gray-50 last:border-0 ${!matched ? "opacity-60" : ""}`}>
+      {/* Bubble field name */}
+      <div className="w-[170px] shrink-0 truncate text-right pr-2" title={bubbleName || ""}>
+        {bubbleName ? (
+          <span className="text-purple-700 font-medium">{bubbleName}</span>
+        ) : (
+          <span className="text-gray-300 italic">—</span>
+        )}
+      </div>
 
-      {/* Bubble */}
-      <div className="w-24 text-right shrink-0">
-        {bubbleFilled !== null ? (
-          <span className="text-purple-600 font-semibold">{bubbleFilled.toLocaleString()}</span>
+      {/* Bubble count */}
+      <div className="w-16 shrink-0 text-right font-bold tabular-nums">
+        {bFilled !== null ? (
+          <span className="text-purple-600">{bFilled.toLocaleString()}</span>
         ) : (
           <span className="text-gray-300">—</span>
         )}
       </div>
 
-      {/* DB */}
-      <div className="w-24 text-right shrink-0">
-        {dbFilled !== null ? (
-          <span className="text-blue-600 font-semibold">{dbFilled.toLocaleString()}</span>
+      {/* Visual bars */}
+      <div className="flex-1 min-w-20 flex flex-col gap-0.5 px-1">
+        <div className="h-[5px] bg-gray-100 rounded-full overflow-hidden">
+          {bFilled !== null && (
+            <div className="h-full bg-purple-400 rounded-full" style={{ width: `${Math.round((bFilled / maxVal) * 100)}%` }} />
+          )}
+        </div>
+        <div className="h-[5px] bg-gray-100 rounded-full overflow-hidden">
+          {dFilled !== null && (
+            <div className={`h-full rounded-full ${hasBoth && dFilled >= bFilled ? "bg-green-400" : "bg-blue-400"}`}
+              style={{ width: `${Math.round(((dFilled || 0) / maxVal) * 100)}%` }} />
+          )}
+        </div>
+      </div>
+
+      {/* DB count */}
+      <div className="w-16 shrink-0 text-left font-bold tabular-nums">
+        {dFilled !== null ? (
+          <span className="text-blue-600">{dFilled.toLocaleString()}</span>
         ) : (
           <span className="text-gray-300">—</span>
         )}
       </div>
 
-      {/* Visual bar — use bubble as baseline denominator */}
-      <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden relative">
-        {bubbleFilled !== null && bubbleFilled > 0 && (
-          <div className="absolute inset-0 bg-purple-200 rounded-full" style={{ width: "100%" }} />
-        )}
-        {dbFilled !== null && bubbleFilled !== null && bubbleFilled > 0 && (
-          <div
-            className={`absolute inset-0 rounded-full ${dbFilled >= bubbleFilled ? "bg-green-400" : "bg-blue-400"}`}
-            style={{ width: `${Math.min(100, Math.round((dbFilled / bubbleFilled) * 100))}%` }}
-          />
-        )}
-        {bubbleFilled === null && dbFilled !== null && dbTotal > 0 && (
-          <div
-            className="absolute inset-0 bg-blue-400 rounded-full"
-            style={{ width: `${Math.round((dbFilled / dbTotal) * 100)}%` }}
-          />
+      {/* DB field name */}
+      <div className="w-[170px] shrink-0 truncate pl-2" title={dbName || ""}>
+        {dbName ? (
+          <span className="text-blue-700 font-medium">{dbName}</span>
+        ) : (
+          <span className="text-gray-300 italic">—</span>
         )}
       </div>
 
-      {/* Status */}
-      <div className="w-20 text-right shrink-0">
+      {/* Link icon for matched */}
+      <div className="w-5 shrink-0 text-center">
+        {matched ? <Link2 size={10} className="text-green-400 inline" /> : null}
+      </div>
+
+      {/* Diff */}
+      <div className="w-14 shrink-0 text-right">
         {hasBoth ? (
-          match ? (
+          diff === 0 ? (
             <span className="text-green-600 font-bold">✓</span>
           ) : diff > 0 ? (
             <span className="text-orange-500 font-semibold">+{diff.toLocaleString()}</span>
           ) : (
             <span className="text-red-500 font-semibold">{diff.toLocaleString()}</span>
           )
-        ) : bubbleFilled !== null ? (
-          <span className="text-purple-400">Bubble only</span>
-        ) : dbFilled !== null ? (
-          <span className="text-blue-400">DB only</span>
         ) : null}
       </div>
     </div>
@@ -110,20 +113,14 @@ function FieldCompareRow({ fieldName, bubbleField, dbField }) {
 function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, expanded }) {
   const bubbleRows = bubbleInfo?.bubbleTotalRows ?? null;
   const dbRows = dbStats?.totalCount ?? null;
-  const loading = expanded && !bubbleFieldStats && !dbStats;
+  const loading = expanded && (!bubbleFieldStats || !dbStats);
 
-  // Merge field lists from both sources
   const bubbleFields = bubbleFieldStats?.fields || {};
   const dbFields = dbStats?.fields || {};
-  const allFieldNames = new Set([...Object.keys(bubbleFields), ...Object.keys(dbFields)]);
-
-  // Build a mapping: try to find matching DB field for each Bubble field
-  // This is approximate — Bubble fields are display names, DB fields are snake_case
-  const sortedFields = [...allFieldNames].sort((a, b) => {
-    const aBubble = bubbleFields[a]?.estimatedFilled || 0;
-    const bBubble = bubbleFields[b]?.estimatedFilled || 0;
-    return bBubble - aBubble;
-  });
+  const comparison = buildFieldComparison(entity.name, bubbleFields, dbFields);
+  const matchedCount = comparison.filter(r => r.bubbleName && r.dbName).length;
+  const unmatchedBubble = comparison.filter(r => r.bubbleName && !r.dbName).length;
+  const unmatchedDb = comparison.filter(r => !r.bubbleName && r.dbName).length;
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -146,7 +143,7 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
           <div className="text-xs text-gray-400">DB</div>
           <div className="text-sm font-bold text-blue-600">{dbRows !== null ? dbRows.toLocaleString() : "—"}</div>
         </div>
-        <div className="shrink-0 w-24 text-right">
+        <div className="shrink-0 w-16 text-right">
           <RowMatchBadge bubbleRows={bubbleRows} dbRows={dbRows} />
         </div>
         {expanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
@@ -154,72 +151,67 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
 
       {expanded && (
         <div className="border-t border-gray-100 px-4 py-3">
-          {/* Row count comparison */}
+          {/* Row count summary */}
           <div className="flex gap-3 mb-3">
             <div className="flex-1 bg-purple-50 rounded-lg px-3 py-2 text-center">
               <div className="text-sm font-bold text-purple-600">{bubbleRows !== null ? bubbleRows.toLocaleString() : "—"}</div>
-              <div className="text-xs text-gray-500">Bubble Rows</div>
+              <div className="text-xs text-gray-500">Bubble 總行數</div>
             </div>
             <div className="flex-1 bg-blue-50 rounded-lg px-3 py-2 text-center">
               <div className="text-sm font-bold text-blue-600">{dbRows !== null ? dbRows.toLocaleString() : "—"}</div>
-              <div className="text-xs text-gray-500">DB Rows</div>
+              <div className="text-xs text-gray-500">DB 總行數</div>
             </div>
             <div className={`flex-1 rounded-lg px-3 py-2 text-center ${
-              bubbleRows !== null && dbRows !== null
-                ? (dbRows === bubbleRows ? "bg-green-50" : "bg-orange-50")
-                : "bg-gray-50"
+              bubbleRows !== null && dbRows !== null ? (dbRows === bubbleRows ? "bg-green-50" : "bg-orange-50") : "bg-gray-50"
             }`}>
               <div className={`text-sm font-bold ${
-                bubbleRows !== null && dbRows !== null
-                  ? (dbRows === bubbleRows ? "text-green-600" : "text-orange-600")
-                  : "text-gray-400"
+                bubbleRows !== null && dbRows !== null ? (dbRows === bubbleRows ? "text-green-600" : "text-orange-600") : "text-gray-400"
               }`}>
-                {bubbleRows !== null && dbRows !== null
-                  ? (dbRows === bubbleRows ? "✓ Match" : `差 ${Math.abs(dbRows - bubbleRows)}`)
-                  : "—"}
+                {bubbleRows !== null && dbRows !== null ? (dbRows === bubbleRows ? "✓ Match" : `差 ${Math.abs(dbRows - bubbleRows)}`) : "—"}
               </div>
               <div className="text-xs text-gray-500">行數對比</div>
             </div>
           </div>
 
-          {/* Field-by-field comparison */}
-          {(Object.keys(bubbleFields).length > 0 || Object.keys(dbFields).length > 0) ? (
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2 px-0">
-                <span className="w-48 shrink-0">欄位名</span>
-                <span className="w-24 text-right shrink-0 text-purple-600">Bubble 有值</span>
-                <span className="w-24 text-right shrink-0 text-blue-600">DB 有值</span>
-                <span className="flex-1 text-center">覆蓋率</span>
-                <span className="w-20 text-right shrink-0">差異</span>
+          {/* Field mapping stats */}
+          {comparison.length > 0 && (
+            <div className="flex gap-2 mb-2 text-xs">
+              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                已配對 {matchedCount}
+              </span>
+              {unmatchedBubble > 0 && (
+                <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-semibold">
+                  Bubble 未配對 {unmatchedBubble}
+                </span>
+              )}
+              {unmatchedDb > 0 && (
+                <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
+                  DB 未配對 {unmatchedDb}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Field comparison table */}
+          {comparison.length > 0 ? (
+            <div className="overflow-x-auto">
+              {/* Header */}
+              <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider pb-1.5 border-b border-gray-200 mb-1">
+                <div className="w-[170px] shrink-0 text-right pr-2">Bubble 欄位</div>
+                <div className="w-16 shrink-0 text-right">有值數</div>
+                <div className="flex-1 min-w-20 text-center">
+                  <span className="text-purple-500">■</span> Bubble &nbsp;
+                  <span className="text-blue-500">■</span> DB
+                </div>
+                <div className="w-16 shrink-0 text-left">有值數</div>
+                <div className="w-[170px] shrink-0 pl-2">DB 欄位</div>
+                <div className="w-5 shrink-0"></div>
+                <div className="w-14 shrink-0 text-right">差異</div>
               </div>
-              <div className="max-h-[500px] overflow-y-auto space-y-0">
-                {/* Show Bubble fields first */}
-                {Object.keys(bubbleFields).length > 0 && (
-                  <>
-                    <div className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded mb-1 mt-1">
-                      Bubble 欄位 ({Object.keys(bubbleFields).length})
-                    </div>
-                    {Object.entries(bubbleFields)
-                      .sort((a, b) => (b[1].estimatedFilled || 0) - (a[1].estimatedFilled || 0))
-                      .map(([field, stats]) => (
-                        <FieldCompareRow key={`b-${field}`} fieldName={field} bubbleField={stats} dbField={null} />
-                      ))
-                    }
-                  </>
-                )}
-                {Object.keys(dbFields).length > 0 && (
-                  <>
-                    <div className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded mb-1 mt-3">
-                      DB 欄位 ({Object.keys(dbFields).length})
-                    </div>
-                    {Object.entries(dbFields)
-                      .sort((a, b) => b[1].percentage - a[1].percentage)
-                      .map(([field, stats]) => (
-                        <FieldCompareRow key={`d-${field}`} fieldName={field} bubbleField={null} dbField={stats} />
-                      ))
-                    }
-                  </>
-                )}
+              <div className="max-h-[500px] overflow-y-auto">
+                {comparison.map((row, i) => (
+                  <FieldRow key={i} row={row} />
+                ))}
               </div>
             </div>
           ) : loading ? (
@@ -251,27 +243,18 @@ export default function BubbleDataOverview() {
   };
 
   const loadEntityDetails = async (entityName) => {
-    if (expandedEntity === entityName) {
-      setExpandedEntity(null);
-      return;
-    }
+    if (expandedEntity === entityName) { setExpandedEntity(null); return; }
     setExpandedEntity(entityName);
-
-    // Load both in parallel if not cached
     const promises = [];
     if (!dbStats[entityName]) {
-      promises.push(
-        base44.functions.invoke("bubbleDataStats", { entityName }).then(res => {
-          setDbStats(prev => ({ ...prev, [entityName]: res.data }));
-        })
-      );
+      promises.push(base44.functions.invoke("bubbleDataStats", { entityName }).then(res => {
+        setDbStats(prev => ({ ...prev, [entityName]: res.data }));
+      }));
     }
     if (!bubbleFieldStats[entityName]) {
-      promises.push(
-        base44.functions.invoke("bubbleFieldStats", { entityName }).then(res => {
-          setBubbleFieldStats(prev => ({ ...prev, [entityName]: res.data }));
-        })
-      );
+      promises.push(base44.functions.invoke("bubbleFieldStats", { entityName }).then(res => {
+        setBubbleFieldStats(prev => ({ ...prev, [entityName]: res.data }));
+      }));
     }
     await Promise.all(promises);
   };
@@ -292,25 +275,22 @@ export default function BubbleDataOverview() {
   const bubbleTotal = ENTITIES.reduce((sum, e) => sum + (bubbleInfo[e.name]?.bubbleTotalRows || 0), 0);
   const dbTotal = ENTITIES.reduce((sum, e) => sum + (dbStats[e.name]?.totalCount || 0), 0);
   const matchCount = ENTITIES.filter(e =>
-    bubbleInfo[e.name]?.bubbleTotalRows !== undefined &&
-    dbStats[e.name]?.totalCount !== undefined &&
+    bubbleInfo[e.name]?.bubbleTotalRows !== undefined && dbStats[e.name]?.totalCount !== undefined &&
     bubbleInfo[e.name].bubbleTotalRows === dbStats[e.name].totalCount
   ).length;
   const mismatchCount = ENTITIES.filter(e =>
-    bubbleInfo[e.name]?.bubbleTotalRows !== undefined &&
-    dbStats[e.name]?.totalCount !== undefined &&
+    bubbleInfo[e.name]?.bubbleTotalRows !== undefined && dbStats[e.name]?.totalCount !== undefined &&
     bubbleInfo[e.name].bubbleTotalRows !== dbStats[e.name].totalCount
   ).length;
 
   return (
-    <div className="space-y-4 max-w-4xl">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 max-w-5xl">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <BarChart2 size={20} className="text-blue-500" />
-            Bubble 數據遷移總覽
+            <BarChart2 size={20} className="text-blue-500" /> Bubble 數據遷移總覽
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">對比 Bubble.io 同 Base44 DB 嘅數據（行數 + 每個欄位有值數量）</p>
+          <p className="text-xs text-gray-400 mt-0.5">逐個欄位對比 Bubble.io 同 DB 嘅有值數量</p>
         </div>
         <div className="flex gap-2">
           <button onClick={loadBubbleInfo} disabled={loadingBubble}
