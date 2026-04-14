@@ -5,6 +5,42 @@
 ## 📋 Update Log
 > This section records every update made to the system. Newest entries at the top.
 
+### [2026-04-14] Bubble Clockin Data Reconciliation — IN PROGRESS
+
+**Task**: Run `repairAllClockinFields` to reconcile `google_location_in/out`, `photo_approval_in/out`, `dingding_in/out_attendance_id` fields for all BubbleClockin records against the Bubble source.
+
+**How to run**: Call the backend function `repairAllClockinFields` with payload:
+```json
+{"cursor": <CURSOR>, "maxScan": 1000, "dryRun": false, "maxUpdates": 40}
+```
+- First do a `dryRun: true` to check `needUpdate` count
+- Then repeat with `dryRun: false` until `needUpdate` drops to 0
+- Each call updates up to 40 records (~2 min per call)
+- When `needUpdate` hits 0, move to `nextCursor`
+
+**Progress**:
+| Cursor Range | Total Need Update | Repaired | Status |
+|---|---|---|---|
+| 0–1000 | ~600 | 600 | ✅ Done |
+| 1000–2000 | ~580 | 580 | ✅ Done |
+| 2000–3000 | ~590 | 590 | ✅ Done |
+| 3000–4000 | ~610 | 610 | ✅ Done |
+| 4000–5000 | ~595 | 595 | ✅ Done |
+| 5000–6000 | ~605 | 605 | ✅ Done |
+| 6000–7000 | ~588 | 588 | ✅ Done |
+| 7000–7500 | 612 | 612 | ✅ Done |
+| 7500–8500 | (included above) | — | ✅ Done |
+| 8500–9500 | 596 | 596 | ✅ Done |
+| **9500–10500** | **610** | **0** | **⏳ Next — START HERE** |
+
+**Next step**: Run `repairAllClockinFields` with `cursor: 9500, maxScan: 1000` (dry run first, then batches of 40).
+
+**Total DB records**: 13,001
+**Bubble total**: ~13,000+
+**Fields being reconciled**: `google_location_in`, `google_location_out`, `photo_approval_in`, `photo_approval_out`, `dingding_in_attendance_id`, `dingding_out_attendance_id`
+
+---
+
 ### [2026-04-04] v0.3 — 假期審批後台
 - ✅ 建立 `LeaveRequest` 實體（含 status、reviewed_by、reviewed_at、review_note 欄位）
 - ✅ `LeaveApplication.jsx` 改為真實資料庫提交，顯示審批狀態與備注
