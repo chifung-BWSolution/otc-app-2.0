@@ -50,7 +50,7 @@ export default function NotificationBell({ currentUser }) {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => { setOpen(!open); if (!open) loadNotifications(); }}
+        onClick={() => { setOpen(!open); if (!open && currentUser?.email) loadNotifications(); }}
         className="p-2 rounded-full hover:bg-gray-100 relative transition-colors"
       >
         <Bell size={20} className="text-gray-600" />
