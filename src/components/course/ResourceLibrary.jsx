@@ -33,6 +33,8 @@ export default function ResourceLibrary({ currentUser }) {
 
   const loadResources = async () => {
     setLoading(true);
+    const isAuth = await base44.auth.isAuthenticated();
+    if (!isAuth) { setLoading(false); return; }
     const data = await base44.entities.CourseResource.list("-created_date", 100);
     setResources(data);
     setLoading(false);
