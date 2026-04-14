@@ -34,7 +34,7 @@ function mapClockin(r) {
     face_image_in_url: r["Face Image - In"] || "",
     prove_in_url: r["Prove - In"] || "",
     clockin_time: r["Clock In Time"] || "",
-    ot_minutes: r["OT minutes approved"] || r["OT Minutes Approved"] || 0,
+    ot_minutes: r["OT minutes approved"] || r["OT Minutes Approved"] || r["OT Minutes"] || 0,
     remarks_out: r["Remarks - Out"] || "",
     staff_id: r["Staff"] || "",
     staff_name: "",
