@@ -15,9 +15,12 @@ export default function ExamCenter() {
   const [examResult, setExamResult] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(u => {
-      setCurrentUser(u);
-      if (u?.email) loadArrangements(u.email);
+    base44.auth.isAuthenticated().then(authed => {
+      if (!authed) { setLoading(false); return; }
+      base44.auth.me().then(u => {
+        setCurrentUser(u);
+        if (u?.email) loadArrangements(u.email);
+      });
     });
   }, []);
 
