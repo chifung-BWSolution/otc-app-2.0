@@ -16,16 +16,7 @@
     },
     "leave_type": {
       "type": "string",
-      "title": "\u5047\u671f\u985e\u578b",
-      "enum": [
-        "\u5e74\u5047",
-        "\u75c5\u5047",
-        "\u4e8b\u5047",
-        "\u5a5a\u5047",
-        "\u55aa\u5047",
-        "\u4f8d\u7522\u5047",
-        "\u54fa\u4e73\u5047"
-      ]
+      "title": "\u5047\u671f\u985e\u578b"
     },
     "from_date": {
       "type": "string",
@@ -36,6 +27,16 @@
       "type": "string",
       "title": "\u7d50\u675f\u65e5\u671f",
       "format": "date"
+    },
+    "time_slot": {
+      "type": "string",
+      "title": "\u6642\u6bb5",
+      "enum": [
+        "\u5168\u65e5",
+        "\u4e0a\u5348",
+        "\u4e0b\u5348"
+      ],
+      "default": "\u5168\u65e5"
     },
     "days": {
       "type": "number",
@@ -49,19 +50,24 @@
       "type": "string",
       "title": "\u72c0\u614b",
       "enum": [
-        "\u5f85\u5be9\u6279",
-        "\u5df2\u6279\u51c6",
-        "\u5df2\u62d2\u7d55"
+        "\u5be9\u67e5\u4e2d",
+        "\u5df2\u6279\u6838",
+        "\u4e0d\u6279\u6838"
       ],
-      "default": "\u5f85\u5be9\u6279"
+      "default": "\u5be9\u67e5\u4e2d"
     },
-    "reviewed_by": {
+    "approver_email": {
+      "type": "string",
+      "title": "\u5be9\u6279\u4ebaEmail"
+    },
+    "approver_name": {
       "type": "string",
       "title": "\u5be9\u6279\u4eba"
     },
     "reviewed_at": {
       "type": "string",
-      "title": "\u5be9\u6279\u6642\u9593"
+      "title": "\u5be9\u6279\u6642\u9593",
+      "format": "date-time"
     },
     "review_note": {
       "type": "string",
@@ -74,7 +80,6 @@
     "from_date",
     "to_date",
     "days",
-    "reason",
     "status"
   ]
 }

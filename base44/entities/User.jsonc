@@ -1,0 +1,32 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "The role of the user in the app",
+      "enum": [
+        "admin",
+        "user",
+        "leader",
+        "management"
+      ]
+    },
+    "department": {
+      "type": "string",
+      "title": "\u90e8\u9580"
+    },
+    "employment_status": {
+      "type": "string",
+      "title": "\u5728\u8077\u72c0\u614b",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "role"
+  ]
+}

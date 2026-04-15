@@ -1,0 +1,50 @@
+{
+  "name": "LeaveBalance",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "title": "\u54e1\u5de5Email"
+    },
+    "user_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "dept": {
+      "type": "string",
+      "title": "\u90e8\u9580"
+    },
+    "leave_type_code": {
+      "type": "string",
+      "title": "\u5047\u671f\u985e\u578b\u4ee3\u78bc"
+    },
+    "leave_type_name": {
+      "type": "string",
+      "title": "\u5047\u671f\u985e\u578b\u540d\u7a31"
+    },
+    "entitlement": {
+      "type": "number",
+      "title": "\u5e74\u5ea6\u984d\u5ea6",
+      "default": 0
+    },
+    "used": {
+      "type": "number",
+      "title": "\u5df2\u7528\u5929\u6578",
+      "default": 0
+    },
+    "remaining": {
+      "type": "number",
+      "title": "\u5269\u9918\u5929\u6578",
+      "default": 0
+    },
+    "year": {
+      "type": "string",
+      "title": "\u5e74\u5ea6"
+    }
+  },
+  "required": [
+    "user_email",
+    "leave_type_code",
+    "year"
+  ]
+}

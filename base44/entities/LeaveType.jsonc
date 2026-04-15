@@ -1,0 +1,37 @@
+{
+  "name": "LeaveType",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "title": "\u4ee3\u78bc"
+    },
+    "name": {
+      "type": "string",
+      "title": "\u540d\u7a31"
+    },
+    "full_label": {
+      "type": "string",
+      "title": "\u5b8c\u6574\u6a19\u7c64"
+    },
+    "default_entitlement": {
+      "type": "number",
+      "title": "\u9810\u8a2d\u984d\u5ea6",
+      "default": 0
+    },
+    "is_paid": {
+      "type": "boolean",
+      "title": "\u6709\u85aa",
+      "default": true
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    }
+  },
+  "required": [
+    "code",
+    "name"
+  ]
+}
