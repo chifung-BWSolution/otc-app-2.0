@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, X, ChevronDown, Phone, Mail, MessageCircle, User } from "lucide-react";
+import { Search, X, Phone, Mail, User, Plus, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import StaffFormModal from "@/components/admin/StaffFormModal";
 
 const statusColor = {
   Active: "bg-green-100 text-green-700",
@@ -22,8 +23,10 @@ export default function StaffDirectory() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const [selected, setSelected] = useState(null);
+  const [formModal, setFormModal] = useState(null); // null | "new" | staff object
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     Promise.all([
       base44.entities.Staff.list('-created_date', 500),
       base44.entities.NOSBU.filter({ is_active: true }, 'display', 100),
@@ -36,7 +39,9 @@ export default function StaffDirectory() {
       setRoleList(roleData);
       setLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   // Filter teams by selected BU
   const filteredTeams = buFilter
@@ -65,7 +70,29 @@ export default function StaffDirectory() {
 
   return (
     <div className="flex gap-4">
+      {formModal !== null && (
+        <StaffFormModal
+          staff={formModal === "new" ? null : formModal}
+          buList={buList}
+          teamList={teamList}
+          roleList={roleList}
+          onClose={() => setFormModal(null)}
+          onSaved={() => { setFormModal(null); setSelected(null); loadData(); }}
+        />
+      )}
+
       <div className="flex-1 space-y-3 min-w-0">
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-gray-700">員工目錄</span>
+          <button
+            onClick={() => setFormModal("new")}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={15} /> 新增員工
+          </button>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-4 gap-3">
           <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
@@ -267,15 +294,30 @@ export default function StaffDirectory() {
               ) : null)}
             </div>
 
-            <div className="flex gap-2 mt-4">
+            {/* Account info */}
+            {selected.login_mobile && (
+              <div className="mt-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs">
+                <div className="text-gray-500 mb-0.5">登入手機號碼</div>
+                <div className="font-mono font-bold text-blue-700">{selected.login_mobile}</div>
+                {selected.linked_user_email && <div className="text-gray-400 mt-0.5 truncate">{selected.linked_user_email}</div>}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setFormModal(selected)}
+                className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+              >
+                <Pencil size={12} /> 編輯資料
+              </button>
               {selected.work_email && (
-                <a href={`mailto:${selected.work_email}`} className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors">
-                  <Mail size={13} /> 電郵
+                <a href={`mailto:${selected.work_email}`} className="flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors">
+                  <Mail size={13} />
                 </a>
               )}
               {selected.direct_phone && (
-                <a href={`tel:${selected.direct_phone}`} className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-50 text-green-600 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors">
-                  <Phone size={13} /> 致電
+                <a href={`tel:${selected.direct_phone}`} className="flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors">
+                  <Phone size={13} />
                 </a>
               )}
             </div>

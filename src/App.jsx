@@ -37,7 +37,7 @@ import AssessmentDashboard from './pages/admin/AssessmentDashboard';
 import StaffDirectory from './pages/admin/StaffDirectory';
 import OrgSettings from './pages/admin/OrgSettings';
 import BubbleDataOverview from './pages/admin/BubbleDataOverview';
-import CreateAccount from './pages/admin/CreateAccount';
+
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -118,7 +118,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/staff" element={<StaffDirectory />} />
         <Route path="/admin/org-settings" element={<OrgSettings />} />
         <Route path="/admin/bubble-data" element={<BubbleDataOverview />} />
-        <Route path="/admin/create-account" element={<CreateAccount />} />
+
         <Route path="/admin/onboarding" element={<Placeholder title="新同事入職" icon="🎉" description="新員工入職流程管理" />} />
         <Route path="/admin/offboarding" element={<Placeholder title="同事離職" icon="👋" description="員工離職流程管理" />} />
         <Route path="/admin/phones" element={<Placeholder title="電話管理" icon="📱" description="公司電話號碼及分機管理" />} />

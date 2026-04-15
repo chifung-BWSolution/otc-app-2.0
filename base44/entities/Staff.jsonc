@@ -199,6 +199,14 @@
     "linked_user_email": {
       "type": "string",
       "title": "\u5df2\u5efa\u7acb\u5e33\u6236 Email (Authentication User)"
+    },
+    "login_mobile": {
+      "type": "string",
+      "title": "\u767b\u5165\u624b\u6a5f\u865f\u78bc (Login Mobile)"
+    },
+    "login_password": {
+      "type": "string",
+      "title": "\u767b\u5165\u5bc6\u78bc (Login Password)"
     }
   },
   "required": [
