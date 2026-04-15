@@ -58,10 +58,12 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
   // Validation: check if balance is insufficient (only for non-admin)
   const insufficientBalance = !isAdmin && remainingBalance !== null && days > 0 && days > remainingBalance;
 
-  // Get the selected user's info
+  // Get the selected user's info (from Staff list for admin, or current user for staff/leader)
   const selectedUser = useMemo(() => {
     if (!selectedUserEmail) return user;
-    return allUsers?.find(u => u.email === selectedUserEmail) || user;
+    const staffMatch = allUsers?.find(u => (u.work_email || u.email) === selectedUserEmail);
+    if (staffMatch) return { email: staffMatch.work_email || staffMatch.email, full_name: staffMatch.display_name || staffMatch.full_name, department: staffMatch.team_name || "" };
+    return user;
   }, [selectedUserEmail, allUsers, user]);
 
   const canSubmit = !submitting && form.from_date && form.to_date && days > 0 && form.leave_type && !insufficientBalance;
@@ -105,7 +107,7 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
             onChange={e => setSelectedUserEmail(e.target.value)}
           >
             {(allUsers || []).map(u => (
-              <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
+              <option key={u.work_email || u.email} value={u.work_email || u.email}>{u.display_name || u.full_name || u.work_email}</option>
             ))}
           </select>
         ) : (

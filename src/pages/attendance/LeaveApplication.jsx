@@ -36,7 +36,7 @@ export default function LeaveApplication() {
     const [me, types, users] = await Promise.all([
       base44.auth.me(),
       base44.entities.LeaveType.filter({ is_active: true }, "code"),
-      base44.entities.User.list("full_name", 500),
+      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
     ]);
     setUser(me);
     setUserRole(getUserRole(me));
