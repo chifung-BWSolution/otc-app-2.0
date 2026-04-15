@@ -19,7 +19,8 @@ Deno.serve(async (req) => {
     }
 
     // Find and deactivate the auth user account
-    const users = await base44.asServiceRole.entities.User.filter({ email: linkedEmail });
+    const allUsersList = await base44.asServiceRole.entities.User.list('email', 1000);
+    const users = allUsersList.filter(u => u.email === linkedEmail);
     if (users.length > 0) {
       await base44.asServiceRole.entities.User.update(users[0].id, {
         account_status: 'Inactive',

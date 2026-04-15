@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
       await base44.users.inviteUser(loginEmail, role || 'user');
 
       await new Promise(r => setTimeout(r, 1000));
-      const allUsers = await base44.asServiceRole.entities.User.filter({ email: loginEmail });
+      const allUsersList = await base44.asServiceRole.entities.User.list('email', 1000);
+      const allUsers = allUsersList.filter(u => u.email === loginEmail);
       if (allUsers.length > 0) {
         await base44.asServiceRole.entities.User.update(allUsers[0].id, {
           account_status: 'Active',
@@ -36,9 +37,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'loginEmail and staffId are required' }, { status: 400 });
       }
 
-      const allUsers = await base44.asServiceRole.entities.User.filter({ email: loginEmail });
-      if (allUsers.length > 0) {
-        await base44.asServiceRole.entities.User.update(allUsers[0].id, {
+      // Fetch all users and find by email (built-in field, not filterable directly)
+      const allUsers = await base44.asServiceRole.entities.User.list('email', 1000);
+      const matched = allUsers.find(u => u.email === loginEmail);
+      if (matched) {
+        await base44.asServiceRole.entities.User.update(matched.id, {
           linked_staff_id: staffId,
         });
       }

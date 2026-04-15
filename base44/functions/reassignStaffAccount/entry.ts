@@ -16,7 +16,8 @@ Deno.serve(async (req) => {
     }
 
     // Step 1: Find the User record by email
-    const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+    const allUsers = await base44.asServiceRole.entities.User.list('email', 1000);
+    const users = allUsers.filter(u => u.email === userEmail);
     if (users.length === 0) {
       return Response.json({ error: '找不到此帳戶' }, { status: 404 });
     }
