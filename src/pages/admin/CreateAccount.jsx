@@ -27,7 +27,11 @@ function PasswordModal({ staff, onClose }) {
     setLoading(true);
     const res = await base44.functions.invoke("manageAccountPassword", { action: "view", userEmail: staff.linked_user_email });
     setLoading(false);
-    setViewedPwd(res.data?.password_hint || "（未儲存密碼備注）");
+    if (res.data?.not_found) {
+      setViewedPwd("（帳戶尚未完成註冊）");
+    } else {
+      setViewedPwd(res.data?.password_hint || "（未儲存密碼備注）");
+    }
   };
 
   const handleUpdate = async () => {

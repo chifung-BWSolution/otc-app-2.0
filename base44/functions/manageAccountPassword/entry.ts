@@ -18,7 +18,8 @@ Deno.serve(async (req) => {
     const allUsers = await base44.asServiceRole.entities.User.list('email', 1000);
     const users = allUsers.filter(u => u.email === userEmail);
     if (users.length === 0) {
-      return Response.json({ error: '找不到此帳戶' }, { status: 404 });
+      // User may not have accepted the invite yet — return gracefully
+      return Response.json({ success: true, password_hint: null, not_found: true });
     }
 
     const userRecord = users[0];
