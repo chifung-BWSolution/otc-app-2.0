@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Send, CalendarDays, AlertCircle, User } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { staffList } from "@/data/staffData";
 
 function calcDays(from, to, slot) {
   if (!from || !to) return 0;
@@ -11,7 +10,7 @@ function calcDays(from, to, slot) {
   return totalDays;
 }
 
-export default function LeaveApplicationForm({ user, userRole, leaveTypes, balances, onSubmitted }) {
+export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUsers, balances, onSubmitted }) {
   const isAdmin = userRole === "admin";
 
   const [selectedUserEmail, setSelectedUserEmail] = useState("");
@@ -59,24 +58,21 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, balan
   // Validation: check if balance is insufficient (only for non-admin)
   const insufficientBalance = !isAdmin && remainingBalance !== null && days > 0 && days > remainingBalance;
 
-  // Get the selected staff's info from staffList
-  const selectedStaff = useMemo(() => {
-    if (!selectedUserEmail) return null;
-    return staffList.find(s => s.gmail === selectedUserEmail) || null;
-  }, [selectedUserEmail]);
+  // Get the selected user's info
+  const selectedUser = useMemo(() => {
+    if (!selectedUserEmail) return user;
+    return allUsers?.find(u => u.email === selectedUserEmail) || user;
+  }, [selectedUserEmail, allUsers, user]);
 
   const canSubmit = !submitting && form.from_date && form.to_date && days > 0 && form.leave_type && !insufficientBalance;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    const targetEmail = selectedUserEmail || user.email;
-    const targetName = selectedStaff ? `${selectedStaff.nameZh} (${selectedStaff.name})` : user.full_name;
-    const targetDept = selectedStaff?.team || user.department || "未設定";
     await base44.entities.LeaveRequest.create({
-      user_email: targetEmail,
-      user_name: targetName,
-      dept: targetDept,
+      user_email: selectedUser?.email || user.email,
+      user_name: selectedUser?.full_name || user.full_name,
+      dept: selectedUser?.department || "未設定",
       leave_type: form.leave_type,
       from_date: form.from_date,
       to_date: form.to_date,
@@ -108,9 +104,8 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, balan
             value={selectedUserEmail}
             onChange={e => setSelectedUserEmail(e.target.value)}
           >
-            <option value="">— 請選擇同事 —</option>
-            {staffList.map(s => (
-              <option key={s.id} value={s.gmail}>{s.nameZh} ({s.name}) · {s.team}</option>
+            {(allUsers || []).map(u => (
+              <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
             ))}
           </select>
         ) : (

@@ -89,6 +89,7 @@ export default function LeaveApplication() {
             user={user}
             userRole={userRole}
             leaveTypes={leaveTypes}
+            allUsers={allUsers}
             balances={balances}
             onSubmitted={handleRefresh}
           />
