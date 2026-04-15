@@ -24,6 +24,19 @@
         "inactive"
       ],
       "default": "active"
+    },
+    "account_status": {
+      "type": "string",
+      "title": "\u5e33\u6236\u72c0\u614b",
+      "enum": [
+        "Active",
+        "Inactive"
+      ],
+      "default": "Active"
+    },
+    "linked_staff_id": {
+      "type": "string",
+      "title": "\u95dc\u806f\u54e1\u5de5 Staff ID"
     }
   },
   "required": [
