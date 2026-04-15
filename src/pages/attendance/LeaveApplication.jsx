@@ -21,6 +21,7 @@ export default function LeaveApplication() {
   const [records, setRecords] = useState([]);
   const [balances, setBalances] = useState([]);
   const [approvedLeaves, setApprovedLeaves] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,13 +33,15 @@ export default function LeaveApplication() {
     const isAuth = await base44.auth.isAuthenticated();
     if (!isAuth) { setLoading(false); return; }
 
-    const [me, types] = await Promise.all([
+    const [me, types, users] = await Promise.all([
       base44.auth.me(),
       base44.entities.LeaveType.filter({ is_active: true }, "code"),
+      base44.entities.User.list("full_name", 500),
     ]);
     setUser(me);
     setUserRole(getUserRole(me));
     setLeaveTypes(types);
+    setAllUsers(users);
 
     await loadAllData();
     setLoading(false);
@@ -84,7 +87,10 @@ export default function LeaveApplication() {
         <div className="grid lg:grid-cols-2 gap-4">
           <LeaveApplicationForm
             user={user}
+            userRole={userRole}
             leaveTypes={leaveTypes}
+            allUsers={allUsers}
+            balances={balances}
             onSubmitted={handleRefresh}
           />
           <LeaveCalendar approvedLeaves={approvedLeaves} />
