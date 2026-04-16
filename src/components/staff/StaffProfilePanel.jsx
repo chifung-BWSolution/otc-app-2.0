@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Mail, Phone, Pencil, MapPin, Calendar, Building2, User, CreditCard, BookOpen, Briefcase, Star, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import StaffSelfEditModal from "@/components/staff/StaffSelfEditModal";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -17,12 +16,10 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const [showSelfEdit, setShowSelfEdit] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
 
   const isPrivileged = currentUser?.role === 'admin' || currentUser?.role === 'management';
   const isOwnProfile = profile && currentUser && (
-    profile.linked_user_email === currentUser.email ||
     profile.work_email === currentUser.email
   );
 
@@ -32,15 +29,9 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
 
   const loadProfile = async () => {
     setLoading(true);
-    const p = await base44.entities.StaffProfile.get(staffId);
+    const p = await base44.entities.Staff.get(staffId);
     setProfile(p);
-
-    // Check for pending update request for this staff
-    const allRequests = await base44.entities.ProfileUpdateRequest.filter({
-      staff_profile_id: staffId,
-      request_status: 'Pending Review'
-    });
-    setPendingRequest(allRequests.length > 0 ? allRequests[0] : null);
+    setPendingRequest(null);
     setLoading(false);
   };
 
@@ -64,15 +55,6 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
 
   return (
     <>
-      {showSelfEdit && (
-        <StaffSelfEditModal
-          profile={profile}
-          currentUser={currentUser}
-          onClose={() => setShowSelfEdit(false)}
-          onSubmitted={() => { setShowSelfEdit(false); loadProfile(); onDataChanged?.(); }}
-        />
-      )}
-
       <div className="w-80 shrink-0 bg-white rounded-2xl shadow-lg border border-gray-100 sticky top-0 self-start max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
         {/* Cover */}
         <div className="relative h-20 bg-gradient-to-br from-blue-500 to-purple-600 shrink-0">
@@ -107,13 +89,7 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
             )}
           </div>
 
-          {/* Pending notice */}
-          {pendingRequest && isPrivileged && (
-            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 flex items-center gap-2">
-              <AlertCircle size={13} className="text-amber-500 shrink-0" />
-              <span className="text-xs text-amber-700 font-medium">有待審批的更新申請</span>
-            </div>
-          )}
+
 
           {/* Action buttons */}
           <div className="flex gap-1.5 mt-3">
@@ -123,14 +99,6 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
                 className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
               >
                 <Pencil size={11} /> 直接編輯
-              </button>
-            )}
-            {(isOwnProfile && !isPrivileged) && (
-              <button
-                onClick={() => setShowSelfEdit(true)}
-                className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
-              >
-                <Pencil size={11} /> 更新個人資料
               </button>
             )}
             {profile.work_email && (

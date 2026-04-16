@@ -72,7 +72,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     setSaving(true);
     const payload = { ...form };
     if (isEdit) {
-      await base44.entities.StaffProfile.update(staff.id, payload);
+      await base44.entities.Staff.update(staff.id, payload);
       // Provision account if mobile + password
       if (form.login_mobile && form.login_password) {
         await base44.functions.invoke("manageStaffAccount", {
@@ -84,7 +84,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
         });
       }
     } else {
-      const created = await base44.entities.StaffProfile.create(payload);
+      const created = await base44.entities.Staff.create(payload);
       if (form.login_mobile && form.login_password && created?.id) {
         await base44.functions.invoke("manageStaffAccount", {
           action: "provision",
