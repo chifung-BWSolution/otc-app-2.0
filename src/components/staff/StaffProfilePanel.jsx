@@ -71,7 +71,7 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
       </div>
 
       {/* Profile Header */}
-      <div className="px-6 -mt-10 pb-4 shrink-0 flex items-end gap-4">
+      <div className="px-6 -mt-6 pb-4 shrink-0 flex items-end gap-4">
         <div className="shrink-0">
           {profile.profile_pic ? (
             <img src={profile.profile_pic} className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg" alt="" />
