@@ -131,7 +131,7 @@ export default function StaffProfilePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-0">
+    <div className="w-full space-y-0">
       {/* Hero Banner */}
       <div className="relative h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-t-2xl">
         <button
