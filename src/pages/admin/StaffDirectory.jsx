@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, X, Plus, Users, Bell } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import StaffProfilePanel from "@/components/staff/StaffProfilePanel";
 import StaffAdminFormModal from "@/components/staff/StaffAdminFormModal";
 import PendingUpdatesPanel from "@/components/staff/PendingUpdatesPanel";
 
@@ -11,6 +11,7 @@ const statusColor = {
 };
 
 export default function StaffDirectory() {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [staff, setStaff] = useState([]);
   const [buList, setBuList] = useState([]);
@@ -23,12 +24,10 @@ export default function StaffDirectory() {
   const [teamFilter, setTeamFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("Active");
 
-  const [selectedStaff, setSelectedStaff] = useState(null);
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [showPending, setShowPending] = useState(false);
 
   const isPrivileged = currentUser?.role === 'admin' || currentUser?.role === 'management';
-  const splitView = !!selectedStaff;
 
   const loadData = async () => {
     setLoading(true);
@@ -72,13 +71,13 @@ export default function StaffDirectory() {
   const activeCount = staff.filter(s => s.o_status === 'Active').length;
 
   return (
-    <div className="flex gap-0 h-screen overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
+    <div className="space-y-4">
       {/* Modals */}
       {showAdminForm && (
         <StaffAdminFormModal
           staff={showAdminForm === "new" ? null : showAdminForm}
           onClose={() => setShowAdminForm(false)}
-          onSaved={() => { setShowAdminForm(false); setSelectedStaff(null); loadData(); }}
+          onSaved={() => { setShowAdminForm(false); loadData(); }}
         />
       )}
       {showPending && (
@@ -87,9 +86,7 @@ export default function StaffDirectory() {
         />
       )}
 
-      {/* Master List */}
-      <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden shrink-0 ${splitView ? 'w-[35%] pr-3 border-r border-gray-200' : 'w-full'}`}
-        style={{ overflowY: 'auto' }}>
+      <div className="flex flex-col gap-3">
 
         {/* Header */}
         {!splitView && (
@@ -141,15 +138,7 @@ export default function StaffDirectory() {
           </>
         )}
 
-        {/* Split view compact header */}
-        {splitView && (
-          <div className="flex items-center justify-between pt-1 pb-2">
-            <span className="text-xs font-bold text-gray-700">員工目錄</span>
-            <span className="text-xs text-gray-400">{filtered.length} 人</span>
-          </div>
-        )}
-
-        {/* Search + Filters — always visible */}
+        {/* Search + Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-2 shrink-0">
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
@@ -186,38 +175,11 @@ export default function StaffDirectory() {
           </div>
         </div>
 
-        {/* Table / Compact List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 min-h-0" style={{ overflowY: 'auto' }}>
+        {/* Full table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           {loading ? (
             <div className="text-center py-12 text-gray-400 text-sm">載入中...</div>
-          ) : splitView ? (
-            /* Compact list in split view */
-            <div className="divide-y divide-gray-50">
-              {filtered.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedStaff(s)}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-blue-50/50 transition-colors ${selectedStaff?.id === s.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''}`}
-                >
-                  {s.profile_pic ? (
-                    <img src={s.profile_pic} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {(s.display_name || '?')[0]}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-gray-900 truncate">{s.display_name}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{s.team_name || s.position || '—'}</div>
-                  </div>
-                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${statusColor[s.o_status] || 'bg-gray-100 text-gray-500'}`}>
-                    {s.o_status}
-                  </span>
-                </button>
-              ))}
-            </div>
           ) : (
-            /* Full table */
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 font-semibold bg-gray-50">
@@ -231,7 +193,7 @@ export default function StaffDirectory() {
               <tbody>
                 {filtered.map(s => (
                   <tr key={s.id}
-                    onClick={() => setSelectedStaff(s)}
+                    onClick={() => navigate(`/admin/staff/${s.id}`)}
                     className="border-b border-gray-50 cursor-pointer hover:bg-blue-50/40 transition-colors"
                   >
                     <td className="px-4 py-3">
@@ -273,19 +235,6 @@ export default function StaffDirectory() {
           )}
         </div>
       </div>
-
-      {/* Detail Panel */}
-      {selectedStaff && (
-        <div className="flex-1 pl-4 min-w-0" style={{ overflowY: 'auto' }}>
-          <StaffProfilePanel
-            staffId={selectedStaff.id}
-            currentUser={currentUser}
-            onClose={() => setSelectedStaff(null)}
-            onAdminEdit={(s) => setShowAdminForm(s)}
-            onDataChanged={loadData}
-          />
-        </div>
-      )}
     </div>
   );
 }

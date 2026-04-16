@@ -35,6 +35,7 @@ import ExamCenter from './pages/course/ExamCenter';
 import AssessmentResultRegistry from './pages/admin/AssessmentResultRegistry';
 import AssessmentDashboard from './pages/admin/AssessmentDashboard';
 import StaffDirectory from './pages/admin/StaffDirectory';
+import StaffProfilePage from './pages/admin/StaffProfilePage';
 import OrgSettings from './pages/admin/OrgSettings';
 import BubbleDataOverview from './pages/admin/BubbleDataOverview';
 
@@ -116,6 +117,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/assessment-results" element={<AssessmentResultRegistry />} />
         <Route path="/admin/assessment-dashboard" element={<AssessmentDashboard />} />
         <Route path="/admin/staff" element={<StaffDirectory />} />
+        <Route path="/admin/staff/:staffId" element={<StaffProfilePage />} />
         <Route path="/admin/org-settings" element={<OrgSettings />} />
         <Route path="/admin/bubble-data" element={<BubbleDataOverview />} />
 
