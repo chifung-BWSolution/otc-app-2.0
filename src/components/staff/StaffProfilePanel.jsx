@@ -71,18 +71,18 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
       </div>
 
       {/* Profile Header */}
-      <div className="px-6 -mt-6 pb-4 shrink-0 flex items-end gap-4">
+      <div className="px-6 pt-3 pb-4 shrink-0 flex items-center gap-4">
         <div className="shrink-0">
           {profile.profile_pic ? (
-            <img src={profile.profile_pic} className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg" alt="" />
+            <img src={profile.profile_pic} className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow" alt="" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-black border-4 border-white shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl font-black border-2 border-white shadow">
               {(profile.display_name || '?')[0]}
             </div>
           )}
         </div>
-        <div className="pb-1 flex-1 min-w-0">
-          <div className="font-black text-gray-900 text-2xl leading-tight">{profile.display_name}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-gray-900 text-xl leading-tight">{profile.display_name}</div>
           <div className="flex items-center gap-2 flex-wrap mt-1">
             {profile.full_name && <span className="text-sm text-gray-500">{profile.full_name}</span>}
             {profile.chinese_name && profile.chinese_name !== profile.display_name && (
@@ -97,7 +97,7 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
           </div>
         </div>
         {/* Contact shortcuts */}
-        <div className="flex gap-2 pb-1 shrink-0">
+        <div className="flex gap-2 shrink-0">
           {profile.work_email && (
             <a href={`mailto:${profile.work_email}`}
               className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs hover:bg-gray-200 transition-colors font-medium">
