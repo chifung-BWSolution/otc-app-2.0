@@ -89,8 +89,7 @@ export default function StaffDirectory() {
       <div className="flex flex-col gap-3">
 
         {/* Header */}
-        {!splitView && (
-          <>
+        <>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h2 className="text-base font-black text-gray-900">員工目錄</h2>
@@ -136,7 +135,6 @@ export default function StaffDirectory() {
               </div>
             </div>
           </>
-        )}
 
         {/* Search + Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-2 shrink-0">
