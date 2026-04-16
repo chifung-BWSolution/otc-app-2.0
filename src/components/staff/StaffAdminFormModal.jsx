@@ -99,7 +99,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     onSaved();
   };
 
-  const Input = ({ label, field, type = "text", placeholder = "", className = "" }) => (
+  const renderInput = (label, field, type = "text", placeholder = "", className = "") => (
     <div className={className}>
       <label className="text-xs font-semibold text-gray-600 block mb-1">{label}</label>
       <input type={type} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -107,7 +107,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     </div>
   );
 
-  const Select = ({ label, field, options }) => (
+  const renderSelect = (label, field, options) => (
     <div>
       <label className="text-xs font-semibold text-gray-600 block mb-1">{label}</label>
       <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
@@ -141,16 +141,16 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {section === "basic" && (
             <div className="grid grid-cols-2 gap-3">
-              <Input label="顯示名稱 *" field="display_name" />
-              <Input label="英文姓名" field="full_name" />
-              <Input label="中文姓名" field="chinese_name" />
-              <Select label="性別" field="gender" options={["Male","Female","Other"]} />
-              <Input label="出生日期" field="date_of_birth" type="date" />
-              <Select label="婚姻狀況" field="marital_status" options={["Single","Married","Divorced","Widowed"]} />
-              <Input label="身份證" field="hkid" placeholder="A123456(7)" />
-              <Input label="國籍" field="nationality" placeholder="Hong Kong" />
-              <Input label="手機號碼" field="mobile" type="tel" />
-              <Input label="個人電郵" field="personal_email" type="email" />
+              {renderInput("顯示名稱 *", "display_name")}
+              {renderInput("英文姓名", "full_name")}
+              {renderInput("中文姓名", "chinese_name")}
+              {renderSelect("性別", "gender", ["Male","Female","Other"])}
+              {renderInput("出生日期", "date_of_birth", "date")}
+              {renderSelect("婚姻狀況", "marital_status", ["Single","Married","Divorced","Widowed"])}
+              {renderInput("身份證", "hkid", "text", "A123456(7)")}
+              {renderInput("國籍", "nationality", "text", "Hong Kong")}
+              {renderInput("手機號碼", "mobile", "tel")}
+              {renderInput("個人電郵", "personal_email", "email")}
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-gray-600 block mb-1">住址</label>
                 <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
@@ -161,21 +161,19 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
 
           {section === "job" && (
             <div className="grid grid-cols-2 gap-3">
-              <Input label="職位" field="position" />
-              <Input label="BU" field="bu_name" />
-              <Input label="Team" field="team_name" />
-              <Input label="Team Role" field="team_role_name" />
-              <Input label="直屬上司" field="team_leader_name" />
-              <Input label="辦公室地點" field="base_location" />
-              <Input label="入職日期" field="entry_date" type="date" />
-              <Input label="試用期完結" field="probation_end_date" type="date" />
-              <Input label="工作電郵" field="work_email" type="email" />
-              <Input label="直線電話" field="direct_phone" />
-              <Input label="工作手機" field="work_phone" />
-              <Select label="在職狀態" field="o_status" options={["Active","Inactive"]} />
-              {form.o_status === 'Inactive' && (
-                <Input label="離職日期" field="termination_date" type="date" />
-              )}
+              {renderInput("職位", "position")}
+              {renderInput("BU", "bu_name")}
+              {renderInput("Team", "team_name")}
+              {renderInput("Team Role", "team_role_name")}
+              {renderInput("直屬上司", "team_leader_name")}
+              {renderInput("辦公室地點", "base_location")}
+              {renderInput("入職日期", "entry_date", "date")}
+              {renderInput("試用期完結", "probation_end_date", "date")}
+              {renderInput("工作電郵", "work_email", "email")}
+              {renderInput("直線電話", "direct_phone")}
+              {renderInput("工作手機", "work_phone")}
+              {renderSelect("在職狀態", "o_status", ["Active","Inactive"])}
+              {form.o_status === 'Inactive' && renderInput("離職日期", "termination_date", "date")}
             </div>
           )}
 
@@ -185,17 +183,17 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
 
           {section === "bank" && (
             <div className="space-y-3">
-              <Input label="銀行名稱" field="bank_name" placeholder="例：滙豐銀行" />
-              <Input label="銀行帳戶號碼" field="bank_account_number" />
-              <Input label="帳戶持有人姓名" field="bank_account_holder" />
+              {renderInput("銀行名稱", "bank_name", "text", "例：滙豐銀行")}
+              {renderInput("銀行帳戶號碼", "bank_account_number")}
+              {renderInput("帳戶持有人姓名", "bank_account_holder")}
             </div>
           )}
 
           {section === "emergency" && (
             <div className="space-y-3">
-              <Input label="緊急聯絡人姓名" field="emergency_contact_name" />
-              <Input label="關係" field="emergency_contact_relation" placeholder="例：父親" />
-              <Input label="緊急聯絡人電話" field="emergency_contact_phone" type="tel" />
+              {renderInput("緊急聯絡人姓名", "emergency_contact_name")}
+              {renderInput("關係", "emergency_contact_relation", "text", "例：父親")}
+              {renderInput("緊急聯絡人電話", "emergency_contact_phone", "tel")}
             </div>
           )}
 
