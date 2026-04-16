@@ -72,7 +72,7 @@ export default function StaffDirectory() {
   const activeCount = staff.filter(s => s.o_status === 'Active').length;
 
   return (
-    <div className="flex gap-0 h-full min-h-0">
+    <div className="flex gap-0 h-screen overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Modals */}
       {showAdminForm && (
         <StaffAdminFormModal
@@ -88,7 +88,8 @@ export default function StaffDirectory() {
       )}
 
       {/* Master List */}
-      <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden ${splitView ? 'w-72 shrink-0 pr-3 border-r border-gray-200' : 'flex-1'}`}>
+      <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden shrink-0 ${splitView ? 'w-[35%] pr-3 border-r border-gray-200' : 'w-full'}`}
+        style={{ overflowY: 'auto' }}>
 
         {/* Header */}
         {!splitView && (
@@ -148,8 +149,8 @@ export default function StaffDirectory() {
           </div>
         )}
 
-        {/* Search */}
-        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${splitView ? 'p-2' : 'p-3'} space-y-2`}>
+        {/* Search + Filters — always visible */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-2 shrink-0">
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
             <input
@@ -159,36 +160,34 @@ export default function StaffDirectory() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          {!splitView && (
-            <div className="flex gap-2 flex-wrap">
-              <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
-                value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                <option value="">全部狀態</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-              <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
-                value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter(""); }}>
-                <option value="">全部 BU</option>
-                {buList.map(b => <option key={b.id} value={b.id}>{b.display}</option>)}
-              </select>
-              <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
-                value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-                <option value="">全部 Team</option>
-                {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.display}</option>)}
-              </select>
-              {(search || buFilter || teamFilter || statusFilter) && (
-                <button onClick={() => { setSearch(""); setBuFilter(""); setTeamFilter(""); setStatusFilter("Active"); }}
-                  className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-1">
-                  <X size={12} /> 清除
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex gap-2 flex-wrap">
+            <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
+              value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">全部狀態</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
+              value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter(""); }}>
+              <option value="">全部 BU</option>
+              {buList.map(b => <option key={b.id} value={b.id}>{b.display}</option>)}
+            </select>
+            <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
+              value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+              <option value="">全部 Team</option>
+              {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.display}</option>)}
+            </select>
+            {(search || buFilter || teamFilter || statusFilter) && (
+              <button onClick={() => { setSearch(""); setBuFilter(""); setTeamFilter(""); setStatusFilter("Active"); }}
+                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-1">
+                <X size={12} /> 清除
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Table / Compact List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-auto flex-1 min-h-0">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 min-h-0" style={{ overflowY: 'auto' }}>
           {loading ? (
             <div className="text-center py-12 text-gray-400 text-sm">載入中...</div>
           ) : splitView ? (
@@ -211,8 +210,8 @@ export default function StaffDirectory() {
                     <div className="text-xs font-semibold text-gray-900 truncate">{s.display_name}</div>
                     <div className="text-[10px] text-gray-400 truncate">{s.team_name || s.position || '—'}</div>
                   </div>
-                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColor[s.o_status] || 'bg-gray-100 text-gray-500'}`}>
-                    {s.o_status === 'Active' ? '在' : '離'}
+                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${statusColor[s.o_status] || 'bg-gray-100 text-gray-500'}`}>
+                    {s.o_status}
                   </span>
                 </button>
               ))}
@@ -277,7 +276,7 @@ export default function StaffDirectory() {
 
       {/* Detail Panel */}
       {selectedStaff && (
-        <div className="flex-1 pl-4 min-w-0 overflow-auto">
+        <div className="flex-1 pl-4 min-w-0" style={{ overflowY: 'auto' }}>
           <StaffProfilePanel
             staffId={selectedStaff.id}
             currentUser={currentUser}
