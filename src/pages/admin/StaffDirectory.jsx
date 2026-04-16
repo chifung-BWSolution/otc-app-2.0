@@ -33,7 +33,7 @@ export default function StaffDirectory() {
     setLoading(true);
     const [me, staffData, buData, teamData] = await Promise.all([
       base44.auth.me(),
-      base44.entities.StaffProfile.list('-entry_date', 500),
+      base44.entities.Staff.list('-entry_date', 500),
       base44.entities.NOSBU.filter({ is_active: true }, 'display', 100),
       base44.entities.NOSTeam.filter({ is_active: true }, 'display', 100),
     ]);
