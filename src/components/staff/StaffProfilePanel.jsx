@@ -53,7 +53,7 @@ export default function StaffProfilePanel({ staffId, currentUser, onClose, onAdm
   return (
     <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
       {/* Hero Banner */}
-      <div className="relative h-36 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shrink-0">
+      <div className="relative h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shrink-0">
         <button
           onClick={onClose}
           className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-semibold hover:bg-white/30 transition-colors"
