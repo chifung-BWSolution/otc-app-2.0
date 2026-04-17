@@ -38,6 +38,7 @@ import StaffDirectory from './pages/admin/StaffDirectory';
 import StaffProfilePage from './pages/admin/StaffProfilePage';
 import OrgSettings from './pages/admin/OrgSettings';
 import BubbleDataOverview from './pages/admin/BubbleDataOverview';
+import OvertimeApplication from './pages/attendance/OvertimeApplication';
 
 
 const AuthenticatedApp = () => {
@@ -95,7 +96,7 @@ const AuthenticatedApp = () => {
         <Route path="/attendance/records" element={<Placeholder title="簽到記錄" icon="📋" description="查看出勤記錄" />} />
         <Route path="/attendance/checkin" element={<CheckIn />} />
         <Route path="/attendance/leave" element={<LeaveApplication />} />
-        <Route path="/attendance/overtime" element={<Placeholder title="活動加班" icon="⚡" description="申請加班記錄" />} />
+        <Route path="/attendance/overtime" element={<OvertimeApplication />} />
         {/* 課程管理 */}
         <Route path="/course/center" element={<CourseCenter />} />
         <Route path="/course/exam" element={<ExamCenter />} />
