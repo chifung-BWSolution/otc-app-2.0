@@ -10,6 +10,14 @@
       "type": "string",
       "title": "\u8cc7\u6e90\u63cf\u8ff0"
     },
+    "course_id": {
+      "type": "string",
+      "title": "\u95dc\u806f\u8ab2\u7a0b ID"
+    },
+    "course_name": {
+      "type": "string",
+      "title": "\u95dc\u806f\u8ab2\u7a0b\u540d\u7a31"
+    },
     "category": {
       "type": "string",
       "title": "\u5927\u5206\u985e",
@@ -43,6 +51,10 @@
     "file_url": {
       "type": "string",
       "title": "\u6a94\u6848URL"
+    },
+    "content_text": {
+      "type": "string",
+      "title": "\u5716\u6587\u7b46\u8a18\u5167\u5bb9"
     },
     "tags": {
       "type": "array",
@@ -91,6 +103,11 @@
       "type": "string",
       "title": "\u5be9\u6838\u4eba"
     },
+    "reviewed_at": {
+      "type": "string",
+      "title": "\u5be9\u6838\u6642\u9593",
+      "format": "date-time"
+    },
     "review_note": {
       "type": "string",
       "title": "\u5be9\u6838\u5099\u6ce8"
@@ -102,14 +119,15 @@
     "uploaded_by": {
       "type": "string",
       "title": "\u4e0a\u50b3\u8005"
+    },
+    "uploaded_at": {
+      "type": "string",
+      "title": "\u4e0a\u8f09\u65e5\u671f",
+      "format": "date-time"
     }
   },
   "required": [
     "title",
-    "category",
-    "format",
-    "difficulty",
-    "learning_method",
-    "status"
+    "format"
   ]
 }

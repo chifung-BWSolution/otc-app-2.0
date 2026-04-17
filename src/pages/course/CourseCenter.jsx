@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
-import { BookOpen, FileText, Calendar } from "lucide-react";
+import { BookOpen, FileText, Calendar, GraduationCap } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import CourseList from "../../components/course/CourseList";
 import ResourceLibrary from "../../components/course/ResourceLibrary";
 import WeeklyKnowledgeTab from "../../components/course/WeeklyKnowledgeTab";
 import WorkshopTab from "../../components/course/WorkshopTab";
 
 const TABS = [
-  { key: "resources", label: "課程資源庫", icon: BookOpen },
+  { key: "courses", label: "課程列表", icon: GraduationCap },
+  { key: "resources", label: "資源庫", icon: BookOpen },
   { key: "weekly", label: "每週知識匯報", icon: FileText },
   { key: "workshops", label: "培訓工作坊", icon: Calendar },
 ];
 
 export default function CourseCenter() {
-  const [tab, setTab] = useState("resources");
+  const [tab, setTab] = useState("courses");
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function CourseCenter() {
       </div>
 
       {/* Tab Content */}
+      {tab === "courses" && <CourseList />}
       {tab === "resources" && <ResourceLibrary currentUser={currentUser} />}
       {tab === "weekly" && <WeeklyKnowledgeTab currentUser={currentUser} />}
       {tab === "workshops" && <WorkshopTab currentUser={currentUser} />}

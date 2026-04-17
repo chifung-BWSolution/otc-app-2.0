@@ -39,6 +39,8 @@ import StaffProfilePage from './pages/admin/StaffProfilePage';
 import OrgSettings from './pages/admin/OrgSettings';
 import BubbleDataOverview from './pages/admin/BubbleDataOverview';
 import OvertimeApplication from './pages/attendance/OvertimeApplication';
+import CourseProfilePage from './pages/course/CourseProfilePage';
+import CourseManagement from './pages/admin/CourseManagement';
 
 
 const AuthenticatedApp = () => {
@@ -99,6 +101,7 @@ const AuthenticatedApp = () => {
         <Route path="/attendance/overtime" element={<OvertimeApplication />} />
         {/* 課程管理 */}
         <Route path="/course/center" element={<CourseCenter />} />
+        <Route path="/course/:courseId" element={<CourseProfilePage />} />
         <Route path="/course/exam" element={<ExamCenter />} />
         <Route path="/course/schedule" element={<Placeholder title="培訓日程" icon="🗓️" description="查看即將舉行的培訓" />} />
         <Route path="/course/weekly" element={<Placeholder title="每星期匯報" icon="📝" description="提交每週課程學習匯報" />} />
@@ -127,7 +130,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/phones" element={<Placeholder title="電話管理" icon="📱" description="公司電話號碼及分機管理" />} />
         <Route path="/admin/performance-records" element={<Placeholder title="功過記錄" icon="📊" description="員工功過獎懲記錄" />} />
         <Route path="/admin/app-management" element={<Placeholder title="App管理" icon="📲" description="公司應用程式管理" />} />
-        <Route path="/admin/course-management" element={<Placeholder title="課程管理" icon="🎓" description="管理公司培訓課程" />} />
+        <Route path="/admin/course-management" element={<CourseManagement />} />
         {/* 管理員 */}
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />
