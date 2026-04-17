@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle, Lightbulb, ClipboardList } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useRegion } from "@/lib/RegionContext";
+import RegionBadge from "@/components/RegionBadge";
 
 const requestTypes = [
   { value: "facility", label: "設施維修", icon: "🔧", desc: "冷氣、燈光、傢俬等辦公室設施問題" },
@@ -18,29 +21,47 @@ const urgencyOptions = [
   { value: "suggestion", label: "改善意見", color: "border-yellow-300 bg-yellow-50 text-yellow-700", icon: <Lightbulb size={16} className="text-yellow-500" /> },
 ];
 
-const recentRequests = [
-  { id: 1, type: "設施維修", urgency: "urgent", title: "會議室冷氣故障", status: "處理中", time: "1小時前" },
-  { id: 2, type: "設備申請", urgency: "normal", title: "申請新顯示器", status: "待處理", time: "1天前" },
-  { id: 3, type: "改善意見", urgency: "suggestion", title: "建議增設休息區沙發", status: "已接收", time: "3天前" },
-];
-
-const statusColor = { 處理中: "bg-blue-100 text-blue-700", 待處理: "bg-yellow-100 text-yellow-700", 已接收: "bg-gray-100 text-gray-600", 已完成: "bg-green-100 text-green-700" };
+const statusColor = { 處理中: "bg-blue-100 text-blue-700", 待處理: "bg-yellow-100 text-yellow-700", 已接收: "bg-gray-100 text-gray-600", 已完成: "bg-green-100 text-green-700", 已取消: "bg-gray-100 text-gray-500" };
 const urgencyBadge = { urgent: "bg-red-100 text-red-600", normal: "bg-blue-100 text-blue-600", suggestion: "bg-yellow-100 text-yellow-600" };
 const urgencyLabel = { urgent: "緊急", normal: "普通", suggestion: "改善意見" };
 
 export default function AdminHelp() {
+  const { currentRegion } = useRegion();
   const [step, setStep] = useState(1); // 1=type, 2=form, 3=done
   const [selectedType, setSelectedType] = useState(null);
   const [urgency, setUrgency] = useState("normal");
   const [form, setForm] = useState({ title: "", details: "", location: "", contact: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [myRequests, setMyRequests] = useState([]);
+
+  useEffect(() => {
+    base44.auth.me().then(u => { setCurrentUser(u); loadMine(u); }).catch(() => {});
+  }, []);
+
+  const loadMine = async (u) => {
+    const data = await base44.entities.AdminHelpRequest.filter({ user_email: u.email }, "-created_date", 20);
+    setMyRequests(data);
+  };
+
+  const urgencyMap = { urgent: "高", normal: "中", suggestion: "低" };
 
   const handleSubmit = async () => {
-    if (!form.title.trim() || !form.details.trim()) return;
+    if (!form.title.trim() || !form.details.trim() || !currentUser) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await base44.entities.AdminHelpRequest.create({
+      user_email: currentUser.email,
+      user_name: currentUser.full_name || currentUser.email,
+      region_code: currentRegion?.code || "",
+      request_type: selectedType.label,
+      title: form.title,
+      description: form.details + (form.location ? `\n地點：${form.location}` : "") + (form.contact ? `\n聯絡：${form.contact}` : ""),
+      urgency: urgencyMap[urgency] || "中",
+      status: "待處理",
+    });
     setSubmitting(false);
     setStep(3);
+    loadMine(currentUser);
   };
 
   const reset = () => {
@@ -74,7 +95,10 @@ export default function AdminHelp() {
       {step === 1 && (
         <>
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-5 text-white">
-            <h2 className="text-lg font-black">🛎️ 行政協助申請</h2>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h2 className="text-lg font-black">🛎️ 行政協助申請</h2>
+              <RegionBadge className="bg-white/20 !text-white" />
+            </div>
             <p className="text-sm opacity-80 mt-1">請選擇您需要的協助類型，或提交公司改善意見。</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -94,20 +118,24 @@ export default function AdminHelp() {
           {/* Recent requests */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <h3 className="font-bold text-gray-700 mb-3 text-sm">📋 我的申請記錄</h3>
-            <div className="space-y-3">
-              {recentRequests.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 py-2 border-b last:border-0 border-gray-50">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-gray-800 truncate">{r.title}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${urgencyBadge[r.urgency]}`}>{urgencyLabel[r.urgency]}</span>
+            {myRequests.length === 0 ? (
+              <div className="text-center py-4 text-sm text-gray-400">暫無記錄</div>
+            ) : (
+              <div className="space-y-3">
+                {myRequests.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 py-2 border-b last:border-0 border-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800 truncate">{r.title}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">{r.urgency}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{r.request_type} · {new Date(r.created_date).toLocaleDateString("zh-HK")}</div>
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5">{r.type} · {r.time}</div>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${statusColor[r.status] || "bg-gray-100"}`}>{r.status}</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${statusColor[r.status]}`}>{r.status}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import { Menu, User } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./NotificationBell";
+import RegionBadge from "./RegionBadge";
 
 const pageTitles = {
   "/": "🏠 主頁",
@@ -77,6 +78,7 @@ export default function Layout() {
             <h1 className="text-lg font-bold text-gray-800">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <RegionBadge className="hidden sm:inline-flex" />
             <NotificationBell currentUser={currentUser} />
             <button className="p-2 rounded-full hover:bg-gray-100">
               <User size={20} className="text-gray-600" />

@@ -1,0 +1,51 @@
+{
+  "name": "CompanyForm",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "\u8868\u683c\u540d\u7a31"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u8868\u683c\u63cf\u8ff0"
+    },
+    "category": {
+      "type": "string",
+      "title": "\u5206\u985e"
+    },
+    "file_url": {
+      "type": "string",
+      "title": "\u6a94\u6848 URL"
+    },
+    "file_size": {
+      "type": "string",
+      "title": "\u6a94\u6848\u5927\u5c0f"
+    },
+    "region_codes": {
+      "type": "array",
+      "title": "\u9069\u7528\u5730\u5340",
+      "description": "\u7a7a\u9663\u5217\u4ee3\u8868\u5168\u90e8\u5730\u5340",
+      "items": {
+        "type": "string"
+      }
+    },
+    "icon": {
+      "type": "string",
+      "title": "\u5716\u6a19",
+      "default": "\ud83d\udcc4"
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

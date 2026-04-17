@@ -113,6 +113,7 @@ const menuGroups = [
       { label: "📊 考核成績登記", path: "/admin/assessment-results" },
       { label: "👤 員工目錄", path: "/admin/staff" },
       { label: "🏗️ 組織架構設定", path: "/admin/org-settings" },
+      { label: "🌏 地區管理", path: "/admin/regions" },
       { label: "🎉 新同事入職", path: "/admin/onboarding" },
       { label: "👋 同事離職", path: "/admin/offboarding" },
       { label: "📱 電話管理", path: "/admin/phones" },

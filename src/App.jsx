@@ -44,6 +44,9 @@ import CourseManagement from './pages/admin/CourseManagement';
 import TenderRegistration from './pages/business/TenderRegistration';
 import WeeklyReport from './pages/course/WeeklyReport';
 import KnowledgeCertification from './pages/leader/KnowledgeCertification';
+import RegionManagement from './pages/admin/RegionManagement';
+import CompanyForms from './pages/company/CompanyForms';
+import { RegionProvider } from '@/lib/RegionContext';
 
 
 const AuthenticatedApp = () => {
@@ -77,7 +80,7 @@ const AuthenticatedApp = () => {
         {/* 公司資訊 */}
         <Route path="/company/news" element={<CompanyNews />} />
         <Route path="/company/calendar" element={<CompanyCalendar />} />
-        <Route path="/company/forms" element={<Placeholder title="表格下載" icon="📂" description="下載公司各種行政表格" />} />
+        <Route path="/company/forms" element={<CompanyForms />} />
         <Route path="/company/contact" element={<ContactColleagues />} />
         <Route path="/company/faq" element={<CompanyFAQ />} />
         <Route path="/company/resources" element={<ResourceBorrow />} />
@@ -134,6 +137,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/performance-records" element={<Placeholder title="功過記錄" icon="📊" description="員工功過獎懲記錄" />} />
         <Route path="/admin/app-management" element={<Placeholder title="App管理" icon="📲" description="公司應用程式管理" />} />
         <Route path="/admin/course-management" element={<CourseManagement />} />
+        <Route path="/admin/regions" element={<RegionManagement />} />
         {/* 管理員 */}
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />
@@ -149,10 +153,12 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
+        <RegionProvider>
+          <Router>
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+        </RegionProvider>
       </QueryClientProvider>
     </AuthProvider>
   )
