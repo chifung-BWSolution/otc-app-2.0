@@ -1,4 +1,5 @@
-import { X, Phone, Mail, MessageCircle, Building2, Briefcase, Users, MapPin, User } from "lucide-react";
+import { X, Phone, Mail, MessageCircle, Building2, Briefcase, Users, MapPin, User, CalendarClock, UserCheck } from "lucide-react";
+import { AbsenceBadge } from "./AbsenceBadge";
 
 function normalizePhone(raw) {
   if (!raw) return "";
@@ -31,11 +32,16 @@ function Row({ label, value, icon, href }) {
   return href ? <a href={href} className="block hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">{content}</a> : content;
 }
 
-export default function ContactProfilePanel({ person, region, onClose }) {
+export default function ContactProfilePanel({ person, region, absence, colleagues = [], onClose }) {
   if (!person) return null;
 
   const waHK = buildWhatsAppURL(person.mobile, "852");
   const initial = (person.display_name || person.full_name || "?")[0];
+
+  // Resolve delegate from colleagues for richer contact info
+  const delegate = absence?.delegate_email
+    ? colleagues.find(c => c.work_email === absence.delegate_email)
+    : null;
 
   return (
     <div className="w-80 shrink-0 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col overflow-hidden sticky top-0 self-start max-h-[calc(100vh-120px)] overflow-y-auto">
@@ -71,7 +77,53 @@ export default function ContactProfilePanel({ person, region, onClose }) {
               {region.icon} {region.name}
             </span>
           )}
+          {absence && <AbsenceBadge absence={absence} size="md" />}
         </div>
+
+        {/* Absence details */}
+        {absence && (
+          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700">
+              <CalendarClock size={14} />
+              <span className="text-xs font-bold">目前休假中 · {absence.leave_type}</span>
+            </div>
+            <div className="text-xs text-amber-800 space-y-0.5">
+              <div>休假期間：<span className="font-semibold">{absence.from_date} 至 {absence.to_date}</span>{absence.time_slot && absence.time_slot !== "全日" ? `（${absence.time_slot}）` : ""}</div>
+              <div>預計回歸：<span className="font-semibold">{absence.return_date}</span></div>
+              {absence.reason && <div className="text-amber-600 line-clamp-2">備註：{absence.reason}</div>}
+            </div>
+
+            {(absence.delegate_name || absence.delegate_email) && (
+              <div className="border-t border-amber-200 pt-2">
+                <div className="flex items-center gap-1.5 text-xs text-amber-700 font-bold mb-1">
+                  <UserCheck size={12} /> 休假期間代理人
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 truncate">
+                      {delegate?.display_name || absence.delegate_name || absence.delegate_email}
+                    </div>
+                    {delegate?.position && <div className="text-xs text-gray-500">{delegate.position}</div>}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {(delegate?.work_email || absence.delegate_email) && (
+                      <a href={`mailto:${delegate?.work_email || absence.delegate_email}`}
+                        className="p-1.5 rounded-lg bg-white text-amber-700 hover:bg-amber-100 border border-amber-200">
+                        <Mail size={12} />
+                      </a>
+                    )}
+                    {delegate?.mobile && (
+                      <a href={`tel:${delegate.mobile.replace(/[^\d+]/g, "")}`}
+                        className="p-1.5 rounded-lg bg-white text-amber-700 hover:bg-amber-100 border border-amber-200">
+                        <Phone size={12} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quick contact buttons */}
         <div className="grid grid-cols-4 gap-1.5 mt-3">

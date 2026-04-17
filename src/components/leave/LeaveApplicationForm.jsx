@@ -20,6 +20,7 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
     to_date: "",
     time_slot: "全日",
     reason: "",
+    delegate_email: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,6 +72,9 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
+    const delegate = form.delegate_email
+      ? (allUsers || []).find(u => (u.work_email || u.email) === form.delegate_email)
+      : null;
     await base44.entities.LeaveRequest.create({
       user_email: selectedUser?.email || user.email,
       user_name: selectedUser?.full_name || user.full_name,
@@ -81,10 +85,12 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
       time_slot: form.time_slot,
       days,
       reason: form.reason,
+      delegate_email: form.delegate_email || "",
+      delegate_name: delegate?.display_name || delegate?.full_name || "",
       status: "審查中",
     });
     setSubmitting(false);
-    setForm({ leave_type: leaveTypes[0]?.full_label || "", from_date: "", to_date: "", time_slot: "全日", reason: "" });
+    setForm({ leave_type: leaveTypes[0]?.full_label || "", from_date: "", to_date: "", time_slot: "全日", reason: "", delegate_email: "" });
     onSubmitted?.();
   };
 
@@ -203,6 +209,27 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
           <span className="font-semibold">餘額不足，無法提交申請</span>
         </div>
       )}
+
+      {/* Delegate */}
+      <div>
+        <label className="text-xs font-semibold text-gray-600 block mb-1">
+          <User size={12} className="inline mr-1" />休假期間代理人（選填）
+        </label>
+        <select
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+          value={form.delegate_email}
+          onChange={e => setForm({ ...form, delegate_email: e.target.value })}
+        >
+          <option value="">— 不指定 —</option>
+          {(allUsers || [])
+            .filter(u => (u.work_email || u.email) !== (selectedUser?.email || user?.email))
+            .map(u => {
+              const em = u.work_email || u.email;
+              return <option key={em} value={em}>{u.display_name || u.full_name || em}</option>;
+            })}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">休假期間同事可快速聯絡此代理人</p>
+      </div>
 
       {/* Reason */}
       <div>

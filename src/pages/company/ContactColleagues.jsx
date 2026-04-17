@@ -3,6 +3,8 @@ import { Search, Phone, Mail, MessageCircle, X, Users } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useRegion } from "@/lib/RegionContext";
 import ContactProfilePanel from "@/components/contact/ContactProfilePanel";
+import { useAbsenceStatus } from "@/hooks/useAbsenceStatus";
+import { AbsenceBadge, HolidayBanner } from "@/components/contact/AbsenceBadge";
 
 function normalizePhone(raw) {
   if (!raw) return "";
@@ -21,6 +23,7 @@ function whatsAppURL(mobile) {
 
 export default function ContactColleagues() {
   const { regions, getRegionByLocation } = useRegion();
+  const { absenceMap, holidays } = useAbsenceStatus();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -75,6 +78,7 @@ export default function ContactColleagues() {
     <div className="flex gap-4 h-full">
       {/* Main list */}
       <div className="flex-1 space-y-3 min-w-0">
+        <HolidayBanner holidays={holidays} />
         {/* Header + Region tabs */}
         <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -157,6 +161,7 @@ export default function ContactColleagues() {
                 {filtered.map(s => {
                   const region = getRegionByLocation(s.base_location);
                   const wa = whatsAppURL(s.mobile);
+                  const absence = absenceMap[s.work_email];
                   return (
                     <tr key={s.id}
                       onClick={() => setSelected(s)}
@@ -171,8 +176,11 @@ export default function ContactColleagues() {
                               {(s.display_name || "?")[0]}
                             </div>
                           )}
-                          <div>
-                            <div className="font-semibold text-gray-900">{s.display_name}</div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-gray-900">{s.display_name}</span>
+                              <AbsenceBadge absence={absence} />
+                            </div>
                             <div className="text-xs text-gray-400">{s.full_name || s.chinese_name}</div>
                           </div>
                         </div>
@@ -235,6 +243,8 @@ export default function ContactColleagues() {
         <ContactProfilePanel
           person={selected}
           region={getRegionByLocation(selected.base_location)}
+          absence={absenceMap[selected.work_email]}
+          colleagues={staff}
           onClose={() => setSelected(null)}
         />
       )}

@@ -46,6 +46,14 @@
       "type": "string",
       "title": "\u8acb\u5047\u539f\u56e0"
     },
+    "delegate_name": {
+      "type": "string",
+      "title": "\u4ee3\u7406\u4eba\u59d3\u540d"
+    },
+    "delegate_email": {
+      "type": "string",
+      "title": "\u4ee3\u7406\u4ebaEmail"
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",
