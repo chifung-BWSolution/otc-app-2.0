@@ -4,29 +4,35 @@
   "properties": {
     "title": {
       "type": "string",
-      "title": "\u77e5\u8b58\u6a19\u984c"
-    },
-    "category": {
-      "type": "string",
-      "title": "\u5206\u985e",
-      "enum": [
-        "\u7ba1\u7406\u8207\u9818\u5c0e",
-        "\u92b7\u552e\u6280\u5de7",
-        "IT\u6280\u80fd",
-        "\u8ca1\u52d9\u77e5\u8b58",
-        "\u6e9d\u901a\u6280\u5de7",
-        "\u5408\u898f\u8207\u6cd5\u5f8b",
-        "\u7522\u54c1\u77e5\u8b58",
-        "\u5176\u4ed6"
-      ]
+      "title": "\u6a19\u984c"
     },
     "content": {
       "type": "string",
-      "title": "\u77e5\u8b58\u5167\u5bb9"
+      "title": "\u5167\u5bb9"
     },
     "image_url": {
       "type": "string",
       "title": "\u5716\u7247URL"
+    },
+    "category_id": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u7bc4\u7587 (\u8ab2\u7a0b\u5206\u985e) ID"
+    },
+    "category_name": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u7bc4\u7587\u540d\u7a31"
+    },
+    "course_id": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u5206\u985e (\u8ab2\u7a0b) ID"
+    },
+    "course_name": {
+      "type": "string",
+      "title": "\u77e5\u8b58\u5206\u985e (\u8ab2\u7a0b) \u540d\u7a31"
+    },
+    "category": {
+      "type": "string",
+      "title": "\u820a\u5206\u985e (\u5411\u5f8c\u517c\u5bb9)"
     },
     "tags": {
       "type": "array",
@@ -57,21 +63,57 @@
         "\u5df2\u8a8d\u8b49",
         "\u5df2\u62d2\u7d55"
       ],
-      "default": "\u8349\u7a3f"
+      "default": "\u5f85\u5be9\u6838"
+    },
+    "team_leader_score": {
+      "type": "number",
+      "title": "Team Leader \u8a55\u5206 (1-5)",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "team_leader_note": {
+      "type": "string",
+      "title": "Team Leader \u5099\u8a3b"
+    },
+    "team_leader_reviewed_by": {
+      "type": "string",
+      "title": "Team Leader \u5be9\u6838\u4eba"
+    },
+    "team_leader_reviewed_at": {
+      "type": "string",
+      "title": "Team Leader \u5be9\u6838\u6642\u9593"
+    },
+    "admin_score": {
+      "type": "number",
+      "title": "Admin \u8a55\u5206 (1-5)",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "admin_note": {
+      "type": "string",
+      "title": "Admin \u5099\u8a3b"
+    },
+    "admin_reviewed_by": {
+      "type": "string",
+      "title": "Admin \u5be9\u6838\u4eba"
+    },
+    "admin_reviewed_at": {
+      "type": "string",
+      "title": "Admin \u5be9\u6838\u6642\u9593"
     },
     "score": {
       "type": "number",
-      "title": "\u884c\u653f\u8a55\u5206 (1-5)",
+      "title": "\u820a\u7e3d\u8a55\u5206 (\u5411\u5f8c\u517c\u5bb9)",
       "minimum": 1,
       "maximum": 5
     },
     "score_note": {
       "type": "string",
-      "title": "\u8a55\u5206\u5099\u6ce8"
+      "title": "\u820a\u8a55\u5206\u5099\u6ce8 (\u5411\u5f8c\u517c\u5bb9)"
     },
     "reviewed_by": {
       "type": "string",
-      "title": "\u5be9\u6838\u4eba"
+      "title": "\u5be9\u6838\u4eba (\u5411\u5f8c\u517c\u5bb9)"
     },
     "review_note": {
       "type": "string",
@@ -83,7 +125,7 @@
     },
     "linked_courses": {
       "type": "array",
-      "title": "\u95dc\u806f\u8ab2\u7a0b\u5206\u985e",
+      "title": "\u95dc\u806f\u8ab2\u7a0b (\u820a)",
       "items": {
         "type": "string"
       }
@@ -95,11 +137,26 @@
     "certified_content": {
       "type": "string",
       "title": "\u8a8d\u8b49\u77e5\u8b58\u5167\u5bb9\uff08\u53ef\u4fee\u6539\uff09"
+    },
+    "certified_image_url": {
+      "type": "string",
+      "title": "\u8a8d\u8b49\u77e5\u8b58\u5716\u7247\uff08\u53ef\u4fee\u6539\uff09"
+    },
+    "certified_course_ids": {
+      "type": "array",
+      "title": "\u8a8d\u8b49\u5f8c\u52a0\u5165\u7684\u8ab2\u7a0b IDs",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pushed_as_resource": {
+      "type": "boolean",
+      "title": "\u5df2\u63a8\u9001\u70ba\u8ab2\u7a0b\u8cc7\u6e90",
+      "default": false
     }
   },
   "required": [
     "title",
-    "category",
     "content",
     "user_email",
     "week_start",
