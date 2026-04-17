@@ -107,7 +107,7 @@ const AuthenticatedApp = () => {
         <Route path="/course/:courseId" element={<CourseProfilePage />} />
         <Route path="/course/exam" element={<ExamCenter />} />
         <Route path="/course/schedule" element={<Placeholder title="培訓日程" icon="🗓️" description="查看即將舉行的培訓" />} />
-        <Route path="/course/weekly" element={<WeeklyReport /} />
+        <Route path="/course/weekly" element={<WeeklyReport />} />
         <Route path="/course/my-knowledge" element={<Placeholder title="我的知識" icon="🧠" description="個人學習成果及知識庫" />} />
         <Route path="/course/exam" element={<Placeholder title="考核申請" icon="📜" description="申請參加考核認證" />} />
         {/* 業務拓展 */}
@@ -116,7 +116,7 @@ const AuthenticatedApp = () => {
         {/* 領袖管理 */}
         <Route path="/leader/team" element={<Placeholder title="團隊管理" icon="👥" description="管理團隊成員及績效" />} />
         <Route path="/leader/training" element={<Placeholder title="安排培訓" icon="🎯" description="為團隊安排培訓計劃" />} />
-        <Route path="/leader/certification" element={<KnowledgeCertification /} />
+        <Route path="/leader/certification" element={<KnowledgeCertification />} />
         {/* 行政跟進 */}
         <Route path="/admin/approvals" element={<Approvals />} />
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
