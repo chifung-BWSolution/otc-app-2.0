@@ -48,8 +48,20 @@ export function RegionProvider({ children }) {
 
   useEffect(() => { load(); }, []);
 
+  // Helper: resolve a Region object from any staff base_location string
+  const getRegionByLocation = (baseLocation) => {
+    if (!baseLocation) return null;
+    const loc = baseLocation.toLowerCase();
+    return regions.find(r =>
+      (r.base_locations || []).some(v => v && loc.includes(v.toLowerCase()))
+    ) || regions.find(r =>
+      (r.code && loc.includes(r.code.toLowerCase())) ||
+      (r.name && loc.includes(r.name.toLowerCase()))
+    ) || null;
+  };
+
   return (
-    <RegionContext.Provider value={{ regions, currentRegion, userBaseLocation, loading, refresh: load, setCurrentRegion }}>
+    <RegionContext.Provider value={{ regions, currentRegion, userBaseLocation, loading, refresh: load, setCurrentRegion, getRegionByLocation }}>
       {children}
     </RegionContext.Provider>
   );
