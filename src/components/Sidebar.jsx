@@ -85,7 +85,6 @@ const menuGroups = [
     bg: "bg-pink-50",
     border: "border-pink-400",
     items: [
-      { label: "📣 廣告費用", path: "/business/ad-expense" },
       { label: "📋 Tender登記", path: "/business/tender" },
     ],
   },

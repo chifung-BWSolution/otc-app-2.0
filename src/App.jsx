@@ -109,7 +109,7 @@ const AuthenticatedApp = () => {
         <Route path="/course/my-knowledge" element={<Placeholder title="我的知識" icon="🧠" description="個人學習成果及知識庫" />} />
         <Route path="/course/exam" element={<Placeholder title="考核申請" icon="📜" description="申請參加考核認證" />} />
         {/* 業務拓展 */}
-        <Route path="/business/ad-expense" element={<Placeholder title="廣告費用" icon="📣" description="廣告費用申請及記錄" />} />
+
         <Route path="/business/tender" element={<TenderRegistration />} />
         {/* 領袖管理 */}
         <Route path="/leader/team" element={<Placeholder title="團隊管理" icon="👥" description="管理團隊成員及績效" />} />
