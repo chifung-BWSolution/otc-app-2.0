@@ -99,7 +99,6 @@ const AuthenticatedApp = () => {
         <Route path="/work/kpi" element={<KPIReport />} />
         <Route path="/work/projects" element={<Placeholder title="主要項目" icon="🚀" description="查看及管理主要項目進度" />} />
         <Route path="/work/special-approval" element={<Placeholder title="特別批核" icon="✅" description="提交特別批核申請" />} />
-        <Route path="/work/meetings" element={<Placeholder title="跟進會議" icon="🤝" description="會議記錄及跟進事項" />} />
         {/* 考勤/假期 */}
         <Route path="/attendance/records" element={<Placeholder title="簽到記錄" icon="📋" description="查看出勤記錄" />} />
         <Route path="/attendance/checkin" element={<CheckIn />} />

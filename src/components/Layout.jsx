@@ -26,7 +26,6 @@ const pageTitles = {
   "/work/kpi": "🎯 每月KPI匯報",
   "/work/projects": "🚀 主要項目",
   "/work/special-approval": "✅ 特別批核",
-  "/work/meetings": "🤝 跟進會議",
   "/attendance/records": "📋 簽到記錄",
   "/attendance/checkin": "👆 簽到打卡",
   "/attendance/leave": "🌴 假期申請",

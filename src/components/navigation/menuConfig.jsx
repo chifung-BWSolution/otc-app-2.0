@@ -49,7 +49,6 @@ export const menuGroups = [
       { label: "🎯 每月KPI匯報", path: "/work/kpi" },
       { label: "🚀 主要項目", path: "/work/projects" },
       { label: "✅ 特別批核", path: "/work/special-approval" },
-      { label: "🤝 跟進會議", path: "/work/meetings" },
     ],
   },
   {
