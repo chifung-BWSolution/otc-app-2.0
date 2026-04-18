@@ -1,7 +1,33 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Plus, X, BarChart2, Search, Trash2, BookOpen, User, Loader2, Upload } from "lucide-react";
+import { Edit2, Plus, X, BarChart2, Search, Trash2, BookOpen, User, Loader2, UserCheck, Check } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+
+const DEFAULT_PASS = 60;
+
+// Normalize name for matching (trim, lowercase, collapse spaces)
+const norm = (s) => (s || "").toString().trim().toLowerCase().replace(/\s+/g, " ");
+
+function findStaffByName(staff, name) {
+  if (!name) return null;
+  const n = norm(name);
+  return staff.find(s =>
+    norm(s.display_name) === n ||
+    norm(s.full_name) === n ||
+    norm(s.chinese_name) === n
+  ) || null;
+}
+
+// Get passing score for a course (falls back to default)
+function getPassingScore(result, courses) {
+  const c = courses.find(x => x.id === result.course_id || x.title === result.course_name);
+  return c?.passing_score ?? DEFAULT_PASS;
+}
+
+function scoreStatus(score, pass) {
+  if (score === null || score === undefined || score === "") return null;
+  return Number(score) >= Number(pass) ? "pass" : "fail";
+}
 
 const emptyForm = {
   student_staff_id: "", student_email: "", student_name: "",
@@ -24,6 +50,9 @@ export default function AssessmentResultRegistry() {
   const [search, setSearch] = useState("");
   const [filterCourse, setFilterCourse] = useState("全部");
 
+  const [matching, setMatching] = useState(false);
+  const [matchReport, setMatchReport] = useState(null);
+
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
@@ -37,6 +66,50 @@ export default function AssessmentResultRegistry() {
     setCourses(courseList);
     setStaff(staffList);
     setLoading(false);
+  };
+
+  // 一鍵將所有記錄按姓名匹配到員工目錄，更新對應的 email / team / bu 等資訊
+  const matchAllToStaff = async () => {
+    if (!confirm("將根據學員姓名自動比對員工目錄，並更新團隊、Email 等資訊。繼續？")) return;
+    setMatching(true);
+    let matched = 0, updated = 0, unmatched = [];
+    for (const r of results) {
+      if (r.student_staff_id) continue; // already linked
+      const s = findStaffByName(staff, r.student_name);
+      if (!s) {
+        unmatched.push(r.student_name);
+        continue;
+      }
+      matched++;
+      const payload = {
+        student_staff_id: s.id,
+        student_email: s.work_email || r.student_email || "",
+        student_name: s.display_name || s.full_name || r.student_name,
+        team: s.team_name || r.team || "",
+        bu_name: s.bu_name || r.bu_name || "",
+        office: s.base_location || r.office || "",
+      };
+      await base44.entities.AssessmentResult.update(r.id, payload);
+      updated++;
+    }
+    setMatching(false);
+    setMatchReport({ matched, updated, unmatched: [...new Set(unmatched)] });
+    loadAll();
+  };
+
+  // 行內更新分數欄位
+  const updateField = async (id, field, value) => {
+    const v = value === "" ? null : Number(value);
+    const patch = { [field]: v };
+    // keep score in sync with latest available (retest overrides primary)
+    const row = results.find(r => r.id === id);
+    if (row) {
+      const retest = field === "retest_exam_score" ? v : row.retest_exam_score;
+      const primary = field === "primary_exam_score" ? v : row.primary_exam_score;
+      patch.score = retest ?? primary ?? 0;
+    }
+    await base44.entities.AssessmentResult.update(id, patch);
+    setResults(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   };
 
   const openAdd = () => { setEditItem(null); setForm(emptyForm); setShowForm(true); };
@@ -87,6 +160,11 @@ export default function AssessmentResultRegistry() {
           <p className="text-xs text-gray-400">由 Admin 負責登記 · 關聯課程中心及員工目錄</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button onClick={matchAllToStaff} disabled={matching || loading}
+            className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-200 disabled:opacity-60">
+            {matching ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={16} />}
+            {matching ? "匹配中..." : "比對員工目錄"}
+          </button>
           <button onClick={() => navigate("/admin/assessment-dashboard")}
             className="flex items-center gap-1.5 bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-200">
             <BarChart2 size={16} /> 成績儀表板
@@ -98,9 +176,34 @@ export default function AssessmentResultRegistry() {
         </div>
       </div>
 
+      {matchReport && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm flex items-start gap-2">
+          <Check size={16} className="text-emerald-600 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <div className="font-semibold text-emerald-800">
+              已比對 {matchReport.matched} 位學員，更新 {matchReport.updated} 筆記錄
+            </div>
+            {matchReport.unmatched.length > 0 && (
+              <div className="text-xs text-amber-700 mt-1">
+                ⚠ 找不到對應員工：{matchReport.unmatched.join("、")}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setMatchReport(null)} className="text-emerald-600 hover:text-emerald-800"><X size={14} /></button>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <StatCard label="總記錄" value={filtered.length} color="blue" />
+        <StatCard label="合格" value={filtered.filter(r => {
+          const final = r.retest_exam_score ?? r.primary_exam_score;
+          return scoreStatus(final, getPassingScore(r, courses)) === "pass";
+        }).length} color="green" />
+        <StatCard label="不合格" value={filtered.filter(r => {
+          const final = r.retest_exam_score ?? r.primary_exam_score;
+          return scoreStatus(final, getPassingScore(r, courses)) === "fail";
+        }).length} color="red" />
         <StatCard label="有補考" value={filtered.filter(r => r.retest_exam_score).length} color="yellow" />
         <StatCard label="涉及課程" value={new Set(filtered.map(r => r.course_name)).size} color="purple" />
       </div>
@@ -128,50 +231,63 @@ export default function AssessmentResultRegistry() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-          <table className="w-full text-sm min-w-[960px]">
+          <table className="w-full text-sm min-w-[1000px]">
             <thead>
               <tr className="border-b bg-gray-50">
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">學員</th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">課程 / 試卷</th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">團隊</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">正考</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">補考</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600">合格分</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600">正考分數</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600">補考分數</th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">備註</th>
                 <th className="px-4 py-3 text-center text-xs font-bold text-gray-600">動作</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/30">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-gray-900">{r.student_name}</div>
-                    {r.student_email && <div className="text-xs text-gray-400">{r.student_email}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-800">{r.course_name}</div>
-                    {r.assessment_type && <div className="text-xs text-gray-500">{r.assessment_type}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    <div className="text-blue-600 font-medium">{r.team || "—"}</div>
-                    <div className="text-gray-400">{r.bu_name || ""}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-bold text-gray-900">{r.primary_exam_score ?? "—"}</div>
-                    {r.primary_exam_date && <div className="text-xs text-gray-400">{String(r.primary_exam_date).slice(0, 10)}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-bold text-gray-700">{r.retest_exam_score ?? "—"}</div>
-                    {r.retest_exam_date && <div className="text-xs text-gray-400">{String(r.retest_exam_date).slice(0, 10)}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 max-w-48 truncate">{r.remarks || "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-blue-100 rounded text-blue-500"><Edit2 size={13} /></button>
-                      <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-100 rounded text-red-500"><Trash2 size={13} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(r => {
+                const pass = getPassingScore(r, courses);
+                const linked = !!r.student_staff_id;
+                return (
+                  <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/30">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-gray-900">{r.student_name}</span>
+                        {linked ? (
+                          <span title="已連結員工目錄" className="text-emerald-500"><UserCheck size={12} /></span>
+                        ) : (
+                          <span title="未連結員工目錄" className="text-xs text-amber-500 bg-amber-50 px-1.5 rounded">未連結</span>
+                        )}
+                      </div>
+                      {r.student_email && <div className="text-xs text-gray-400">{r.student_email}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-800">{r.course_name}</div>
+                      {r.assessment_type && <div className="text-xs text-gray-500">{r.assessment_type}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="text-blue-600 font-medium">{r.team || "—"}</div>
+                      <div className="text-gray-400">{r.bu_name || ""}</div>
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-gray-500">{pass}</td>
+                    <td className="px-4 py-3 text-center">
+                      <ScoreCell value={r.primary_exam_score} passing={pass} date={r.primary_exam_date}
+                        onSave={(v) => updateField(r.id, "primary_exam_score", v)} />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <ScoreCell value={r.retest_exam_score} passing={pass} date={r.retest_exam_date}
+                        onSave={(v) => updateField(r.id, "retest_exam_score", v)} />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 max-w-48 truncate">{r.remarks || "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-blue-100 rounded text-blue-500"><Edit2 size={13} /></button>
+                        <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-100 rounded text-red-500"><Trash2 size={13} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -195,11 +311,61 @@ function StatCard({ label, value, color }) {
     blue: "bg-blue-50 border-blue-100 text-blue-600",
     yellow: "bg-yellow-50 border-yellow-100 text-yellow-600",
     purple: "bg-purple-50 border-purple-100 text-purple-600",
+    green: "bg-green-50 border-green-100 text-green-600",
+    red: "bg-red-50 border-red-100 text-red-600",
   };
   return (
     <div className={`rounded-xl p-3 text-center border ${map[color]}`}>
       <div className="text-xl font-bold">{value}</div>
       <div className="text-xs text-gray-500">{label}</div>
+    </div>
+  );
+}
+
+// Inline-editable score cell with pass/fail colour indicator
+function ScoreCell({ value, passing, date, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value ?? "");
+
+  useEffect(() => { setVal(value ?? ""); }, [value]);
+
+  const status = scoreStatus(value, passing);
+  const colorCls = status === "pass"
+    ? "bg-green-100 text-green-700 border-green-300"
+    : status === "fail"
+      ? "bg-red-100 text-red-700 border-red-300"
+      : "bg-gray-50 text-gray-400 border-gray-200 border-dashed";
+
+  const commit = async () => {
+    setEditing(false);
+    if (String(val) !== String(value ?? "")) {
+      await onSave(val);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      {editing ? (
+        <input
+          autoFocus
+          type="number"
+          step="0.01"
+          className="w-20 border border-blue-400 rounded-md px-2 py-1 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
+          value={val}
+          onChange={e => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") { setVal(value ?? ""); setEditing(false); }
+          }}
+        />
+      ) : (
+        <button onClick={() => setEditing(true)} title="點擊編輯"
+          className={`min-w-[60px] px-3 py-1 rounded-md border text-sm font-bold transition-colors hover:opacity-80 ${colorCls}`}>
+          {value ?? "—"}
+        </button>
+      )}
+      {date && <div className="text-[10px] text-gray-400">{String(date).slice(0, 10)}</div>}
     </div>
   );
 }
