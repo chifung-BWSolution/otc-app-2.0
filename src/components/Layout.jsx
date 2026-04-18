@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import Sidebar from "./Sidebar";
 import { Menu, User } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./NotificationBell";
 import RegionBadge from "./RegionBadge";
+import TopNavBar from "./navigation/TopNavBar";
+import SubSidebar from "./navigation/SubSidebar";
+import { findGroupByPath, menuGroups } from "./navigation/menuConfig";
 
 const pageTitles = {
   "/": "🏠 主頁",
@@ -56,6 +58,8 @@ const pageTitles = {
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  // The currently active top-nav group key (null = follow route)
+  const [activeKey, setActiveKey] = useState(null);
   const location = useLocation();
   const title = pageTitles[location.pathname] || "企業管理系統";
 
@@ -63,29 +67,65 @@ export default function Layout() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // Sync activeKey with current route whenever location changes
+  useEffect(() => {
+    const g = findGroupByPath(location.pathname);
+    setActiveKey(g?.key || null);
+  }, [location.pathname]);
+
+  const hasSubSidebar = !!(activeKey && menuGroups.find(g => g.key === activeKey)) || !!findGroupByPath(location.pathname);
+  const isHome = location.pathname === "/";
+  const showSidebar = hasSubSidebar && !isHome;
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? "md:ml-14" : "ml-0 md:ml-64"}`}>
-        <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Header */}
+      <header className="bg-white shadow-sm px-4 py-2 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          {showSidebar && (
             <button
               className="md:hidden p-2 rounded-lg hover:bg-gray-100"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu size={20} />
             </button>
-            <h1 className="text-lg font-bold text-gray-800">{title}</h1>
-          </div>
+          )}
           <div className="flex items-center gap-2">
-            <RegionBadge className="hidden sm:inline-flex" />
-            <NotificationBell currentUser={currentUser} />
-            <button className="p-2 rounded-full hover:bg-gray-100">
-              <User size={20} className="text-gray-600" />
-            </button>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+              🏢
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-sm font-bold text-gray-800 leading-tight">企業管理系統</div>
+              <div className="text-[10px] text-gray-400 leading-tight">Admin Portal</div>
+            </div>
           </div>
-        </header>
-        <main className="flex-1 p-4 md:p-6 max-w-full">
+          <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
+          <h1 className="text-sm md:text-base font-semibold text-gray-700">{title}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <RegionBadge className="hidden sm:inline-flex" />
+          <NotificationBell currentUser={currentUser} />
+          <button className="p-2 rounded-full hover:bg-gray-100">
+            <User size={18} className="text-gray-600" />
+          </button>
+        </div>
+      </header>
+
+      {/* Top Navigation (horizontal main categories) */}
+      <div className="sticky top-[49px] z-30">
+        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} />
+      </div>
+
+      {/* Body: sub sidebar + content */}
+      <div className="flex flex-1">
+        {showSidebar && (
+          <SubSidebar
+            activeKey={activeKey}
+            collapsed={collapsed}
+            setCollapsed={setCollapsed}
+          />
+        )}
+        <main className="flex-1 p-4 md:p-6 max-w-full min-w-0">
           <Outlet />
         </main>
       </div>
