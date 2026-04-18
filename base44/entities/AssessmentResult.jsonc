@@ -10,13 +10,33 @@
       "type": "string",
       "title": "\u5b78\u54e1\u59d3\u540d"
     },
+    "student_staff_id": {
+      "type": "string",
+      "title": "\u54e1\u5de5 Staff ID"
+    },
+    "course_id": {
+      "type": "string",
+      "title": "\u8ab2\u7a0b ID"
+    },
     "course_name": {
       "type": "string",
       "title": "\u8003\u6838\u8ab2\u7a0b"
     },
+    "course_code": {
+      "type": "string",
+      "title": "\u8ab2\u7a0b\u7de8\u865f"
+    },
+    "assessment_type": {
+      "type": "string",
+      "title": "\u8003\u6838\u8a66\u5377/\u985e\u578b"
+    },
     "team": {
       "type": "string",
       "title": "\u6240\u5c6c\u5718\u968a"
+    },
+    "bu_name": {
+      "type": "string",
+      "title": "\u6240\u5c6c BU"
     },
     "office": {
       "type": "string",
@@ -25,16 +45,6 @@
     "score": {
       "type": "number",
       "title": "\u8003\u6838\u6210\u7e3e"
-    },
-    "passing_status": {
-      "type": "string",
-      "title": "\u6700\u7d42\u7d50\u679c",
-      "enum": [
-        "\u5408\u683c",
-        "\u4e0d\u5408\u683c",
-        "\u9700\u88dc\u8003"
-      ],
-      "default": "\u4e0d\u5408\u683c"
     },
     "primary_exam_date": {
       "type": "string",
@@ -61,19 +71,10 @@
     "remarks": {
       "type": "string",
       "title": "\u5099\u8a3b"
-    },
-    "assessment_type": {
-      "type": "string",
-      "title": "\u8003\u6838\u985e\u578b"
     }
   },
   "required": [
-    "student_email",
     "student_name",
-    "course_name",
-    "team",
-    "score",
-    "passing_status",
-    "primary_exam_date"
+    "course_name"
   ]
 }
