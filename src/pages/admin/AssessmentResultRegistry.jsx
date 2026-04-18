@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Edit2, Plus, X, BarChart2, Search, Trash2, BookOpen, User, Loader2, UserCheck, Check } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-const DEFAULT_PASS = 60;
+const DEFAULT_PASS = 85;
 
 // Normalize name for matching (trim, lowercase, collapse spaces)
 const norm = (s) => (s || "").toString().trim().toLowerCase().replace(/\s+/g, " ");
