@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock, CalendarClock, Send, BookOpen, AlertCircle, CheckCircle2, PlayCircle } from "lucide-react";
+import { Clock, CalendarClock, Send, BookOpen, AlertCircle, CheckCircle2, PlayCircle, Award, TrendingUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const statusColor = {
@@ -11,6 +11,7 @@ const statusColor = {
 export default function ExamCenter() {
   const [currentUser, setCurrentUser] = useState(null);
   const [arrangements, setArrangements] = useState([]);
+  const [myResults, setMyResults] = useState([]);
   const [selectedArrangement, setSelectedArrangement] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,31 +26,41 @@ export default function ExamCenter() {
       if (!authed) { setLoading(false); return; }
       base44.auth.me().then(u => {
         setCurrentUser(u);
-        if (u?.email) loadArrangements(u.email);
+        if (u?.email) loadAll(u);
       });
     });
   }, []);
 
-  // Subscribe to real-time changes so that when Admin 新增/更新 考核安排，學員立即看到
+  // Subscribe to real-time changes so that when Admin 新增/更新 考核安排 或 成績，學員立即看到
   useEffect(() => {
     if (!currentUser?.email) return;
-    const unsubscribe = base44.entities.AssessmentArrangement.subscribe((event) => {
-      const d = event.data;
-      if (event.type === "delete" || (d && d.student_email !== currentUser.email)) {
-        // Only refresh if it might affect current user
-        if (event.type === "delete" || event.type === "update") loadArrangements(currentUser.email);
-        return;
-      }
-      loadArrangements(currentUser.email);
-    });
-    return unsubscribe;
+    const unsubA = base44.entities.AssessmentArrangement.subscribe(() => loadArrangements(currentUser.email));
+    const unsubR = base44.entities.AssessmentResult.subscribe(() => loadResults(currentUser));
+    return () => { unsubA?.(); unsubR?.(); };
   }, [currentUser?.email]);
 
-  const loadArrangements = async (email) => {
+  const loadAll = async (u) => {
     setLoading(true);
+    await Promise.all([loadArrangements(u.email), loadResults(u)]);
+    setLoading(false);
+  };
+
+  const loadArrangements = async (email) => {
     const arr = await base44.entities.AssessmentArrangement.filter({ student_email: email }, "-created_date", 100);
     setArrangements(arr);
-    setLoading(false);
+  };
+
+  const loadResults = async (u) => {
+    // Match by email OR name (匯入 Excel 成績可能無 email)
+    const [byEmail, byName] = await Promise.all([
+      u.email ? base44.entities.AssessmentResult.filter({ student_email: u.email }, "-created_date", 200) : Promise.resolve([]),
+      u.full_name ? base44.entities.AssessmentResult.filter({ student_name: u.full_name }, "-created_date", 200) : Promise.resolve([]),
+    ]);
+    const map = new Map();
+    [...byEmail, ...byName].forEach(r => map.set(r.id, r));
+    setMyResults(Array.from(map.values()).sort((a, b) =>
+      (b.primary_exam_date || b.created_date || "").localeCompare(a.primary_exam_date || a.created_date || "")
+    ));
   };
 
   const startExam = async (arrangement) => {
@@ -124,7 +135,7 @@ export default function ExamCenter() {
           <div className="text-3xl font-black mb-2">{examResult.score}/{examResult.total}</div>
           <div className="text-lg font-bold">{examResult.passing ? "合格" : "不合格"}</div>
         </div>
-        <button onClick={() => { setExamResult(null); setSelectedArrangement(null); loadArrangements(currentUser.email); }}
+        <button onClick={() => { setExamResult(null); setSelectedArrangement(null); loadAll(currentUser); }}
           className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">返回考試列表</button>
       </div>
     );
@@ -201,9 +212,10 @@ export default function ExamCenter() {
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-5 text-white">
         <h2 className="text-xl font-black">📚 我的考試中心</h2>
         <p className="text-sm opacity-90 mt-1">由行政部為您安排的課程考核</p>
-        <div className="flex gap-3 mt-3">
+        <div className="flex gap-3 mt-3 flex-wrap">
           <StatBadge label="待考試" value={upcoming.length} />
-          <StatBadge label="已完成" value={finished.length} />
+          <StatBadge label="已完成安排" value={finished.length} />
+          <StatBadge label="成績記錄" value={myResults.length} />
         </div>
       </div>
 
@@ -235,6 +247,55 @@ export default function ExamCenter() {
           )}
         </>
       )}
+
+      {/* My Results */}
+      {myResults.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-gray-600 mb-2 mt-4 flex items-center gap-1.5">
+            <Award size={14} className="text-amber-500" /> 我的考核成績
+          </h3>
+          <div className="space-y-2">
+            {myResults.map(r => <ResultCard key={r.id} result={r} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultCard({ result }) {
+  const finalScore = result.retest_exam_score ?? result.primary_exam_score ?? result.score;
+  const hasRetest = result.retest_exam_score != null && result.retest_exam_score !== "";
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-base text-gray-900">{result.course_name}</div>
+          {result.assessment_type && <div className="text-xs text-gray-500 mt-0.5">{result.assessment_type}</div>}
+          <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
+            {result.primary_exam_date && (
+              <span className="flex items-center gap-1">
+                <CalendarClock size={12} className="text-blue-500" />
+                正考：{String(result.primary_exam_date).slice(0, 10)}
+                {result.primary_exam_score != null && <b className="ml-1">{result.primary_exam_score} 分</b>}
+              </span>
+            )}
+            {hasRetest && (
+              <span className="flex items-center gap-1">
+                <TrendingUp size={12} className="text-orange-500" />
+                補考：{result.retest_exam_date ? String(result.retest_exam_date).slice(0, 10) : "—"}
+                <b className="ml-1">{result.retest_exam_score} 分</b>
+              </span>
+            )}
+            {result.team && <span className="text-gray-400">團隊：{result.team}</span>}
+          </div>
+          {result.remarks && <div className="text-xs text-gray-400 italic mt-1">備註：{result.remarks}</div>}
+        </div>
+        <div className="shrink-0 text-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl px-4 py-2 min-w-[72px]">
+          <div className="text-xs opacity-90">最終分數</div>
+          <div className="text-2xl font-black">{finalScore ?? "—"}</div>
+        </div>
+      </div>
     </div>
   );
 }
