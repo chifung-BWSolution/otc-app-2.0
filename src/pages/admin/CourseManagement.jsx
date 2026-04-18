@@ -77,35 +77,58 @@ function CategoriesTab() {
           <p>暫無課程分類，請新增</p>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {items.map(cat => (
-            <div key={cat.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 relative"
-              style={{ borderLeft: `4px solid ${cat.color || "#6366f1"}` }}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{cat.icon || "📚"}</span>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{cat.name}</h3>
-                    {!cat.is_active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">停用</span>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => { setEditItem(cat); setShowForm(true); }}
-                    className="p-1.5 hover:bg-blue-50 rounded text-blue-500"><Edit2 size={13} /></button>
-                  <button onClick={() => handleDelete(cat.id)}
-                    className="p-1.5 hover:bg-red-50 rounded text-red-500"><Trash2 size={13} /></button>
-                </div>
-              </div>
-              {cat.description && <p className="text-xs text-gray-500 mt-2">{cat.description}</p>}
-              {cat.service_units?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {cat.service_units.map((u, i) => (
-                    <span key={i} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{u}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 w-12"></th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">分類名稱</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">描述</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600">服務單位</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 w-20">排序</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 w-20">狀態</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 w-24">動作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(cat => (
+                <tr key={cat.id} className="border-b border-gray-50 hover:bg-gray-50"
+                  style={{ borderLeft: `4px solid ${cat.color || "#6366f1"}` }}>
+                  <td className="px-4 py-3 text-2xl">{cat.icon || "📚"}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-gray-900">{cat.name}</div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">{cat.description || "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {(cat.service_units || []).slice(0, 4).map((u, i) => (
+                        <span key={i} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{u}</span>
+                      ))}
+                      {(cat.service_units || []).length > 4 && (
+                        <span className="text-xs text-gray-400">+{cat.service_units.length - 4}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center text-xs text-gray-500">{cat.sort_order ?? 0}</td>
+                  <td className="px-4 py-3 text-center">
+                    {cat.is_active ? (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">啟用</span>
+                    ) : (
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">停用</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => { setEditItem(cat); setShowForm(true); }}
+                        className="p-1.5 hover:bg-blue-50 rounded text-blue-500"><Edit2 size={13} /></button>
+                      <button onClick={() => handleDelete(cat.id)}
+                        className="p-1.5 hover:bg-red-50 rounded text-red-500"><Trash2 size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
