@@ -122,31 +122,11 @@ Deno.serve(async (req) => {
       }
     };
 
-    // 3a. Collect all existing record IDs
-    let existingIds = [];
-    let offset = 0;
-    const batchSize = 100;
-    while (true) {
-      await sleep(200);
-      const batch = await withRetry(() => entity.filter({}, 'created_date', batchSize, offset));
-      if (!batch || batch.length === 0) break;
-      existingIds.push(...batch.map(r => r.id));
-      if (batch.length < batchSize) break;
-      offset += batchSize;
-    }
-    console.log(`Found ${existingIds.length} existing records to delete`);
-
-    // 3b. Delete records one by one with mandatory delay between each
-    let deleted = 0;
-    for (let i = 0; i < existingIds.length; i++) {
-      await withRetry(() => entity.delete(existingIds[i]));
-      deleted++;
-      // Mandatory delay after every single delete
-      await sleep(100);
-      // Extra pause every 10 deletes
-      if (deleted % 10 === 0) await sleep(1000);
-    }
-    console.log(`Deleted ${deleted} records`);
+    // 3a. Delete all existing records using deleteMany (bulk)
+    console.log(`Deleting all existing ${entityName} records...`);
+    const deleteResult = await withRetry(() => entity.deleteMany({}));
+    const deleted = deleteResult?.deleted || 0;
+    console.log(`Deleted ${deleted} records via deleteMany`);
 
     // 4. Insert new records in small batches with delays
     let created = 0;
