@@ -32,6 +32,13 @@ function parseCSV(text) {
   });
 }
 
+// Fields that are array type in the DB schema
+const ARRAY_FIELDS = new Set([
+  "tags_in", "tags_out", "brands", "collaborators", "teams", "locations",
+  "roles", "sub_projects", "task_types", "images", "projects",
+  "meeting_participants", "service_units", "region_codes",
+]);
+
 function transformRow(row, fieldMapping) {
   const result = {};
   for (const [fileField, dbField] of Object.entries(fieldMapping)) {
@@ -47,6 +54,17 @@ function transformRow(row, fieldMapping) {
     // Handle geographic_address type (Bubble returns {address, lat, lng})
     if (val && typeof val === "object" && "address" in val) {
       val = val.address || "";
+    }
+
+    // Convert string values to arrays for array-type fields
+    if (ARRAY_FIELDS.has(dbField) && typeof val === "string") {
+      // Could be comma-separated or a single value
+      val = val.includes(",") ? val.split(",").map(s => s.trim()).filter(Boolean) : [val.trim()];
+    }
+
+    // Ensure array fields that are already arrays stay as arrays
+    if (ARRAY_FIELDS.has(dbField) && !Array.isArray(val)) {
+      val = [val];
     }
 
     result[dbField] = val;
@@ -143,17 +161,35 @@ Deno.serve(async (req) => {
 
     // 4. Insert new records in small batches with delays
     let created = 0;
+    let insertErrors = 0;
     const insertBatch = 20;
     for (let i = 0; i < transformed.length; i += insertBatch) {
       const batch = transformed.slice(i, i + insertBatch);
-      await withRetry(() => entity.bulkCreate(batch));
-      created += batch.length;
+      try {
+        await withRetry(() => entity.bulkCreate(batch));
+        created += batch.length;
+      } catch (batchErr) {
+        // If bulk fails, try inserting one by one to salvage what we can
+        console.log(`Batch ${Math.floor(i/insertBatch)+1} failed: ${batchErr.message}, trying one-by-one...`);
+        for (const record of batch) {
+          try {
+            await withRetry(() => entity.create(record));
+            created++;
+          } catch (singleErr) {
+            insertErrors++;
+            if (insertErrors <= 10) {
+              console.log(`Row insert failed: ${singleErr.message} - data keys: ${Object.keys(record).join(",")}`);
+            }
+          }
+          await sleep(100);
+        }
+      }
       // Mandatory delay between every batch
       await sleep(300);
       // Extra pause every 5 batches
       if ((Math.floor(i / insertBatch) + 1) % 5 === 0) await sleep(1500);
     }
-    console.log(`Created ${created} records`);
+    console.log(`Created ${created} records, ${insertErrors} insert errors`);
 
     return Response.json({
       success: true,
