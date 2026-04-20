@@ -19,6 +19,8 @@ const BUBBLE_TYPE_MAP = {
 
 function isEmpty(val) {
   if (val === null || val === undefined || val === "") return true;
+  if (val === 0) return true;
+  if (val === false) return true;
   if (Array.isArray(val) && val.length === 0) return true;
   return false;
 }
