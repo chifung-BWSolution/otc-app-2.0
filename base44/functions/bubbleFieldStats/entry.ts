@@ -17,6 +17,14 @@ const BUBBLE_TYPE_MAP = {
   "BubbleStaffKPIMonth": "staff_kpi_month",
 };
 
+// Check if a value is truly empty (null, undefined, empty string, empty array)
+// IMPORTANT: 0 and false are valid values, NOT empty
+function isEmpty(val) {
+  if (val === null || val === undefined || val === "") return true;
+  if (Array.isArray(val) && val.length === 0) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -42,12 +50,12 @@ Deno.serve(async (req) => {
     const countJson = await countRes.json();
     const totalRows = (countJson.response?.results?.length || 0) + (countJson.response?.remaining || 0);
 
-    // Step 2: Sample records from evenly spread cursors to estimate field fill rates
-    // For small tables (<500), try to read all. For large, sample ~500 records spread across dataset.
-    const sampleSize = Math.min(totalRows, 500);
+    // Step 2: Sample records - use larger sample for better accuracy
+    // For tables <2000 read all, otherwise sample ~2000 records spread evenly
+    const targetSample = Math.min(totalRows, 2000);
     const batchSize = 100;
-    const numBatches = Math.ceil(sampleSize / batchSize);
-    const step = totalRows > sampleSize ? Math.floor(totalRows / numBatches) : 0;
+    const numBatches = Math.ceil(targetSample / batchSize);
+    const step = totalRows > targetSample ? Math.floor(totalRows / numBatches) : 0;
 
     const allSamples = [];
     for (let i = 0; i < numBatches; i++) {
@@ -79,10 +87,7 @@ Deno.serve(async (req) => {
       let filled = 0;
       for (const r of allSamples) {
         const val = r[key];
-        if (val === null || val === undefined || val === "") continue;
-        if (val === 0 || val === false) continue;
-        if (Array.isArray(val) && val.length === 0) continue;
-        filled++;
+        if (!isEmpty(val)) filled++;
       }
 
       // Extrapolate to total rows

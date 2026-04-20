@@ -4,6 +4,14 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Check if a value is truly empty (null, undefined, empty string, empty array)
+// IMPORTANT: 0 and false are valid values, NOT empty
+function isEmpty(val) {
+  if (val === null || val === undefined || val === "") return true;
+  if (Array.isArray(val) && val.length === 0) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -19,7 +27,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'entityName is required' }, { status: 400 });
     }
 
-    // Paginate through ALL records using list with sorting to get consistent pages
+    // Paginate through ALL records
     const allRecords = [];
     const pageSize = 5000;
     let hasMore = true;
@@ -40,16 +48,9 @@ Deno.serve(async (req) => {
       return Response.json({ entityName, totalCount: 0, fields: {} });
     }
 
-    // Analyze field coverage - sample up to 5000 evenly spread records for field analysis
-    const sampleSize = Math.min(totalCount, 5000);
-    const step = totalCount / sampleSize;
-    const sample = [];
-    for (let i = 0; i < sampleSize; i++) {
-      sample.push(allRecords[Math.floor(i * step)]);
-    }
-
+    // Analyze field coverage using ALL records (exact count, no sampling needed)
     const allKeys = new Set();
-    for (const rec of sample) {
+    for (const rec of allRecords) {
       for (const key of Object.keys(rec)) {
         allKeys.add(key);
       }
@@ -60,19 +61,15 @@ Deno.serve(async (req) => {
       if (['id', 'created_date', 'updated_date', 'created_by'].includes(key)) continue;
 
       let filledCount = 0;
-      for (const rec of sample) {
+      for (const rec of allRecords) {
         const val = rec[key];
-        if (val !== null && val !== undefined && val !== '' && val !== 0 && val !== false) {
-          if (Array.isArray(val) && val.length === 0) continue;
-          filledCount++;
-        }
+        if (!isEmpty(val)) filledCount++;
       }
 
       fieldStats[key] = {
-        filled: Math.round((filledCount / sampleSize) * totalCount),
-        empty: Math.round(((sampleSize - filledCount) / sampleSize) * totalCount),
-        percentage: Math.round((filledCount / sampleSize) * 100),
-        sample_size: sampleSize
+        filled: filledCount,
+        empty: totalCount - filledCount,
+        percentage: Math.round((filledCount / totalCount) * 100),
       };
     }
 
