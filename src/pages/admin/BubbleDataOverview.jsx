@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Database, ChevronDown, ChevronRight, BarChart2, RefreshCw, AlertTriangle, CheckCircle, XCircle, Link2 } from "lucide-react";
+import { Database, ChevronDown, ChevronRight, BarChart2, RefreshCw, AlertTriangle, CheckCircle, XCircle, Link2, Upload } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { buildFieldComparison } from "@/lib/bubbleFieldMapping";
+import ImportBubbleModal from "@/components/bubble/ImportBubbleModal";
 
 const ENTITIES = [
   { name: "Staff", label: "Staff（員工）" },
@@ -232,6 +233,7 @@ export default function BubbleDataOverview() {
   const [loadingBubble, setLoadingBubble] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [expandedEntity, setExpandedEntity] = useState(null);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => { loadBubbleInfo(); }, []);
 
@@ -293,6 +295,10 @@ export default function BubbleDataOverview() {
           <p className="text-xs text-gray-400 mt-0.5">逐個欄位對比 Bubble.io 同 DB 嘅有值數量</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors">
+            <Upload size={14} /> 手動匯入
+          </button>
           <button onClick={loadBubbleInfo} disabled={loadingBubble}
             className="flex items-center gap-2 bg-purple-500 text-white px-3 py-2 rounded-xl text-sm font-bold hover:bg-purple-600 disabled:opacity-60 transition-colors">
             <RefreshCw size={14} className={loadingBubble ? "animate-spin" : ""} />
@@ -338,6 +344,13 @@ export default function BubbleDataOverview() {
           />
         ))}
       </div>
+
+      {showImport && (
+        <ImportBubbleModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { loadBubbleInfo(); loadAllDb(); }}
+        />
+      )}
     </div>
   );
 }
