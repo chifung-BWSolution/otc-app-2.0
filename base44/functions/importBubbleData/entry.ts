@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { entityName, fileUrl, fieldMapping, fileType } = await req.json();
+    const { entityName, fileUrl, fieldMapping, fileType, skipDelete } = await req.json();
     if (!entityName || !fileUrl || !fieldMapping) {
       return Response.json({ error: 'entityName, fileUrl, and fieldMapping are required' }, { status: 400 });
     }
@@ -124,20 +124,22 @@ Deno.serve(async (req) => {
       }
     };
 
-    // 3a. Delete all existing records in loops using deleteMany
-    // deleteMany may timeout on very large tables, so we loop until count is 0
-    console.log(`Deleting all existing ${entityName} records...`);
+    // 3a. Delete existing records (unless frontend already did it)
     let totalDeleted = 0;
-    for (let round = 0; round < 50; round++) {
-      const result = await withRetry(() => entity.deleteMany({}));
-      const d = result?.deleted || 0;
-      totalDeleted += d;
-      console.log(`Delete round ${round + 1}: deleted ${d}, total so far: ${totalDeleted}`);
-      if (d === 0) break;
-      // Wait a bit between rounds to let the server recover
-      await sleep(2000);
+    if (!skipDelete) {
+      console.log(`Deleting all existing ${entityName} records...`);
+      for (let round = 0; round < 50; round++) {
+        const result = await withRetry(() => entity.deleteMany({}));
+        const d = result?.deleted || 0;
+        totalDeleted += d;
+        console.log(`Delete round ${round + 1}: deleted ${d}, total so far: ${totalDeleted}`);
+        if (d === 0) break;
+        await sleep(2000);
+      }
+      console.log(`Total deleted: ${totalDeleted} records`);
+    } else {
+      console.log(`Skipping delete (frontend already cleared records)`);
     }
-    console.log(`Total deleted: ${totalDeleted} records`);
 
     // 4. Insert new records in small batches with delays
     let created = 0;
@@ -155,7 +157,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      deleted,
+      deleted: totalDeleted,
       created,
       totalInFile: rows.length,
       transformErrors: errors.length,

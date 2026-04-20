@@ -170,22 +170,50 @@ export default function ImportBubbleModal({ onClose, onDone }) {
 
   const handleGoToConfirm = () => setStep("confirm");
 
+  const [importStatus, setImportStatus] = useState("");
+
   const handleImport = async () => {
     setStep("importing");
     setImporting(true);
     setError(null);
 
     try {
+      // Step 1: Upload file
+      setImportStatus("上傳檔案中...");
       setUploading(true);
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setUploading(false);
 
-      // Send the user-defined mapping to the backend
+      // Step 2: Delete existing records from frontend (avoids backend timeout)
+      setImportStatus("清除舊記錄中...(大數據量可能需要幾分鐘)");
+      const entitySDK = base44.entities[selectedEntity];
+      if (entitySDK?.deleteMany) {
+        let totalDel = 0;
+        for (let round = 0; round < 100; round++) {
+          try {
+            const result = await entitySDK.deleteMany({});
+            const d = result?.deleted || 0;
+            totalDel += d;
+            setImportStatus(`清除舊記錄中... 已刪除 ${totalDel} 筆`);
+            if (d === 0) break;
+            // Small delay between rounds
+            await new Promise(r => setTimeout(r, 1000));
+          } catch (delErr) {
+            // On connection error, wait and retry
+            console.warn("deleteMany error, retrying...", delErr);
+            await new Promise(r => setTimeout(r, 3000));
+          }
+        }
+      }
+
+      // Step 3: Call backend to insert only (skip delete)
+      setImportStatus("匯入數據中...");
       const res = await base44.functions.invoke("importBubbleData", {
         entityName: selectedEntity,
         fileUrl: file_url,
         fieldMapping: mapping,
         fileType: file.name.endsWith(".json") ? "json" : "csv",
+        skipDelete: true,
       });
 
       setResult(res.data);
@@ -196,6 +224,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
     } finally {
       setImporting(false);
       setUploading(false);
+      setImportStatus("");
     }
   };
 
@@ -328,7 +357,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
           {step === "importing" && (
             <div className="text-center py-10">
               <Loader2 size={40} className="animate-spin mx-auto text-blue-500 mb-4" />
-              <div className="font-bold text-gray-800">{uploading ? "上傳檔案中..." : "匯入數據中..."}</div>
+              <div className="font-bold text-gray-800">{importStatus || "處理中..."}</div>
               <div className="text-sm text-gray-400 mt-1">正在處理 {entityLabel}，請勿關閉此視窗</div>
             </div>
           )}
