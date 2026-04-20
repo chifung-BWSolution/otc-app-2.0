@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     // We need to find records where ot_minutes_approved > 0
     // Bubble constraint format: constraints=[{"key":"OT minutes approved","constraint_type":"greater than","value":0}]
-    const constraints = JSON.stringify([{"key":"OT minutes approved","constraint_type":"greater than","value":0}]);
+    const constraints = JSON.stringify([{"key":"OT minutes approved","constraint_type":"is_not_empty"}]);
 
     while (true) {
       const url = `${baseUrl}/clock-in?limit=${batchSize}&cursor=${cursor}&constraints=${encodeURIComponent(constraints)}`;
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     for (const rec of bubbleRecords) {
       const bubbleId = rec._id;
       const otMinutes = rec["OT minutes approved"];
-      if (bubbleId && otMinutes != null && otMinutes > 0) {
+      if (bubbleId && otMinutes != null) {
         otMap[bubbleId] = otMinutes;
       }
     }
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     // Build bubble_id -> db record map, only where ot_minutes is missing
     const dbMap = {};
     for (const rec of allDb) {
-      if (rec.bubble_id && (rec.ot_minutes == null || rec.ot_minutes === 0)) {
+      if (rec.bubble_id && rec.ot_minutes == null) {
         dbMap[rec.bubble_id] = rec.id;
       }
     }
