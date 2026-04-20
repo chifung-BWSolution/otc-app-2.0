@@ -17,8 +17,6 @@ const BUBBLE_TYPE_MAP = {
   "BubbleStaffKPIMonth": "staff_kpi_month",
 };
 
-// Check if a value is truly empty (null, undefined, empty string, empty array)
-// IMPORTANT: 0 and false are valid values, NOT empty
 function isEmpty(val) {
   if (val === null || val === undefined || val === "") return true;
   if (Array.isArray(val) && val.length === 0) return true;
@@ -42,64 +40,51 @@ Deno.serve(async (req) => {
     const bubbleType = BUBBLE_TYPE_MAP[entityName];
     const baseUrl = BUBBLE_API_URL.replace(/\/$/, '');
 
-    // Step 1: Get total count
-    const countRes = await fetch(`${baseUrl}/${bubbleType}?limit=1&cursor=0`, {
-      headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` }
-    });
-    if (!countRes.ok) throw new Error(`Bubble API error: ${countRes.status}`);
-    const countJson = await countRes.json();
-    const totalRows = (countJson.response?.results?.length || 0) + (countJson.response?.remaining || 0);
-
-    // Step 2: Sample records - use larger sample for better accuracy
-    // For tables <2000 read all, otherwise sample ~2000 records spread evenly
-    const targetSample = Math.min(totalRows, 2000);
+    // Read ALL records from Bubble API (paginate through everything)
+    const allRecords = [];
+    let cursor = 0;
     const batchSize = 100;
-    const numBatches = Math.ceil(targetSample / batchSize);
-    const step = totalRows > targetSample ? Math.floor(totalRows / numBatches) : 0;
 
-    const allSamples = [];
-    for (let i = 0; i < numBatches; i++) {
-      const cursor = step > 0 ? i * step : i * batchSize;
-      if (cursor >= totalRows) break;
-      const limit = Math.min(batchSize, totalRows - cursor);
-      const url = `${baseUrl}/${bubbleType}?limit=${limit}&cursor=${cursor}`;
+    while (true) {
+      const url = `${baseUrl}/${bubbleType}?limit=${batchSize}&cursor=${cursor}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
-      if (res.ok) {
-        const json = await res.json();
-        allSamples.push(...(json.response?.results || []));
-      }
+      if (!res.ok) throw new Error(`Bubble API error: ${res.status}`);
+      const json = await res.json();
+      const results = json.response?.results || [];
+      allRecords.push(...results);
+
+      const remaining = json.response?.remaining || 0;
+      if (remaining === 0 || results.length === 0) break;
+
+      cursor += results.length;
       await sleep(200);
     }
 
-    // Step 3: Analyze each field
+    const totalRows = allRecords.length;
+
+    // Analyze each field with exact counts
     const builtIn = new Set(["_id", "_type", "Created By", "Created Date", "Modified Date"]);
     const allKeys = new Set();
-    for (const r of allSamples) {
+    for (const r of allRecords) {
       for (const k of Object.keys(r)) {
         if (!builtIn.has(k)) allKeys.add(k);
       }
     }
 
-    const sampleCount = allSamples.length;
     const fieldStats = {};
-
     for (const key of allKeys) {
       let filled = 0;
-      for (const r of allSamples) {
+      for (const r of allRecords) {
         const val = r[key];
         if (!isEmpty(val)) filled++;
       }
 
-      // Extrapolate to total rows
-      const fillRate = sampleCount > 0 ? filled / sampleCount : 0;
-      const estimatedFilled = Math.round(fillRate * totalRows);
-
       fieldStats[key] = {
         sampleFilled: filled,
-        sampleTotal: sampleCount,
-        estimatedFilled,
+        sampleTotal: totalRows,
+        estimatedFilled: filled,
         estimatedTotal: totalRows,
-        percentage: Math.round(fillRate * 100),
+        percentage: totalRows > 0 ? Math.round((filled / totalRows) * 100) : 0,
       };
     }
 
@@ -107,7 +92,7 @@ Deno.serve(async (req) => {
       entityName,
       bubbleType,
       totalRows,
-      sampleSize: sampleCount,
+      sampleSize: totalRows,
       fieldCount: allKeys.size,
       fields: fieldStats,
     });
