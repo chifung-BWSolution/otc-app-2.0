@@ -157,7 +157,5 @@
       "title": "DingDing Out Attendance ID"
     }
   },
-  "required": [
-    "staff_id"
-  ]
+  "required": []
 }

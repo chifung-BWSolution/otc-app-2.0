@@ -263,6 +263,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
       setImportStatus("匯入數據中... 0/" + transformed.length);
       let created = 0;
       let insertErrors = 0;
+      const failedSamples = [];
       const BATCH = 20;
       const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -290,7 +291,12 @@ export default function ImportBubbleModal({ onClose, onDone }) {
                 created++;
               } catch (singleErr) {
                 insertErrors++;
-                if (insertErrors <= 5) console.warn("Row insert failed:", singleErr?.message, Object.keys(record));
+                if (failedSamples.length < 5) {
+                  failedSamples.push({
+                    error: singleErr?.message || singleErr?.response?.data?.message || "Unknown error",
+                    keys: Object.keys(record).join(", "),
+                  });
+                }
               }
               await sleep(50);
             }
@@ -309,7 +315,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
         totalInFile: allRows.length,
         transformErrors: transformErrors.length,
         insertErrors,
-        errors: transformErrors.slice(0, 20),
+        failedSamples,
       });
       setStep("done");
     } catch (err) {
@@ -478,9 +484,19 @@ export default function ImportBubbleModal({ onClose, onDone }) {
                 </div>
               </div>
               {(result.transformErrors > 0 || result.insertErrors > 0) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
-                  {result.transformErrors > 0 && <div>⚠ {result.transformErrors} 筆記錄轉換失敗</div>}
-                  {result.insertErrors > 0 && <div>⚠ {result.insertErrors} 筆記錄插入失敗（詳見 Console）</div>}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700 space-y-1">
+                  {result.transformErrors > 0 && <div>⚠ {result.transformErrors} 筆記錄轉換失敗（無有效欄位）</div>}
+                  {result.insertErrors > 0 && <div>⚠ {result.insertErrors} 筆記錄插入失敗</div>}
+                  {result.failedSamples?.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      <div className="font-bold">失敗原因範例：</div>
+                      {result.failedSamples.map((s, i) => (
+                        <div key={i} className="bg-white/60 rounded px-2 py-1 text-[10px] break-all">
+                          <span className="text-red-600">{s.error}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
