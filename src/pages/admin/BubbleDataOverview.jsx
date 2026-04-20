@@ -123,6 +123,17 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
   const unmatchedBubble = comparison.filter(r => r.bubbleName && !r.dbName).length;
   const unmatchedDb = comparison.filter(r => !r.bubbleName && r.dbName).length;
 
+  // Count fields with significant value-count differences (>1% tolerance)
+  const fieldMismatches = comparison.filter(r => {
+    if (!r.bubbleName || !r.dbName) return false;
+    const bF = r.bubbleStats?.estimatedFilled ?? null;
+    const dF = r.dbStats?.filled ?? null;
+    if (bF === null || dF === null) return false;
+    const threshold = Math.max(bubbleRows * 0.01, 5); // 1% or 5, whichever is larger
+    return Math.abs(dF - bF) > threshold;
+  }).length;
+  const hasFieldStats = Object.keys(bubbleFields).length > 0 && Object.keys(dbFields).length > 0;
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <button
@@ -144,8 +155,14 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
           <div className="text-xs text-gray-400">DB</div>
           <div className="text-sm font-bold text-blue-600">{dbRows !== null ? dbRows.toLocaleString() : "—"}</div>
         </div>
-        <div className="shrink-0 w-16 text-right">
-          <RowMatchBadge bubbleRows={bubbleRows} dbRows={dbRows} />
+        <div className="shrink-0 w-auto text-right">
+          {hasFieldStats && fieldMismatches > 0 ? (
+            <span className="flex items-center gap-1 text-xs text-orange-600 font-bold">
+              <AlertTriangle size={12} /> {fieldMismatches} 欄差異
+            </span>
+          ) : (
+            <RowMatchBadge bubbleRows={bubbleRows} dbRows={dbRows} />
+          )}
         </div>
         {expanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
       </button>
@@ -172,6 +189,18 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
               </div>
               <div className="text-xs text-gray-500">行數對比</div>
             </div>
+            {hasFieldStats && (
+              <div className={`flex-1 rounded-lg px-3 py-2 text-center ${
+                fieldMismatches === 0 ? "bg-green-50" : "bg-orange-50"
+              }`}>
+                <div className={`text-sm font-bold ${
+                  fieldMismatches === 0 ? "text-green-600" : "text-orange-600"
+                }`}>
+                  {fieldMismatches === 0 ? "✓ OK" : `${fieldMismatches} 欄有差異`}
+                </div>
+                <div className="text-xs text-gray-500">欄位對比</div>
+              </div>
+            )}
           </div>
 
           {/* Field mapping stats */}
