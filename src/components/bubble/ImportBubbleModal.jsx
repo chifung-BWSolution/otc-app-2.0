@@ -171,6 +171,55 @@ export default function ImportBubbleModal({ onClose, onDone }) {
   const handleGoToConfirm = () => setStep("confirm");
 
   const [importStatus, setImportStatus] = useState("");
+  const [parsedRows, setParsedRows] = useState([]); // Store all parsed rows from file
+
+  // Re-parse file to get all rows when needed
+  const getAllParsedRows = async () => {
+    if (parsedRows.length > 0) return parsedRows;
+    const text = await file.text();
+    const isJSON = file.name.endsWith(".json");
+    let rows;
+    if (isJSON) {
+      const parsed = JSON.parse(text);
+      rows = Array.isArray(parsed) ? parsed : (parsed.results || parsed.response?.results || []);
+    } else {
+      const result = parseCSV(text);
+      rows = result.rows;
+    }
+    setParsedRows(rows);
+    return rows;
+  };
+
+  // Array fields in DB schema
+  const ARRAY_FIELDS = new Set([
+    "tags_in", "tags_out", "brands", "collaborators", "teams", "locations",
+    "roles", "sub_projects", "task_types", "images", "projects",
+    "meeting_participants", "service_units", "region_codes",
+  ]);
+
+  // Transform a row using the mapping
+  const transformRow = (row) => {
+    const result = {};
+    for (const [fileField, dbField] of Object.entries(mapping)) {
+      if (!dbField) continue;
+      let val = row[fileField];
+      if (val === undefined || val === null || val === "") continue;
+      // Bubble image URLs
+      if (typeof val === "string" && val.startsWith("//")) val = "https:" + val;
+      // Geographic address objects
+      if (val && typeof val === "object" && "address" in val) val = val.address || "";
+      // Array fields
+      if (ARRAY_FIELDS.has(dbField)) {
+        if (typeof val === "string") {
+          val = val.includes(",") ? val.split(",").map(s => s.trim()).filter(Boolean) : [val.trim()];
+        } else if (!Array.isArray(val)) {
+          val = [val];
+        }
+      }
+      result[dbField] = val;
+    }
+    return result;
+  };
 
   const handleImport = async () => {
     setStep("importing");
@@ -178,14 +227,20 @@ export default function ImportBubbleModal({ onClose, onDone }) {
     setError(null);
 
     try {
-      // Step 1: Upload file
-      setImportStatus("上傳檔案中...");
-      setUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploading(false);
+      // Step 1: Parse file in frontend (proper CSV parser handles quoted newlines)
+      setImportStatus("解析檔案中...");
+      const allRows = await getAllParsedRows();
+      const transformed = [];
+      const transformErrors = [];
+      for (let i = 0; i < allRows.length; i++) {
+        const t = transformRow(allRows[i]);
+        if (t && Object.keys(t).length > 0) transformed.push(t);
+        else transformErrors.push({ row: i, error: "no mapped fields" });
+      }
+      setImportStatus(`解析完成：${transformed.length} 筆有效記錄`);
 
-      // Step 2: Delete existing records from frontend (avoids backend timeout)
-      setImportStatus("清除舊記錄中...(大數據量可能需要幾分鐘)");
+      // Step 2: Delete existing records
+      setImportStatus("清除舊記錄中...");
       const entitySDK = base44.entities[selectedEntity];
       if (entitySDK?.deleteMany) {
         let totalDel = 0;
@@ -196,27 +251,66 @@ export default function ImportBubbleModal({ onClose, onDone }) {
             totalDel += d;
             setImportStatus(`清除舊記錄中... 已刪除 ${totalDel} 筆`);
             if (d === 0) break;
-            // Small delay between rounds
             await new Promise(r => setTimeout(r, 1000));
           } catch (delErr) {
-            // On connection error, wait and retry
             console.warn("deleteMany error, retrying...", delErr);
             await new Promise(r => setTimeout(r, 3000));
           }
         }
       }
 
-      // Step 3: Call backend to insert only (skip delete)
-      setImportStatus("匯入數據中...");
-      const res = await base44.functions.invoke("importBubbleData", {
-        entityName: selectedEntity,
-        fileUrl: file_url,
-        fieldMapping: mapping,
-        fileType: file.name.endsWith(".json") ? "json" : "csv",
-        skipDelete: true,
-      });
+      // Step 3: Insert records in batches directly from frontend
+      setImportStatus("匯入數據中... 0/" + transformed.length);
+      let created = 0;
+      let insertErrors = 0;
+      const BATCH = 20;
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-      setResult(res.data);
+      for (let i = 0; i < transformed.length; i += BATCH) {
+        const batch = transformed.slice(i, i + BATCH);
+        let retries = 0;
+        let success = false;
+        while (retries < 5 && !success) {
+          try {
+            await entitySDK.bulkCreate(batch);
+            created += batch.length;
+            success = true;
+          } catch (err) {
+            const is429 = err?.status === 429 || err?.response?.status === 429;
+            const isConn = (err?.message || "").includes("connection");
+            if ((is429 || isConn) && retries < 4) {
+              retries++;
+              await sleep(Math.min(2000 * Math.pow(2, retries), 30000));
+              continue;
+            }
+            // Try one-by-one for this batch
+            for (const record of batch) {
+              try {
+                await entitySDK.create(record);
+                created++;
+              } catch (singleErr) {
+                insertErrors++;
+                if (insertErrors <= 5) console.warn("Row insert failed:", singleErr?.message, Object.keys(record));
+              }
+              await sleep(50);
+            }
+            success = true;
+          }
+        }
+        setImportStatus(`匯入數據中... ${created}/${transformed.length}`);
+        await sleep(200);
+        // Extra pause every 5 batches
+        if ((Math.floor(i / BATCH) + 1) % 5 === 0) await sleep(1000);
+      }
+
+      setResult({
+        deleted: 0,
+        created,
+        totalInFile: allRows.length,
+        transformErrors: transformErrors.length,
+        insertErrors,
+        errors: transformErrors.slice(0, 20),
+      });
       setStep("done");
     } catch (err) {
       setError(err?.response?.data?.error || err.message || "匯入失敗");
@@ -383,14 +477,10 @@ export default function ImportBubbleModal({ onClose, onDone }) {
                   <div className="text-xs text-gray-500">檔案總行數</div>
                 </div>
               </div>
-              {result.transformErrors > 0 && (
+              {(result.transformErrors > 0 || result.insertErrors > 0) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
-                  ⚠ {result.transformErrors} 筆記錄轉換失敗
-                  {result.errors?.length > 0 && (
-                    <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                      {result.errors.map((e, i) => <li key={i}>Row {e.row}: {e.error}</li>)}
-                    </ul>
-                  )}
+                  {result.transformErrors > 0 && <div>⚠ {result.transformErrors} 筆記錄轉換失敗</div>}
+                  {result.insertErrors > 0 && <div>⚠ {result.insertErrors} 筆記錄插入失敗（詳見 Console）</div>}
                 </div>
               )}
             </div>
