@@ -105,15 +105,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Entity ${entityName} not found in SDK` }, { status: 400 });
     }
 
-    // Helper: retry with exponential backoff on rate limit
+    // Helper: retry with exponential backoff on rate limit or connection error
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const withRetry = async (fn, retries = 8) => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try { return await fn(); }
         catch (e) {
-          if (e.status === 429 && attempt < retries) {
-            const wait = Math.min(3000 * Math.pow(2, attempt), 30000);
-            console.log(`Rate limited, waiting ${wait}ms (attempt ${attempt + 1}/${retries})`);
+          const isRateLimit = e.status === 429;
+          const isConnectionError = !e.status && (e.message || "").includes("connection");
+          if ((isRateLimit || isConnectionError) && attempt < retries) {
+            const wait = Math.min(3000 * Math.pow(2, attempt), 60000);
+            console.log(`${isRateLimit ? "Rate limited" : "Connection error"}, waiting ${wait}ms (attempt ${attempt + 1}/${retries})`);
             await sleep(wait);
             continue;
           }
@@ -122,11 +124,20 @@ Deno.serve(async (req) => {
       }
     };
 
-    // 3a. Delete all existing records using deleteMany (bulk)
+    // 3a. Delete all existing records in loops using deleteMany
+    // deleteMany may timeout on very large tables, so we loop until count is 0
     console.log(`Deleting all existing ${entityName} records...`);
-    const deleteResult = await withRetry(() => entity.deleteMany({}));
-    const deleted = deleteResult?.deleted || 0;
-    console.log(`Deleted ${deleted} records via deleteMany`);
+    let totalDeleted = 0;
+    for (let round = 0; round < 50; round++) {
+      const result = await withRetry(() => entity.deleteMany({}));
+      const d = result?.deleted || 0;
+      totalDeleted += d;
+      console.log(`Delete round ${round + 1}: deleted ${d}, total so far: ${totalDeleted}`);
+      if (d === 0) break;
+      // Wait a bit between rounds to let the server recover
+      await sleep(2000);
+    }
+    console.log(`Total deleted: ${totalDeleted} records`);
 
     // 4. Insert new records in small batches with delays
     let created = 0;
