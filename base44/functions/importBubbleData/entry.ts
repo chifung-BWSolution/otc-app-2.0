@@ -105,11 +105,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Entity ${entityName} not found in SDK` }, { status: 400 });
     }
 
+    // Helper: retry with delay on rate limit
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const withRetry = async (fn, retries = 5) => {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try { return await fn(); }
+        catch (e) {
+          if (e.status === 429 && attempt < retries) {
+            await sleep(2000 * (attempt + 1));
+            continue;
+          }
+          throw e;
+        }
+      }
+    };
+
     let existingIds = [];
     let offset = 0;
     const batchSize = 100;
     while (true) {
-      const batch = await entity.filter({}, 'created_date', batchSize, offset);
+      const batch = await withRetry(() => entity.filter({}, 'created_date', batchSize, offset));
       if (!batch || batch.length === 0) break;
       existingIds.push(...batch.map(r => r.id));
       if (batch.length < batchSize) break;
@@ -117,18 +132,23 @@ Deno.serve(async (req) => {
     }
 
     let deleted = 0;
-    for (const id of existingIds) {
-      await entity.delete(id);
+    // Delete in small bursts with pauses to avoid rate limit
+    for (let i = 0; i < existingIds.length; i++) {
+      await withRetry(() => entity.delete(existingIds[i]));
       deleted++;
+      // Pause every 20 deletes to stay under rate limit
+      if (deleted % 20 === 0) await sleep(500);
     }
 
     // 4. Insert new records in batches
     let created = 0;
-    const insertBatch = 50;
+    const insertBatch = 25;
     for (let i = 0; i < transformed.length; i += insertBatch) {
       const batch = transformed.slice(i, i + insertBatch);
-      await entity.bulkCreate(batch);
+      await withRetry(() => entity.bulkCreate(batch));
       created += batch.length;
+      // Pause every batch to avoid rate limit
+      if (i > 0 && (i / insertBatch) % 4 === 0) await sleep(500);
     }
 
     return Response.json({

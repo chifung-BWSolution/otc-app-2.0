@@ -16,35 +16,62 @@ const ENTITIES = [
 ];
 
 function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return { headers: [], rows: [] };
-  // Handle quoted fields
+  // Proper CSV parser that handles quoted fields with newlines inside
+  if (!text.trim()) return { headers: [], rows: [] };
+
+  const records = [];
+  let current = "";
+  let inQuotes = false;
+  const chars = text;
+
+  // Split into records respecting quoted newlines
+  const rawRecords = [];
+  let rec = "";
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      rec += ch;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && chars[i + 1] === '\n') i++; // skip \r\n
+      if (rec.trim()) rawRecords.push(rec);
+      rec = "";
+    } else {
+      rec += ch;
+    }
+  }
+  if (rec.trim()) rawRecords.push(rec);
+
+  if (rawRecords.length < 2) return { headers: [], rows: [] };
+
   const parseLine = (line) => {
     const result = [];
-    let current = "";
-    let inQuotes = false;
+    let field = "";
+    let q = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = "";
+        if (q && line[i + 1] === '"') { field += '"'; i++; }
+        else q = !q;
+      } else if (ch === ',' && !q) {
+        result.push(field);
+        field = "";
       } else {
-        current += ch;
+        field += ch;
       }
     }
-    result.push(current.trim());
+    result.push(field);
     return result;
   };
-  const headers = parseLine(lines[0]);
-  const rows = lines.slice(1).map(l => {
-    const vals = parseLine(l);
+
+  const headers = parseLine(rawRecords[0]).map(h => h.trim());
+  const rows = [];
+  for (let i = 1; i < rawRecords.length; i++) {
+    const vals = parseLine(rawRecords[i]);
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-    return obj;
-  });
+    headers.forEach((h, j) => { obj[h] = (vals[j] ?? "").trim(); });
+    rows.push(obj);
+  }
   return { headers, rows };
 }
 
