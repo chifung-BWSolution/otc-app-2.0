@@ -263,6 +263,8 @@ export default function ImportBubbleModal({ onClose, onDone }) {
         failedSamples: [],
       });
       setStep("done");
+      // Auto-refresh parent data
+      onDone?.();
     } catch (err) {
       setError(err?.response?.data?.error || err?.data?.error || err.message || "匯入失敗");
       setStep("confirm");

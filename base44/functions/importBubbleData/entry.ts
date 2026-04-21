@@ -2,15 +2,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function withRetry(fn, retries = 8) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
+async function withRetry(fn, maxRetries = 5) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try { return await fn(); }
     catch (e) {
-      const isRateLimit = e.status === 429 || (e.message || "").includes("Rate limit");
-      const isConn = !e.status && (e.message || "").includes("connection");
-      if ((isRateLimit || isConn) && attempt < retries) {
-        const wait = Math.min(3000 * Math.pow(2, attempt), 60000);
-        console.log(`Retry ${attempt + 1}: waiting ${wait}ms`);
+      const msg = e.message || "";
+      const isRetryable = e.status === 429 || msg.includes("Rate limit") || msg.includes("connection");
+      if (isRetryable && attempt < maxRetries) {
+        const wait = Math.min(5000 * Math.pow(2, attempt), 60000);
+        console.log(`Retry ${attempt + 1}/${maxRetries}: ${msg.substring(0, 80)}, waiting ${wait}ms`);
         await sleep(wait);
         continue;
       }
@@ -32,13 +32,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'entityName and dataUrl are required' }, { status: 400 });
     }
 
-    // 1. Fetch the pre-transformed data from uploaded JSON file
+    // 1. Fetch the pre-transformed data
     const fileResp = await fetch(dataUrl);
     const records = await fileResp.json();
 
     if (!Array.isArray(records) || records.length === 0) {
       return Response.json({ error: 'No records found in uploaded data' }, { status: 400 });
     }
+    console.log(`Loaded ${records.length} records for ${entityName}, mode=${mode}`);
 
     const entity = base44.asServiceRole.entities[entityName];
     if (!entity) {
@@ -49,13 +50,20 @@ Deno.serve(async (req) => {
     let totalDeleted = 0;
     if (mode === "overwrite") {
       console.log(`Deleting all existing ${entityName} records...`);
-      for (let round = 0; round < 100; round++) {
-        const result = await withRetry(() => entity.deleteMany({}));
-        const d = result?.deleted || 0;
-        totalDeleted += d;
-        console.log(`Delete round ${round + 1}: deleted ${d}, total: ${totalDeleted}`);
-        if (d === 0) break;
-        await sleep(1500);
+      for (let round = 0; round < 200; round++) {
+        try {
+          const result = await withRetry(() => entity.deleteMany({}));
+          const d = result?.deleted || 0;
+          totalDeleted += d;
+          if (d === 0) break;
+          console.log(`Delete round ${round + 1}: deleted ${d}, total: ${totalDeleted}`);
+          // Longer pause between delete rounds to avoid connection errors
+          await sleep(3000);
+        } catch (e) {
+          console.log(`Delete round ${round + 1} failed after retries: ${e.message}, continuing...`);
+          // Wait even longer then try again
+          await sleep(10000);
+        }
       }
       console.log(`Total deleted: ${totalDeleted}`);
     }
@@ -63,7 +71,7 @@ Deno.serve(async (req) => {
     // 3. Insert records in batches
     let created = 0;
     let insertErrors = 0;
-    const BATCH = 30;
+    const BATCH = 20;
 
     for (let i = 0; i < records.length; i += BATCH) {
       const batch = records.slice(i, i + BATCH);
@@ -71,7 +79,7 @@ Deno.serve(async (req) => {
         await withRetry(() => entity.bulkCreate(batch));
         created += batch.length;
       } catch (batchErr) {
-        console.log(`Batch failed: ${batchErr.message}, trying one-by-one...`);
+        console.log(`Batch ${Math.floor(i/BATCH)+1} failed: ${batchErr.message}, trying one-by-one...`);
         for (const record of batch) {
           try {
             await withRetry(() => entity.create(record));
@@ -82,13 +90,14 @@ Deno.serve(async (req) => {
               console.log(`Insert error: ${singleErr.message}`);
             }
           }
-          await sleep(80);
+          await sleep(100);
         }
       }
-      await sleep(200);
+      // Pace the inserts
+      await sleep(500);
       if ((Math.floor(i / BATCH) + 1) % 10 === 0) {
         console.log(`Progress: ${created}/${records.length}`);
-        await sleep(1000);
+        await sleep(2000);
       }
     }
 
