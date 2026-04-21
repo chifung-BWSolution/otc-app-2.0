@@ -250,7 +250,6 @@ export default function ImportBubbleModal({ onClose, onDone }) {
       const res = await base44.functions.invoke("importBubbleData", {
         entityName: selectedEntity,
         dataUrl: file_url,
-        mode: importMode,
       });
 
       const data = res.data;

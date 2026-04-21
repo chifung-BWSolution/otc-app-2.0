@@ -10,44 +10,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { entityName, dataUrl, mode } = await req.json();
+    const { entityName, dataUrl } = await req.json();
     if (!entityName || !dataUrl) {
       return Response.json({ error: 'entityName and dataUrl are required' }, { status: 400 });
     }
 
-    // 1. Fetch the pre-transformed data
     const fileResp = await fetch(dataUrl);
     const records = await fileResp.json();
     if (!Array.isArray(records) || records.length === 0) {
       return Response.json({ error: 'No records in uploaded data' }, { status: 400 });
     }
-    console.log(`${entityName}: ${records.length} records to import, mode=${mode}`);
+    console.log(`${entityName}: ${records.length} records to insert`);
 
     const entity = base44.asServiceRole.entities[entityName];
 
-    // 2. Delete all if overwrite
-    let totalDeleted = 0;
-    if (mode === "overwrite") {
-      console.log("Clearing all records...");
-      for (let round = 0; round < 500; round++) {
-        let d = 0;
-        try {
-          const r = await entity.deleteMany({});
-          d = r?.deleted || 0;
-        } catch (e) {
-          console.log(`Delete error (round ${round}): ${(e.message || "").substring(0, 60)}`);
-          await sleep(15000); // wait 15s on error then retry
-          continue;
-        }
-        totalDeleted += d;
-        if (d === 0) break;
-        console.log(`Deleted ${d}, total: ${totalDeleted}`);
-        await sleep(2000);
-      }
-      console.log(`Clear done: ${totalDeleted} deleted`);
-    }
-
-    // 3. Insert in batches of 20
     let created = 0;
     let errors = 0;
     for (let i = 0; i < records.length; i += 20) {
@@ -58,9 +34,8 @@ Deno.serve(async (req) => {
           created += batch.length;
           break;
         } catch (e) {
-          console.log(`Insert batch ${Math.floor(i/20)} attempt ${attempt}: ${(e.message||"").substring(0,60)}`);
+          console.log(`Batch ${Math.floor(i/20)} attempt ${attempt}: ${(e.message||"").substring(0,80)}`);
           if (attempt < 4) { await sleep(5000 * (attempt + 1)); continue; }
-          // Last resort: one by one
           for (const rec of batch) {
             try { await entity.create(rec); created++; }
             catch { errors++; }
@@ -75,8 +50,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Done. Deleted: ${totalDeleted}, Created: ${created}, Errors: ${errors}`);
-    return Response.json({ success: true, deleted: totalDeleted, created, insertErrors: errors, totalInFile: records.length });
+    console.log(`Done. Created: ${created}, Errors: ${errors}`);
+    return Response.json({ success: true, deleted: 0, created, insertErrors: errors, totalInFile: records.length });
   } catch (error) {
     console.error("importBubbleData error:", error);
     return Response.json({ error: error.message }, { status: 500 });
