@@ -1,75 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Simple CSV parser
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const parseLine = (line) => {
-    const result = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = "";
-      } else {
-        current += ch;
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function withRetry(fn, retries = 8) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try { return await fn(); }
+    catch (e) {
+      const isRateLimit = e.status === 429 || (e.message || "").includes("Rate limit");
+      const isConn = !e.status && (e.message || "").includes("connection");
+      if ((isRateLimit || isConn) && attempt < retries) {
+        const wait = Math.min(3000 * Math.pow(2, attempt), 60000);
+        console.log(`Retry ${attempt + 1}: waiting ${wait}ms`);
+        await sleep(wait);
+        continue;
       }
+      throw e;
     }
-    result.push(current.trim());
-    return result;
-  };
-  const headers = parseLine(lines[0]);
-  return lines.slice(1).map(l => {
-    const vals = parseLine(l);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-    return obj;
-  });
-}
-
-// Fields that are array type in the DB schema
-const ARRAY_FIELDS = new Set([
-  "tags_in", "tags_out", "brands", "collaborators", "teams", "locations",
-  "roles", "sub_projects", "task_types", "images", "projects",
-  "meeting_participants", "service_units", "region_codes",
-]);
-
-function transformRow(row, fieldMapping) {
-  const result = {};
-  for (const [fileField, dbField] of Object.entries(fieldMapping)) {
-    if (!dbField) continue; // skip unmapped
-    let val = row[fileField];
-    if (val === undefined || val === null || val === "") continue;
-
-    // Handle Bubble image URLs
-    if (typeof val === "string" && val.startsWith("//")) {
-      val = "https:" + val;
-    }
-
-    // Handle geographic_address type (Bubble returns {address, lat, lng})
-    if (val && typeof val === "object" && "address" in val) {
-      val = val.address || "";
-    }
-
-    // Convert string values to arrays for array-type fields
-    if (ARRAY_FIELDS.has(dbField) && typeof val === "string") {
-      // Could be comma-separated or a single value
-      val = val.includes(",") ? val.split(",").map(s => s.trim()).filter(Boolean) : [val.trim()];
-    }
-
-    // Ensure array fields that are already arrays stay as arrays
-    if (ARRAY_FIELDS.has(dbField) && !Array.isArray(val)) {
-      val = [val];
-    }
-
-    result[dbField] = val;
   }
-  return result;
 }
 
 Deno.serve(async (req) => {
@@ -80,97 +27,51 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { entityName, fileUrl, fieldMapping, fileType, skipDelete } = await req.json();
-    if (!entityName || !fileUrl || !fieldMapping) {
-      return Response.json({ error: 'entityName, fileUrl, and fieldMapping are required' }, { status: 400 });
+    const { entityName, dataUrl, mode } = await req.json();
+    if (!entityName || !dataUrl) {
+      return Response.json({ error: 'entityName and dataUrl are required' }, { status: 400 });
     }
 
-    // 1. Fetch and parse the uploaded file
-    const fileResp = await fetch(fileUrl);
-    const text = await fileResp.text();
+    // 1. Fetch the pre-transformed data from uploaded JSON file
+    const fileResp = await fetch(dataUrl);
+    const records = await fileResp.json();
 
-    let rows;
-    if (fileType === "csv") {
-      rows = parseCSV(text);
-    } else {
-      let rawData;
-      try { rawData = JSON.parse(text); } catch {
-        return Response.json({ error: 'Failed to parse file as JSON' }, { status: 400 });
-      }
-      rows = Array.isArray(rawData) ? rawData : (rawData.results || rawData.response?.results || []);
+    if (!Array.isArray(records) || records.length === 0) {
+      return Response.json({ error: 'No records found in uploaded data' }, { status: 400 });
     }
 
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return Response.json({ error: 'No data rows found in file' }, { status: 400 });
-    }
-
-    // 2. Transform rows using the user-provided mapping
-    const transformed = [];
-    const errors = [];
-    for (let i = 0; i < rows.length; i++) {
-      try {
-        const t = transformRow(rows[i], fieldMapping);
-        if (t && Object.keys(t).length > 0) transformed.push(t);
-        else errors.push({ row: i, error: "no mapped fields had values" });
-      } catch (e) {
-        errors.push({ row: i, error: e.message });
-      }
-    }
-
-    // 3. Delete all existing records (overwrite mode)
     const entity = base44.asServiceRole.entities[entityName];
     if (!entity) {
-      return Response.json({ error: `Entity ${entityName} not found in SDK` }, { status: 400 });
+      return Response.json({ error: `Entity ${entityName} not found` }, { status: 400 });
     }
 
-    // Helper: retry with exponential backoff on rate limit or connection error
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    const withRetry = async (fn, retries = 8) => {
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try { return await fn(); }
-        catch (e) {
-          const isRateLimit = e.status === 429;
-          const isConnectionError = !e.status && (e.message || "").includes("connection");
-          if ((isRateLimit || isConnectionError) && attempt < retries) {
-            const wait = Math.min(3000 * Math.pow(2, attempt), 60000);
-            console.log(`${isRateLimit ? "Rate limited" : "Connection error"}, waiting ${wait}ms (attempt ${attempt + 1}/${retries})`);
-            await sleep(wait);
-            continue;
-          }
-          throw e;
-        }
-      }
-    };
-
-    // 3a. Delete existing records (unless frontend already did it)
+    // 2. Delete existing records if overwrite mode
     let totalDeleted = 0;
-    if (!skipDelete) {
+    if (mode === "overwrite") {
       console.log(`Deleting all existing ${entityName} records...`);
-      for (let round = 0; round < 50; round++) {
+      for (let round = 0; round < 100; round++) {
         const result = await withRetry(() => entity.deleteMany({}));
         const d = result?.deleted || 0;
         totalDeleted += d;
-        console.log(`Delete round ${round + 1}: deleted ${d}, total so far: ${totalDeleted}`);
+        console.log(`Delete round ${round + 1}: deleted ${d}, total: ${totalDeleted}`);
         if (d === 0) break;
-        await sleep(2000);
+        await sleep(1500);
       }
-      console.log(`Total deleted: ${totalDeleted} records`);
-    } else {
-      console.log(`Skipping delete (frontend already cleared records)`);
+      console.log(`Total deleted: ${totalDeleted}`);
     }
 
-    // 4. Insert new records in small batches with delays
+    // 3. Insert records in batches
     let created = 0;
     let insertErrors = 0;
-    const insertBatch = 20;
-    for (let i = 0; i < transformed.length; i += insertBatch) {
-      const batch = transformed.slice(i, i + insertBatch);
+    const BATCH = 30;
+
+    for (let i = 0; i < records.length; i += BATCH) {
+      const batch = records.slice(i, i + BATCH);
       try {
         await withRetry(() => entity.bulkCreate(batch));
         created += batch.length;
       } catch (batchErr) {
-        // If bulk fails, try inserting one by one to salvage what we can
-        console.log(`Batch ${Math.floor(i/insertBatch)+1} failed: ${batchErr.message}, trying one-by-one...`);
+        console.log(`Batch failed: ${batchErr.message}, trying one-by-one...`);
         for (const record of batch) {
           try {
             await withRetry(() => entity.create(record));
@@ -178,26 +79,27 @@ Deno.serve(async (req) => {
           } catch (singleErr) {
             insertErrors++;
             if (insertErrors <= 10) {
-              console.log(`Row insert failed: ${singleErr.message} - data keys: ${Object.keys(record).join(",")}`);
+              console.log(`Insert error: ${singleErr.message}`);
             }
           }
-          await sleep(100);
+          await sleep(80);
         }
       }
-      // Mandatory delay between every batch
-      await sleep(300);
-      // Extra pause every 5 batches
-      if ((Math.floor(i / insertBatch) + 1) % 5 === 0) await sleep(1500);
+      await sleep(200);
+      if ((Math.floor(i / BATCH) + 1) % 10 === 0) {
+        console.log(`Progress: ${created}/${records.length}`);
+        await sleep(1000);
+      }
     }
-    console.log(`Created ${created} records, ${insertErrors} insert errors`);
+
+    console.log(`Done. Created: ${created}, Errors: ${insertErrors}`);
 
     return Response.json({
       success: true,
       deleted: totalDeleted,
       created,
-      totalInFile: rows.length,
-      transformErrors: errors.length,
-      errors: errors.slice(0, 20),
+      insertErrors,
+      totalInFile: records.length,
     });
   } catch (error) {
     console.error("importBubbleData error:", error);

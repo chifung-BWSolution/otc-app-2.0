@@ -228,7 +228,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
     setError(null);
 
     try {
-      // Step 1: Parse file in frontend (proper CSV parser handles quoted newlines)
+      // Step 1: Parse and transform in frontend
       setImportStatus("解析檔案中...");
       const allRows = await getAllParsedRows();
       const transformed = [];
@@ -238,92 +238,34 @@ export default function ImportBubbleModal({ onClose, onDone }) {
         if (t && Object.keys(t).length > 0) transformed.push(t);
         else transformErrors.push({ row: i, error: "no mapped fields" });
       }
-      setImportStatus(`解析完成：${transformed.length} 筆有效記錄`);
+      setImportStatus(`解析完成：${transformed.length} 筆有效記錄，上傳中...`);
 
-      // Step 2: Delete existing records (only in overwrite mode)
-      const entitySDK = base44.entities[selectedEntity];
-      let totalDel = 0;
-      if (importMode === "overwrite") {
-        setImportStatus("清除舊記錄中...");
-        if (entitySDK?.deleteMany) {
-          for (let round = 0; round < 100; round++) {
-            try {
-              const result = await entitySDK.deleteMany({});
-              const d = result?.deleted || 0;
-              totalDel += d;
-              setImportStatus(`清除舊記錄中... 已刪除 ${totalDel} 筆`);
-              if (d === 0) break;
-              await new Promise(r => setTimeout(r, 1000));
-            } catch (delErr) {
-              console.warn("deleteMany error, retrying...", delErr);
-              await new Promise(r => setTimeout(r, 3000));
-            }
-          }
-        }
-      }
+      // Step 2: Upload transformed data as JSON file
+      const blob = new Blob([JSON.stringify(transformed)], { type: "application/json" });
+      const uploadFile = new File([blob], `import_${selectedEntity}.json`, { type: "application/json" });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFile });
 
-      // Step 3: Insert records in batches directly from frontend
-      setImportStatus("匯入數據中... 0/" + transformed.length);
-      let created = 0;
-      let insertErrors = 0;
-      const failedSamples = [];
-      const BATCH = 20;
-      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+      // Step 3: Call backend function to do delete + insert
+      setImportStatus("後端匯入處理中（刪除+插入），請稍候...");
+      const res = await base44.functions.invoke("importBubbleData", {
+        entityName: selectedEntity,
+        dataUrl: file_url,
+        mode: importMode,
+      });
 
-      for (let i = 0; i < transformed.length; i += BATCH) {
-        const batch = transformed.slice(i, i + BATCH);
-        let retries = 0;
-        let success = false;
-        while (retries < 5 && !success) {
-          try {
-            await entitySDK.bulkCreate(batch);
-            created += batch.length;
-            success = true;
-          } catch (err) {
-            const is429 = err?.status === 429 || err?.response?.status === 429;
-            const isConn = (err?.message || "").includes("connection");
-            if ((is429 || isConn) && retries < 4) {
-              retries++;
-              await sleep(Math.min(2000 * Math.pow(2, retries), 30000));
-              continue;
-            }
-            // Try one-by-one for this batch
-            for (const record of batch) {
-              try {
-                await entitySDK.create(record);
-                created++;
-              } catch (singleErr) {
-                insertErrors++;
-                if (failedSamples.length < 5) {
-                  failedSamples.push({
-                    error: singleErr?.message || singleErr?.response?.data?.message || "Unknown error",
-                    keys: Object.keys(record).join(", "),
-                  });
-                }
-              }
-              await sleep(50);
-            }
-            success = true;
-          }
-        }
-        setImportStatus(`匯入數據中... ${created}/${transformed.length}`);
-        await sleep(200);
-        // Extra pause every 5 batches
-        if ((Math.floor(i / BATCH) + 1) % 5 === 0) await sleep(1000);
-      }
-
+      const data = res.data;
       setResult({
-        deleted: totalDel,
-        created,
+        deleted: data.deleted || 0,
+        created: data.created || 0,
         totalInFile: allRows.length,
         transformErrors: transformErrors.length,
-        insertErrors,
-        failedSamples,
+        insertErrors: data.insertErrors || 0,
+        failedSamples: [],
       });
       setStep("done");
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || "匯入失敗");
-      setStep("mapping");
+      setError(err?.response?.data?.error || err?.data?.error || err.message || "匯入失敗");
+      setStep("confirm");
     } finally {
       setImporting(false);
       setUploading(false);
