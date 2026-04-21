@@ -5,40 +5,20 @@ const BUBBLE_API_TOKEN = Deno.env.get("BUBBLE_API_TOKEN");
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchAllFromBubble(typeName) {
-  const results = [];
-  let cursor = 0;
-  const limit = 100;
+// Fetch a batch of Bubble records starting at cursor
+async function fetchBubbleBatch(typeName, cursor, limit) {
   const baseUrl = BUBBLE_API_URL.replace(/\/$/, '');
-
-  while (true) {
-    const url = `${baseUrl}/${typeName}?limit=${limit}&cursor=${cursor}`;
-    console.log(`Fetching ${typeName}: cursor=${cursor}`);
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`Bubble API error ${res.status}: ${txt.substring(0, 200)}`);
-    }
-    const json = await res.json();
-    const items = json.response?.results || [];
-    results.push(...items);
-    const remaining = json.response?.remaining || 0;
-    console.log(`Fetched ${results.length}, remaining: ${remaining}`);
-    if (remaining === 0 || items.length === 0) break;
-    cursor += items.length;
-    await sleep(200);
+  const url = `${baseUrl}/${typeName}?limit=${limit}&cursor=${cursor}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Bubble API error ${res.status}: ${txt.substring(0, 200)}`);
   }
-  return results;
-}
-
-function mapManHourDate(r, staffNameMap) {
-  const staffId = r["Staff"] || "";
+  const json = await res.json();
   return {
-    bubble_id: r._id,
-    report_date: r["Report Date"] || "",
-    staff_id: staffId,
-    staff_name: staffNameMap[staffId] || "",
-    total_work_hour: r["Total Work Hour"] ?? 0,
+    results: json.response?.results || [],
+    remaining: json.response?.remaining || 0,
+    count: json.response?.count || 0,
   };
 }
 
@@ -52,85 +32,81 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dryRun === true;
+    // startCursor lets us resume from where we left off
+    const startCursor = body.startCursor || 0;
+    // How many Bubble records to process per call (keep small to avoid timeout)
+    const batchLimit = body.batchLimit || 2000;
 
-    // 1. Fetch Bubble data + Staff lookup for names
-    console.log("Fetching Man Hour Date from Bubble...");
-    const [bubbleRecords, staffList] = await Promise.all([
-      fetchAllFromBubble("man_hour_date"),
-      fetchAllFromBubble("Staff"),
-    ]);
-    console.log(`Bubble Man Hour Date: ${bubbleRecords.length}, Staff: ${staffList.length}`);
-
-    // Build staff name map
-    const staffNameMap = {};
-    for (const s of staffList) {
-      staffNameMap[s._id] = s["Display Name"] || s["Full Name"] || "";
-    }
-
-    // 2. Load existing DB records
-    console.log("Loading existing DB records...");
-    const allDb = [];
+    // 1. Load existing DB bubble_ids into a Set (fast lookup)
+    console.log("Loading existing DB bubble_ids...");
+    const existingIds = new Set();
     const pageSize = 5000;
     let hasMore = true;
+    let offset = 0;
     while (hasMore) {
-      const batch = await base44.asServiceRole.entities.BubbleManHourDate.filter({}, 'id', pageSize, allDb.length);
-      allDb.push(...batch);
-      if (batch.length < pageSize) hasMore = false;
-      else await sleep(500);
-    }
-    console.log(`Existing DB records: ${allDb.length}`);
-
-    // Build bubble_id -> DB record map
-    const dbMap = {};
-    for (const rec of allDb) {
-      if (rec.bubble_id) dbMap[rec.bubble_id] = rec;
-    }
-
-    // 3. Compare and classify
-    const toCreate = [];
-    const toUpdate = [];
-    let skipped = 0;
-
-    for (const raw of bubbleRecords) {
-      const mapped = mapManHourDate(raw, staffNameMap);
-      if (!mapped.bubble_id) continue;
-
-      const existing = dbMap[mapped.bubble_id];
-      if (!existing) {
-        toCreate.push(mapped);
-      } else {
-        // Check if any field changed
-        const changed =
-          existing.report_date !== mapped.report_date ||
-          existing.staff_id !== mapped.staff_id ||
-          existing.staff_name !== mapped.staff_name ||
-          existing.total_work_hour !== mapped.total_work_hour;
-
-        if (changed) {
-          toUpdate.push({ id: existing.id, data: mapped });
-        } else {
-          skipped++;
-        }
+      const batch = await base44.asServiceRole.entities.BubbleManHourDate.filter({}, 'id', pageSize, offset);
+      for (const rec of batch) {
+        if (rec.bubble_id) existingIds.add(rec.bubble_id);
       }
+      offset += batch.length;
+      if (batch.length < pageSize) hasMore = false;
+      else await sleep(300);
     }
+    console.log(`Existing DB records: ${existingIds.size}`);
 
-    console.log(`To create: ${toCreate.length}, To update: ${toUpdate.length}, Skipped: ${skipped}`);
+    // 2. Fetch Bubble records in pages starting at cursor, up to batchLimit
+    console.log(`Fetching Bubble man_hour_date from cursor=${startCursor}, limit=${batchLimit}...`);
+    const bubbleRecords = [];
+    let cursor = startCursor;
+    let totalRemaining = 0;
+    while (bubbleRecords.length < batchLimit) {
+      const pageLimit = Math.min(100, batchLimit - bubbleRecords.length);
+      const page = await fetchBubbleBatch("man_hour_date", cursor, pageLimit);
+      bubbleRecords.push(...page.results);
+      totalRemaining = page.remaining;
+      console.log(`Fetched so far: ${bubbleRecords.length}, remaining in Bubble: ${totalRemaining}`);
+      if (page.results.length === 0 || totalRemaining === 0) break;
+      cursor += page.results.length;
+      await sleep(150);
+    }
+    const nextCursor = totalRemaining > 0 ? cursor : null;
+    console.log(`Got ${bubbleRecords.length} Bubble records. nextCursor=${nextCursor}`);
+
+    // 3. Find records missing from DB
+    const toCreate = [];
+    let alreadyExists = 0;
+    for (const raw of bubbleRecords) {
+      const bid = raw._id;
+      if (!bid) continue;
+      if (existingIds.has(bid)) {
+        alreadyExists++;
+        continue;
+      }
+      toCreate.push({
+        bubble_id: bid,
+        report_date: raw["Report Date"] || "",
+        staff_id: raw["Staff"] || "",
+        staff_name: "", // will be filled by a separate repair pass
+        total_work_hour: raw["Total Work Hour"] ?? 0,
+      });
+    }
+    console.log(`To create: ${toCreate.length}, Already exists: ${alreadyExists}`);
 
     if (dryRun) {
       return Response.json({
         dryRun: true,
-        bubbleTotal: bubbleRecords.length,
-        dbTotal: allDb.length,
+        dbTotal: existingIds.size,
+        bubbleFetched: bubbleRecords.length,
         toCreate: toCreate.length,
-        toUpdate: toUpdate.length,
-        skipped,
+        alreadyExists,
+        nextCursor,
         sampleCreate: toCreate.slice(0, 3),
-        sampleUpdate: toUpdate.slice(0, 3).map(u => ({ id: u.id, ...u.data })),
       });
     }
 
-    // 4. Create new records in batches
+    // 4. Insert missing records
     let created = 0;
+    let errors = 0;
     for (let i = 0; i < toCreate.length; i += 20) {
       const batch = toCreate.slice(i, i + 20);
       let retries = 0;
@@ -148,67 +124,40 @@ Deno.serve(async (req) => {
             console.log(`Rate limited, waiting ${wait}ms (attempt ${retries})`);
             await sleep(wait);
           } else {
-            console.log(`Batch create error: ${e.message}`);
             // Try one-by-one
             for (const rec of batch) {
               try {
                 await base44.asServiceRole.entities.BubbleManHourDate.create(rec);
                 created++;
               } catch (e2) {
-                console.log(`Single create error: ${e2.message}`);
+                errors++;
+                if (errors <= 5) console.log(`Single create error: ${e2.message}`);
               }
-              await sleep(100);
+              await sleep(50);
             }
             success = true;
           }
         }
       }
-      if ((Math.floor(i / 20) + 1) % 5 === 0) {
+      if ((Math.floor(i / 20) + 1) % 10 === 0) {
         console.log(`Created ${created}/${toCreate.length}`);
-        await sleep(1000);
+        await sleep(500);
       } else {
-        await sleep(300);
+        await sleep(200);
       }
     }
 
-    // 5. Update changed records
-    let updated = 0;
-    for (let i = 0; i < toUpdate.length; i++) {
-      const { id, data } = toUpdate[i];
-      let retries = 0;
-      let success = false;
-      while (retries < 5 && !success) {
-        try {
-          await base44.asServiceRole.entities.BubbleManHourDate.update(id, data);
-          updated++;
-          success = true;
-        } catch (e) {
-          const is429 = e.status === 429 || (e.message || "").includes("Rate limit");
-          if (is429 && retries < 4) {
-            retries++;
-            await sleep(Math.min(3000 * Math.pow(2, retries), 30000));
-          } else {
-            console.log(`Update error for ${id}: ${e.message}`);
-            success = true;
-          }
-        }
-      }
-      await sleep(300);
-      if ((i + 1) % 20 === 0) {
-        console.log(`Updated ${updated}/${toUpdate.length}`);
-        await sleep(1000);
-      }
-    }
-
-    console.log(`Done. Created: ${created}, Updated: ${updated}, Skipped: ${skipped}`);
+    console.log(`Done. Created: ${created}, Errors: ${errors}, nextCursor: ${nextCursor}`);
 
     return Response.json({
       success: true,
-      bubbleTotal: bubbleRecords.length,
-      dbTotal: allDb.length,
+      dbTotal: existingIds.size,
+      bubbleFetched: bubbleRecords.length,
       created,
-      updated,
-      skipped,
+      errors,
+      alreadyExists,
+      nextCursor,
+      newDbTotal: existingIds.size + created,
     });
   } catch (error) {
     console.error("syncManHourDate error:", error);
