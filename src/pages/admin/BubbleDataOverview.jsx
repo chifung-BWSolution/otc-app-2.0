@@ -276,18 +276,18 @@ export default function BubbleDataOverview() {
   const loadEntityDetails = async (entityName) => {
     if (expandedEntity === entityName) { setExpandedEntity(null); return; }
     setExpandedEntity(entityName);
-    const promises = [];
     if (!dbStats[entityName]) {
-      promises.push(base44.functions.invoke("bubbleDataStats", { entityName }).then(res => {
+      try {
+        const res = await base44.functions.invoke("bubbleDataStats", { entityName });
         setDbStats(prev => ({ ...prev, [entityName]: res.data }));
-      }));
+      } catch (e) { console.warn(`Failed DB stats for ${entityName}:`, e); }
     }
     if (!bubbleFieldStats[entityName]) {
-      promises.push(base44.functions.invoke("bubbleFieldStats", { entityName }).then(res => {
+      try {
+        const res = await base44.functions.invoke("bubbleFieldStats", { entityName });
         setBubbleFieldStats(prev => ({ ...prev, [entityName]: res.data }));
-      }));
+      } catch (e) { console.warn(`Failed Bubble field stats for ${entityName}:`, e); }
     }
-    await Promise.all(promises);
   };
 
   const loadAllDb = async () => {
