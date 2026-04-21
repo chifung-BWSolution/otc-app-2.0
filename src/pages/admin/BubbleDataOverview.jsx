@@ -293,12 +293,18 @@ export default function BubbleDataOverview() {
   const loadAllDb = async () => {
     setLoadingAll(true);
     for (const entity of ENTITIES) {
-      const [dbRes, bfRes] = await Promise.all([
-        base44.functions.invoke("bubbleDataStats", { entityName: entity.name }),
-        base44.functions.invoke("bubbleFieldStats", { entityName: entity.name }),
-      ]);
-      setDbStats(prev => ({ ...prev, [entity.name]: dbRes.data }));
-      setBubbleFieldStats(prev => ({ ...prev, [entity.name]: bfRes.data }));
+      try {
+        const dbRes = await base44.functions.invoke("bubbleDataStats", { entityName: entity.name });
+        setDbStats(prev => ({ ...prev, [entity.name]: dbRes.data }));
+      } catch (e) {
+        console.warn(`Failed to load DB stats for ${entity.name}:`, e);
+      }
+      try {
+        const bfRes = await base44.functions.invoke("bubbleFieldStats", { entityName: entity.name });
+        setBubbleFieldStats(prev => ({ ...prev, [entity.name]: bfRes.data }));
+      } catch (e) {
+        console.warn(`Failed to load Bubble field stats for ${entity.name}:`, e);
+      }
     }
     setLoadingAll(false);
   };
