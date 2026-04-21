@@ -101,8 +101,9 @@ Deno.serve(async (req) => {
       if ((i + 1) % 20 === 0) console.log(`Progress: ${updated}/${batch.length}`);
     }
 
-    console.log(`Done. Updated: ${updated}, Errors: ${errors}`);
-    return Response.json({ success: true, totalRecords: records.length, updated, errors, alreadyCorrect, noStaffId, staffNotFound });
+    const remaining = toUpdate.length - batch.length;
+    console.log(`Done. Updated: ${updated}, Errors: ${errors}, Remaining: ${remaining}`);
+    return Response.json({ success: true, totalRecords: records.length, updated, errors, alreadyCorrect, noStaffId, staffNotFound, remaining });
   } catch (error) {
     console.error("Error:", error);
     return Response.json({ error: error.message }, { status: 500 });
