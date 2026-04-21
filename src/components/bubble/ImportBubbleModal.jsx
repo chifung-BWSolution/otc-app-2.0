@@ -110,6 +110,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [step, setStep] = useState("select"); // select | mapping | confirm | importing | done
+  const [importMode, setImportMode] = useState("append"); // "overwrite" | "append"
 
   const handleFileChange = async (e) => {
     const f = e.target.files?.[0];
@@ -239,22 +240,24 @@ export default function ImportBubbleModal({ onClose, onDone }) {
       }
       setImportStatus(`解析完成：${transformed.length} 筆有效記錄`);
 
-      // Step 2: Delete existing records
-      setImportStatus("清除舊記錄中...");
+      // Step 2: Delete existing records (only in overwrite mode)
       const entitySDK = base44.entities[selectedEntity];
-      if (entitySDK?.deleteMany) {
-        let totalDel = 0;
-        for (let round = 0; round < 100; round++) {
-          try {
-            const result = await entitySDK.deleteMany({});
-            const d = result?.deleted || 0;
-            totalDel += d;
-            setImportStatus(`清除舊記錄中... 已刪除 ${totalDel} 筆`);
-            if (d === 0) break;
-            await new Promise(r => setTimeout(r, 1000));
-          } catch (delErr) {
-            console.warn("deleteMany error, retrying...", delErr);
-            await new Promise(r => setTimeout(r, 3000));
+      let totalDel = 0;
+      if (importMode === "overwrite") {
+        setImportStatus("清除舊記錄中...");
+        if (entitySDK?.deleteMany) {
+          for (let round = 0; round < 100; round++) {
+            try {
+              const result = await entitySDK.deleteMany({});
+              const d = result?.deleted || 0;
+              totalDel += d;
+              setImportStatus(`清除舊記錄中... 已刪除 ${totalDel} 筆`);
+              if (d === 0) break;
+              await new Promise(r => setTimeout(r, 1000));
+            } catch (delErr) {
+              console.warn("deleteMany error, retrying...", delErr);
+              await new Promise(r => setTimeout(r, 3000));
+            }
           }
         }
       }
@@ -310,7 +313,7 @@ export default function ImportBubbleModal({ onClose, onDone }) {
       }
 
       setResult({
-        deleted: 0,
+        deleted: totalDel,
         created,
         totalInFile: allRows.length,
         transformErrors: transformErrors.length,
@@ -442,14 +445,53 @@ export default function ImportBubbleModal({ onClose, onDone }) {
 
           {/* Step: Confirm */}
           {step === "confirm" && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-              <div className="flex items-center gap-2 text-amber-800 font-bold text-sm"><AlertTriangle size={16} /> 確認覆蓋數據</div>
-              <p className="text-xs text-amber-700">
-                此操作將會<strong>刪除</strong> <span className="font-bold">{entityLabel}</span> 中的所有現有記錄，
-                然後匯入檔案中的 <strong>{fileRowCount}</strong> 筆新數據。此操作無法撤銷。
-              </p>
-              <p className="text-xs text-amber-600">已配對 {mappedCount} 個欄位</p>
-              <p className="text-xs text-amber-600">檔案：{file?.name}</p>
+            <div className="space-y-4">
+              {/* Import mode selection */}
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-2">匯入模式</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setImportMode("append")}
+                    className={`border-2 rounded-xl p-3 text-left transition-colors ${
+                      importMode === "append" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="text-sm font-bold text-gray-800">📥 只新增</div>
+                    <div className="text-xs text-gray-500 mt-1">保留現有記錄，只匯入新行</div>
+                  </button>
+                  <button
+                    onClick={() => setImportMode("overwrite")}
+                    className={`border-2 rounded-xl p-3 text-left transition-colors ${
+                      importMode === "overwrite" ? "border-red-500 bg-red-50" : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="text-sm font-bold text-gray-800">🔄 覆蓋全部</div>
+                    <div className="text-xs text-gray-500 mt-1">刪除所有舊記錄，重新匯入</div>
+                  </button>
+                </div>
+              </div>
+
+              {importMode === "overwrite" ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-800 font-bold text-sm"><AlertTriangle size={16} /> 確認覆蓋數據</div>
+                  <p className="text-xs text-amber-700">
+                    此操作將會<strong>刪除</strong> <span className="font-bold">{entityLabel}</span> 中的所有現有記錄，
+                    然後匯入檔案中的 <strong>{fileRowCount}</strong> 筆新數據。此操作無法撤銷。
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">📥 新增匯入</div>
+                  <p className="text-xs text-blue-700">
+                    將會在 <span className="font-bold">{entityLabel}</span> 中新增 <strong>{fileRowCount}</strong> 筆記錄，現有記錄不受影響。
+                  </p>
+                </div>
+              )}
+
+              <div className="text-xs text-gray-500 space-y-0.5">
+                <p>已配對 {mappedCount} 個欄位</p>
+                <p>檔案：{file?.name}</p>
+              </div>
             </div>
           )}
 
@@ -526,8 +568,10 @@ export default function ImportBubbleModal({ onClose, onDone }) {
           {step === "confirm" && (
             <>
               <button onClick={() => setStep("mapping")} className="flex-1 py-2.5 bg-gray-100 rounded-lg font-bold text-gray-600">返回</button>
-              <button onClick={handleImport} className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors">
-                確認覆蓋匯入
+              <button onClick={handleImport} className={`flex-1 py-2.5 text-white rounded-lg font-bold transition-colors ${
+                importMode === "overwrite" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+              }`}>
+                {importMode === "overwrite" ? "確認覆蓋匯入" : "確認新增匯入"}
               </button>
             </>
           )}
