@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Sparkles, Users } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
-export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange, customFrom, customTo, dateMap }) {
+export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange, customFrom, customTo, dateMap, onShowProjectContribution }) {
   const [expandedProject, setExpandedProject] = useState(null);
   const name = staffRec.display_name || staffRec.full_name || "—";
   const bubbleId = staffRec.bubble_id;
@@ -61,7 +61,7 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
       const projId = t.project_id;
       const proj = projectMap[projId];
       const projName = t.project_name || proj?.display_name || "未指定項目";
-      if (!map[projName]) map[projName] = { name: projName, hours: 0, count: 0, tasksByType: {} };
+      if (!map[projName]) map[projName] = { name: projName, projectBubbleId: projId || null, hours: 0, count: 0, tasksByType: {} };
       map[projName].hours += t.work_hour || 0;
       map[projName].count++;
 
@@ -187,22 +187,32 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
                   const isOpen = expandedProject === p.name;
                   return (
                     <div key={i}>
-                      <button
-                        className="w-full flex items-center gap-2 text-xs py-1.5 px-1 rounded hover:bg-gray-100 transition-colors text-left"
-                        onClick={() => setExpandedProject(isOpen ? null : p.name)}
-                      >
-                        <span className="text-gray-400 shrink-0">{isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium text-gray-700 truncate">{p.name}</span>
-                            <span className="text-gray-400">({p.count}個任務)</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="flex-1 flex items-center gap-2 text-xs py-1.5 px-1 rounded hover:bg-gray-100 transition-colors text-left min-w-0"
+                          onClick={() => setExpandedProject(isOpen ? null : p.name)}
+                        >
+                          <span className="text-gray-400 shrink-0">{isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-gray-700 truncate">{p.name}</span>
+                              <span className="text-gray-400">({p.count}個任務)</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-0.5">
+                              <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / (projectBreakdown[0]?.hours || 1)) * 100)}%` }} />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-0.5">
-                            <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / (projectBreakdown[0]?.hours || 1)) * 100)}%` }} />
-                          </div>
-                        </div>
-                        <span className="font-bold text-indigo-600 shrink-0">{Math.round(p.hours * 10) / 10}h</span>
-                      </button>
+                          <span className="font-bold text-indigo-600 shrink-0">{Math.round(p.hours * 10) / 10}h</span>
+                        </button>
+                        {onShowProjectContribution && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onShowProjectContribution(p.name, p.projectBubbleId); }}
+                            title="查看項目各員工貢獻"
+                            className="p-1.5 rounded hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 transition-colors shrink-0">
+                            <Users size={13} />
+                          </button>
+                        )}
+                      </div>
 
                       {/* Expanded: task types and tasks within project */}
                       {isOpen && (

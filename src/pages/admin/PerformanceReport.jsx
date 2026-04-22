@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, BarChart2, Search, X, Users } from "lucide-react";
 import StaffAppraisalCard from "@/components/report/StaffAppraisalCard";
 import DateRangeFilter from "@/components/report/DateRangeFilter";
+import ProjectContributionModal from "@/components/report/ProjectContributionModal";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -26,6 +27,7 @@ export default function PerformanceReport() {
   const [teamFilter, setTeamFilter] = useState("all");
   const [sortBy, setSortBy] = useState("hours"); // hours | kpi | name | late
   const [expandedStaff, setExpandedStaff] = useState(null);
+  const [contributionProject, setContributionProject] = useState(null);
 
   const [staff, setStaff] = useState([]);
   const [dates, setDates] = useState([]);
@@ -83,7 +85,9 @@ export default function PerformanceReport() {
   };
 
   // Lookups
-  const staffMap = useMemo(() => { const m = {}; for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; } return m; }, [staff]);
+  const staffBubbleMap = useMemo(() => { const m = {}; for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; } return m; }, [staff]);
+  // dateToStaff for contribution modal
+  const dateToStaffMap = useMemo(() => { const m = {}; for (const d of dates) { if (d.bubble_id && d.staff_id) m[d.bubble_id] = d.staff_id; } return m; }, [dates]);
   const taskTypeMap = useMemo(() => { const m = {}; for (const t of taskTypes) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [taskTypes]);
   const nosTaskMap = useMemo(() => { const m = {}; for (const t of nosTasks) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [nosTasks]);
   const projectMap = useMemo(() => { const m = {}; for (const p of projects) { if (p.bubble_id) m[p.bubble_id] = p; } return m; }, [projects]);
@@ -174,6 +178,18 @@ export default function PerformanceReport() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      {/* Project Contribution Modal */}
+      {contributionProject && (
+        <ProjectContributionModal
+          projectName={contributionProject.name}
+          projectBubbleId={contributionProject.bubbleId}
+          allTasks={tasks}
+          dateToStaff={dateToStaffMap}
+          allStaff={staff}
+          staffMap={staffBubbleMap}
+          onClose={() => setContributionProject(null)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -239,6 +255,7 @@ export default function PerformanceReport() {
             dateMap={dateMap}
             expanded={expandedStaff === s.id}
             onToggle={() => setExpandedStaff(expandedStaff === s.id ? null : s.id)}
+            onShowProjectContribution={(name, bubbleId) => setContributionProject({ name, bubbleId })}
           />
         ))}
       </div>

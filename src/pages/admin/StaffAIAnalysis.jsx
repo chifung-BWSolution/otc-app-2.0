@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import StaffDataPanel from "@/components/report/StaffDataPanel";
 import StaffCompareSelector from "@/components/report/StaffCompareSelector";
 import StaffComparePanel from "@/components/report/StaffComparePanel";
+import ProjectContributionModal from "@/components/report/ProjectContributionModal";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -35,6 +36,7 @@ export default function StaffAIAnalysis() {
   const [thinking, setThinking] = useState(false);
   const chatEndRef = useRef(null);
   const [compareIds, setCompareIds] = useState([]);
+  const [contributionProject, setContributionProject] = useState(null);
 
   // Data for the left panel
   const [panelData, setPanelData] = useState(null);
@@ -259,6 +261,15 @@ ${conversationHistory}
     setThinking(false);
   };
 
+  // staffMap by bubble_id for the contribution modal
+  const staffBubbleMap = useMemo(() => {
+    const m = {};
+    for (const s of allStaff) { if (s.bubble_id) m[s.bubble_id] = s; }
+    return m;
+  }, [allStaff]);
+
+  const periodLabel = customFrom && customTo ? `${customFrom} ~ ${customTo}` : `最近 ${days} 天`;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -277,10 +288,20 @@ ${conversationHistory}
     );
   }
 
-  const periodLabel = customFrom && customTo ? `${customFrom} ~ ${customTo}` : `最近 ${days} 天`;
-
   return (
     <div className="space-y-3" style={{ height: "calc(100vh - 140px)" }}>
+      {/* Project Contribution Modal */}
+      {contributionProject && compareData && (
+        <ProjectContributionModal
+          projectName={contributionProject.name}
+          projectBubbleId={contributionProject.bubbleId}
+          allTasks={compareData.allTasks}
+          dateToStaff={compareData.dateToStaff}
+          allStaff={allStaff}
+          staffMap={staffBubbleMap}
+          onClose={() => setContributionProject(null)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center gap-3 shrink-0">
         <Link to="/admin/performance-report" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
@@ -318,6 +339,7 @@ ${conversationHistory}
                 taskTypeMap={panelData.taskTypeMap}
                 nosTaskMap={panelData.nosTaskMap}
                 dateMap={panelData.dateMap}
+                onShowProjectContribution={(name, bubbleId) => setContributionProject({ name, bubbleId })}
               />
             )}
           </div>
