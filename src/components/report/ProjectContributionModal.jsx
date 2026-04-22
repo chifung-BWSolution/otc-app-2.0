@@ -1,13 +1,26 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { X, Users, ChevronDown, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
 const COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
 
-export default function ProjectContributionModal({ projectName, projectBubbleId, allTasks, dateToStaff, allStaff, staffMap, onClose }) {
+export default function ProjectContributionModal({ projectName, projectBubbleId, allTasks, dateToStaff, allStaff, staffMap, nosTaskMap, taskTypeMap, onClose }) {
   const [expandedStaff, setExpandedStaff] = useState(null);
 
-  // Find all tasks for this project across all staff, grouped
+  // Resolve helpers using lookup maps
+  const resolveTaskName = (t) => {
+    if (t.task_id && nosTaskMap?.[t.task_id]) return nosTaskMap[t.task_id].display;
+    return t.task_name || t.keywords || "—";
+  };
+  const resolveTaskTypeName = (t) => {
+    if (t.task_type_id && taskTypeMap?.[t.task_type_id]) return taskTypeMap[t.task_type_id].display;
+    if (t.task_id && nosTaskMap?.[t.task_id]?.task_type_ids?.length) {
+      const tt = taskTypeMap?.[nosTaskMap[t.task_id].task_type_ids[0]];
+      if (tt) return tt.display;
+    }
+    return t.task_type_name || "—";
+  };
+
   const { contributions, staffTaskDetails } = useMemo(() => {
     const hoursByStaff = {};
     const tasksByStaff = {};
@@ -59,7 +72,6 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -73,9 +85,7 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-indigo-50 rounded-xl p-3 text-center border border-indigo-100">
               <div className="text-xl font-bold text-indigo-600">{contributions.length}</div>
@@ -91,7 +101,6 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
             </div>
           </div>
 
-          {/* Chart */}
           {chartData.length > 1 && (
             <div className="bg-gray-50 rounded-xl p-4">
               <h4 className="text-xs font-bold text-gray-600 mb-2">📊 各員工工時分佈</h4>
@@ -114,7 +123,6 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
             </div>
           )}
 
-          {/* Detail table */}
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -134,8 +142,8 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
                   const isOpen = expandedStaff === c.staffBubbleId;
                   const tasks = staffTaskDetails[c.staffBubbleId] || [];
                   return (
-                    <>
-                      <tr key={c.staffBubbleId}
+                    <Fragment key={c.staffBubbleId}>
+                      <tr
                         className="border-b border-gray-50 hover:bg-blue-50/30 cursor-pointer"
                         onClick={() => setExpandedStaff(isOpen ? null : c.staffBubbleId)}>
                         <td className="pl-4 py-2.5 text-gray-400">
@@ -161,19 +169,19 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
                         </td>
                       </tr>
                       {isOpen && tasks.length > 0 && (
-                        <tr key={`${c.staffBubbleId}-detail`}>
+                        <tr>
                           <td colSpan={7} className="bg-gray-50/70 px-6 py-2">
                             <div className="text-xs space-y-1 max-h-48 overflow-y-auto">
                               <div className="flex gap-2 text-[10px] text-gray-400 font-semibold border-b border-gray-200 pb-1">
-                                <span className="w-28">任務名稱</span>
-                                <span className="w-24">任務類型</span>
+                                <span className="w-32">任務名稱</span>
+                                <span className="w-28">任務類型</span>
                                 <span className="w-14 text-right">工時</span>
                                 <span className="flex-1">描述</span>
                               </div>
-                              {tasks.sort((a, b) => (b.work_hour || 0) - (a.work_hour || 0)).slice(0, 30).map((t, j) => (
+                              {[...tasks].sort((a, b) => (b.work_hour || 0) - (a.work_hour || 0)).slice(0, 30).map((t, j) => (
                                 <div key={j} className="flex gap-2 text-gray-600">
-                                  <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
-                                  <span className="w-24 truncate">{t.task_type_name || "—"}</span>
+                                  <span className="w-32 truncate font-medium">{resolveTaskName(t)}</span>
+                                  <span className="w-28 truncate">{resolveTaskTypeName(t)}</span>
                                   <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
                                   <span className="flex-1 truncate text-gray-400">{t.task_description || ""}</span>
                                 </div>
@@ -183,7 +191,7 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

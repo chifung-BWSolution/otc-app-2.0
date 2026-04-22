@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, FileText, Loader2, Printer, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ReactMarkdown from "react-markdown";
@@ -6,24 +6,23 @@ import ReactMarkdown from "react-markdown";
 export default function AppraisalReportModal({ staffRec, summary, periodLabel, onClose }) {
   const [report, setReport] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const reportRef = useRef(null);
 
   const generateReport = async () => {
     setGenerating(true);
-    const prompt = `你是一位專業的人力資源總監。請根據以下員工數據，撰寫一份正式的「員工績效考核報告」(Appraisal Report)，格式如下：
+    const prompt = `你是一位專業的人力資源總監。請根據以下員工數據，撰寫一份正式的「員工績效考核報告」(Appraisal Report)。
 
 員工數據：
 ${summary}
 
----
-
-請輸出以下格式（用繁體中文，Markdown 格式）：
+請用繁體中文 Markdown 格式輸出，嚴格按以下結構：
 
 # 員工績效考核報告
 
-**員工姓名：** ${staffRec.display_name}
-**職位：** ${staffRec.position || "—"}
-**團隊：** ${staffRec.team_name || "—"} / ${staffRec.bu_name || "—"}
-**考核期間：** ${periodLabel}
+**員工姓名：** ${staffRec.display_name}  
+**職位：** ${staffRec.position || "—"}  
+**團隊：** ${staffRec.team_name || "—"} / ${staffRec.bu_name || "—"}  
+**考核期間：** ${periodLabel}  
 **考核日期：** ${new Date().toISOString().split("T")[0]}
 
 ---
@@ -53,21 +52,25 @@ ${summary}
 
 | 評核範疇 | 評級 |
 |---------|------|
-| 工作量 | ⭐⭐⭐⭐⭐ (X/5) |
-| 工作質量 | ⭐⭐⭐⭐⭐ (X/5) |
-| 主動性 | ⭐⭐⭐⭐⭐ (X/5) |
-| 團隊合作 | ⭐⭐⭐⭐⭐ (X/5) |
-| 整體表現 | ⭐⭐⭐⭐⭐ (X/5) |
+| 工作量 | X/5 |
+| 工作質量 | X/5 |
+| 主動性 | X/5 |
+| 團隊合作 | X/5 |
+| 整體表現 | X/5 |
 
 ## 九、考核人簽名
 
-考核人：________________  日期：________________
+考核人：________________　　日期：________________
 
-員工確認：________________  日期：________________
+員工確認：________________　　日期：________________
 
 ---
 
-請確保評語客觀、專業、有建設性，並基於提供的實際數據。每個評級都要根據數據給出合理的分數。`;
+重要：
+- 所有評語必須客觀、專業、有建設性，基於提供的實際數據
+- 不要使用星號emoji表示評級，直接用數字 X/5
+- 表格用標準 Markdown pipe 語法
+- 段落之間用空行分隔`;
 
     const res = await base44.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
     setReport(res);
@@ -75,27 +78,40 @@ ${summary}
   };
 
   const handlePrint = () => {
+    if (!reportRef.current) return;
+    const content = reportRef.current.innerHTML;
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8" />
 <title>績效考核報告 - ${staffRec.display_name}</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; line-height: 1.6; font-size: 14px; }
-  h1 { text-align: center; font-size: 22px; margin-bottom: 8px; }
-  h2 { font-size: 16px; margin-top: 24px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 13px; }
-  th { background: #f5f5f5; font-weight: 600; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+    max-width: 780px; margin: 0 auto; padding: 48px 40px; color: #1a1a1a;
+    line-height: 1.7; font-size: 14px;
+  }
+  h1 { text-align: center; font-size: 24px; font-weight: 800; margin-bottom: 20px; letter-spacing: 2px; }
+  h2 { font-size: 16px; font-weight: 700; margin-top: 28px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e5e5; color: #333; }
+  p { margin: 6px 0; }
   strong { font-weight: 600; }
-  p { margin: 8px 0; }
-  ul, ol { margin: 8px 0; padding-left: 24px; }
-  hr { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
-  @media print { body { padding: 20px; } }
+  ul, ol { margin: 8px 0 8px 20px; }
+  li { margin: 3px 0; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: left; }
+  th { background-color: #f2f2f2; font-weight: 600; }
+  td { background-color: #fff; }
+  @media print {
+    body { padding: 24px; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
 </style>
-</head><body>${document.getElementById("appraisal-report-content").innerHTML}</body></html>`);
+</head><body>${content}</body></html>`);
     printWindow.document.close();
-    setTimeout(() => { printWindow.print(); }, 500);
+    setTimeout(() => printWindow.print(), 600);
   };
 
   return (
@@ -130,7 +146,7 @@ ${summary}
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-8">
           {!report && !generating && (
             <div className="text-center py-16 space-y-4">
               <FileText size={48} className="mx-auto text-purple-200" />
@@ -157,16 +173,33 @@ ${summary}
           )}
 
           {report && !generating && (
-            <div id="appraisal-report-content"
-              className="prose prose-sm prose-gray max-w-none
-                [&_h1]:text-center [&_h1]:text-xl [&_h1]:font-black [&_h1]:text-gray-900
-                [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-800 [&_h2]:border-b [&_h2]:border-gray-200 [&_h2]:pb-1 [&_h2]:mt-6
-                [&_table]:w-full [&_table]:text-sm
-                [&_th]:bg-gray-50 [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2
-                [&_td]:px-3 [&_td]:py-2
-                [&_hr]:my-4
-                [&_strong]:font-semibold">
-              <ReactMarkdown>{report}</ReactMarkdown>
+            <div ref={reportRef} className="appraisal-report-preview">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, marginBottom: 16, letterSpacing: 2 }}>{children}</h1>,
+                  h2: ({ children }) => <h2 style={{ fontSize: 16, fontWeight: 700, marginTop: 28, marginBottom: 10, paddingBottom: 6, borderBottom: "2px solid #e5e5e5", color: "#333" }}>{children}</h2>,
+                  p: ({ children }) => <p style={{ margin: "6px 0", lineHeight: 1.7, fontSize: 14 }}>{children}</p>,
+                  strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                  hr: () => <hr style={{ border: "none", borderTop: "1px solid #ddd", margin: "24px 0" }} />,
+                  ul: ({ children }) => <ul style={{ margin: "8px 0 8px 20px", listStyleType: "disc" }}>{children}</ul>,
+                  ol: ({ children }) => <ol style={{ margin: "8px 0 8px 20px", listStyleType: "decimal" }}>{children}</ol>,
+                  li: ({ children }) => <li style={{ margin: "3px 0", fontSize: 14 }}>{children}</li>,
+                  table: ({ children }) => (
+                    <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0", fontSize: 13 }}>{children}</table>
+                  ),
+                  thead: ({ children }) => <thead>{children}</thead>,
+                  tbody: ({ children }) => <tbody>{children}</tbody>,
+                  tr: ({ children }) => <tr>{children}</tr>,
+                  th: ({ children }) => (
+                    <th style={{ border: "1px solid #ccc", padding: "10px 14px", textAlign: "left", backgroundColor: "#f2f2f2", fontWeight: 600 }}>{children}</th>
+                  ),
+                  td: ({ children }) => (
+                    <td style={{ border: "1px solid #ccc", padding: "10px 14px", textAlign: "left" }}>{children}</td>
+                  ),
+                }}
+              >
+                {report}
+              </ReactMarkdown>
             </div>
           )}
         </div>

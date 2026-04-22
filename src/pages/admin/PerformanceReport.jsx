@@ -187,6 +187,8 @@ export default function PerformanceReport() {
           dateToStaff={dateToStaffMap}
           allStaff={staff}
           staffMap={staffBubbleMap}
+          nosTaskMap={nosTaskMap}
+          taskTypeMap={taskTypeMap}
           onClose={() => setContributionProject(null)}
         />
       )}

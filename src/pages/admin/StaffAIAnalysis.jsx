@@ -310,6 +310,8 @@ ${conversationHistory}
           dateToStaff={compareData.dateToStaff}
           allStaff={allStaff}
           staffMap={staffBubbleMap}
+          nosTaskMap={panelData?.nosTaskMap}
+          taskTypeMap={panelData?.taskTypeMap}
           onClose={() => setContributionProject(null)}
         />
       )}
