@@ -222,6 +222,7 @@ export default function PerformanceReport() {
             projectMap={projectMap}
             taskTypeMap={taskTypeMap}
             nosTaskMap={nosTaskMap}
+            dateRange={dateRange}
             expanded={expandedStaff === s.id}
             onToggle={() => setExpandedStaff(expandedStaff === s.id ? null : s.id)}
           />
