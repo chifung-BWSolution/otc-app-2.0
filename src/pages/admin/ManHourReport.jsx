@@ -54,7 +54,7 @@ export default function ManHourReport() {
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
     const [dateList, staffList, projectList, taskTypeList, nosTaskList] = await Promise.all([
-      base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
+      loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
@@ -71,7 +71,7 @@ export default function ManHourReport() {
 
     // Load tasks linked to these dates
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
-    const taskList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
+    const taskList = await loadAllRecords(base44.entities.BubbleManHourTask, "-created_date");
     const filteredTasks = taskList.filter(t => dateIds.has(t.man_hour_date_id));
     setTasks(filteredTasks);
     setLoading(false);

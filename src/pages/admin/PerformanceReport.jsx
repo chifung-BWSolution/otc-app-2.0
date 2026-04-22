@@ -54,7 +54,7 @@ export default function PerformanceReport() {
 
     const [staffList, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
-      base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
+      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAll(base44.entities.NOSTask, "display"),
       loadAll(base44.entities.BubbleProject, "display_name"),
@@ -76,7 +76,7 @@ export default function PerformanceReport() {
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));
 
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
-    const taskList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
+    const taskList = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
     setTasks(taskList.filter(t => dateIds.has(t.man_hour_date_id)));
 
     setLoading(false);

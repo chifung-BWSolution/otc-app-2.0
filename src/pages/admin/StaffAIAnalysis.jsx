@@ -54,7 +54,7 @@ export default function StaffAIAnalysis() {
 
     const [allStaff, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
-      base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
+      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAll(base44.entities.NOSTask, "display"),
       loadAll(base44.entities.BubbleProject, "display_name"),
@@ -87,7 +87,7 @@ export default function StaffAIAnalysis() {
 
     // Load tasks
     const allDateIds = new Set(allFilteredDates.map(d => d.bubble_id).filter(Boolean));
-    const allTasksList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
+    const allTasksList = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
     const allFilteredTasks = allTasksList.filter(t => allDateIds.has(t.man_hour_date_id));
     const myTasks = allFilteredTasks.filter(t => myDateIds.has(t.man_hour_date_id));
 
