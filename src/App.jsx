@@ -19,6 +19,7 @@ import CourseCenter from './pages/course/CourseCenter';
 import Analytics from './pages/superadmin/Analytics';
 import Directory from './pages/superadmin/Directory';
 import ManHourReport from './pages/admin/ManHourReport';
+import PerformanceReport from './pages/admin/PerformanceReport';
 import Approvals from './pages/admin/Approvals';
 import LeaveApprovals from './pages/admin/LeaveApprovals';
 import Placeholder from './pages/Placeholder';
@@ -142,6 +143,7 @@ const AuthenticatedApp = () => {
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />
         <Route path="/admin/manhour-report" element={<ManHourReport />} />
+        <Route path="/admin/performance-report" element={<PerformanceReport />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

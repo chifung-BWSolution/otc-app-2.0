@@ -143,6 +143,7 @@ export const menuGroups = [
     items: [
       { label: "📈 分析報表", path: "/superadmin/analytics" },
       { label: "📊 工作匯報報告", path: "/admin/manhour-report" },
+      { label: "📈 績效總覽報告", path: "/admin/performance-report" },
     ],
   },
 ];
