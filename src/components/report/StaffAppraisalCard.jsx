@@ -67,16 +67,20 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
 
       // Group by task type within project
       const typeName = resolveTaskTypeName(t) || "未分類";
-      if (!map[projName].tasksByType[typeName]) map[projName].tasksByType[typeName] = { name: typeName, hours: 0, tasks: [] };
+      if (!map[projName].tasksByType[typeName]) map[projName].tasksByType[typeName] = { name: typeName, hours: 0, taskMap: {} };
       map[projName].tasksByType[typeName].hours += t.work_hour || 0;
-      map[projName].tasksByType[typeName].tasks.push({
-        name: resolveTaskName(t),
-        hours: t.work_hour || 0,
-        description: t.task_description || "",
-      });
+      const tName = resolveTaskName(t);
+      if (!map[projName].tasksByType[typeName].taskMap[tName]) map[projName].tasksByType[typeName].taskMap[tName] = { name: tName, hours: 0, count: 0 };
+      map[projName].tasksByType[typeName].taskMap[tName].hours += t.work_hour || 0;
+      map[projName].tasksByType[typeName].taskMap[tName].count++;
     }
     return Object.values(map)
-      .map(p => ({ ...p, tasksByType: Object.values(p.tasksByType).sort((a, b) => b.hours - a.hours) }))
+      .map(p => ({
+        ...p,
+        tasksByType: Object.values(p.tasksByType)
+          .map(tt => ({ ...tt, tasks: Object.values(tt.taskMap).sort((a, b) => b.hours - a.hours) }))
+          .sort((a, b) => b.hours - a.hours),
+      }))
       .sort((a, b) => b.hours - a.hours);
   }, [myTasks, projectMap, taskTypeMap, nosTaskMap]);
 
@@ -213,8 +217,8 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
                               <div className="ml-4 space-y-0.5">
                                 {tt.tasks.map((task, k) => (
                                   <div key={k} className="flex items-center gap-2 text-[11px] text-gray-500">
-                                    <span className="flex-1 truncate">{task.name}</span>
-                                    <span className="font-medium text-gray-600 shrink-0">{task.hours}h</span>
+                                    <span className="flex-1 truncate">{task.name}{task.count > 1 ? ` ×${task.count}` : ""}</span>
+                                    <span className="font-medium text-gray-600 shrink-0">{Math.round(task.hours * 10) / 10}h</span>
                                   </div>
                                 ))}
                               </div>
