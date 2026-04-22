@@ -142,7 +142,7 @@ export const menuGroups = [
     gradient: "from-indigo-500 to-purple-500",
     items: [
       { label: "📈 分析報表", path: "/superadmin/analytics" },
-      { label: "👥 同事一覽表", path: "/superadmin/directory" },
+      { label: "📊 工作匯報報告", path: "/admin/manhour-report" },
     ],
   },
 ];

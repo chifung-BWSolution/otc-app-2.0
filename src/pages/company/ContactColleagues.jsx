@@ -16,9 +16,10 @@ function whatsAppURL(mobile) {
   if (!clean) return null;
   if (clean.startsWith("+")) return `https://wa.me/${clean.slice(1)}`;
   if (clean.startsWith("00")) return `https://wa.me/${clean.slice(2)}`;
-  if (clean.length === 11 && clean.startsWith("1")) return `https://wa.me/86${clean}`;
+  if (clean.length === 11 && /^1\d{10}$/.test(clean)) return `https://wa.me/86${clean}`;
   if (clean.length === 8) return `https://wa.me/852${clean}`;
-  return `https://wa.me/${clean}`;
+  if (clean.length >= 10) return `https://wa.me/${clean}`;
+  return null;
 }
 
 export default function ContactColleagues() {
@@ -160,7 +161,8 @@ export default function ContactColleagues() {
               <tbody>
                 {filtered.map(s => {
                   const region = getRegionByLocation(s.base_location);
-                  const wa = whatsAppURL(s.mobile);
+                  const wa = whatsAppURL(s.private_phone || s.direct_phone || s.work_phone);
+                  const staffRegionLabel = (s.bu_name || "").includes("深圳") ? "深圳" : "香港";
                   const absence = absenceMap[s.work_email];
                   return (
                     <tr key={s.id}
@@ -192,7 +194,11 @@ export default function ContactColleagues() {
                             {region.icon} {region.name}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400">{s.base_location || "—"}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                            staffRegionLabel === "深圳" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                          }`}>
+                            {staffRegionLabel === "深圳" ? "🇨🇳" : "🇭🇰"} {staffRegionLabel}
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs">
