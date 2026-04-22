@@ -1,0 +1,40 @@
+{
+  "name": "NOSTaskType",
+  "type": "object",
+  "properties": {
+    "display": {
+      "type": "string",
+      "title": "\u986f\u793a\u540d\u7a31"
+    },
+    "eng_display": {
+      "type": "string",
+      "title": "\u82f1\u6587\u540d\u7a31"
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    },
+    "brands": {
+      "type": "array",
+      "title": "Brands (Bubble IDs)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "teams": {
+      "type": "array",
+      "title": "Teams (Bubble IDs)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID (unique id)"
+    }
+  },
+  "required": [
+    "display"
+  ]
+}

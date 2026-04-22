@@ -39,6 +39,7 @@ export default function ManHourReport() {
   const [tasks, setTasks] = useState([]);
   const [staff, setStaff] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [taskTypes, setTaskTypes] = useState([]);
   const [dateRange, setDateRange] = useState("30"); // days
   const [search, setSearch] = useState("");
   const [expandedStaff, setExpandedStaff] = useState(null);
@@ -51,10 +52,11 @@ export default function ManHourReport() {
     cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const [dateList, staffList, projectList] = await Promise.all([
+    const [dateList, staffList, projectList, taskTypeList] = await Promise.all([
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
+      base44.entities.NOSTaskType.filter({}, "display", 200),
     ]);
 
     // Filter dates within range
@@ -62,6 +64,7 @@ export default function ManHourReport() {
     setDates(filteredDates);
     setStaff(staffList);
     setProjects(projectList);
+    setTaskTypes(taskTypeList);
 
     // Load tasks linked to these dates
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
@@ -88,6 +91,15 @@ export default function ManHourReport() {
     }
     return m;
   }, [projects]);
+
+  // Build task type lookup by bubble_id
+  const taskTypeMap = useMemo(() => {
+    const m = {};
+    for (const tt of taskTypes) {
+      if (tt.bubble_id) m[tt.bubble_id] = tt;
+    }
+    return m;
+  }, [taskTypes]);
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
@@ -136,17 +148,27 @@ export default function ManHourReport() {
     );
   }, [staffSummary, search]);
 
-  // Aggregate by task type (use task_type_name or task_type_id as fallback)
+  // Helper to resolve task type name
+  const resolveTaskTypeName = (t) => {
+    if (t.task_type_name) return t.task_type_name;
+    if (t.task_type_id) {
+      const tt = taskTypeMap[t.task_type_id];
+      if (tt) return tt.display;
+    }
+    return "";
+  };
+
+  // Aggregate by task type
   const taskTypeSummary = useMemo(() => {
     const map = {};
     for (const t of tasks) {
-      const type = t.task_type_name || t.task_name || t.task_type_id || "未分類";
+      const type = resolveTaskTypeName(t) || t.task_name || "未分類";
       if (!map[type]) map[type] = { name: type, hours: 0, count: 0 };
       map[type].hours += t.work_hour || 0;
       map[type].count += 1;
     }
     return Object.values(map).sort((a, b) => b.hours - a.hours);
-  }, [tasks]);
+  }, [tasks, taskTypeMap]);
 
   // Top 10 for charts
   const top10Staff = filteredSummary.slice(0, 10).map(s => ({ name: s.name.length > 8 ? s.name.slice(0, 8) + ".." : s.name, hours: Math.round(s.totalHours * 10) / 10 }));
@@ -293,7 +315,7 @@ export default function ManHourReport() {
                               <div key={i} className="flex gap-2 text-gray-600">
                                 <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
                                 <span className="w-32 truncate text-gray-400">{projName || "—"}</span>
-                                <span className="w-20 truncate">{t.task_type_name || "—"}</span>
+                                <span className="w-20 truncate">{resolveTaskTypeName(t) || "—"}</span>
                                 <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
                                 <span className="flex-1 truncate text-gray-400">{t.task_description || ""}</span>
                               </div>
