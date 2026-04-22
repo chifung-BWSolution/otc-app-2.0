@@ -17,13 +17,29 @@ const BUBBLE_TYPE_MAP = {
   "BubbleStaffKPIMonth": "staff_kpi_month",
 };
 
-function isEmpty(val) {
-  if (val === null || val === undefined || val === "") return true;
-  if (val === 0) return true;
-  if (val === false) return true;
-  if (Array.isArray(val) && val.length === 0) return true;
-  return false;
-}
+// Known Bubble display field names per entity (used when we can't discover them from full scan)
+const KNOWN_FIELDS = {
+  "BubbleManHourTask": [
+    "Asana Link", "Work Hour", "Images", "Keywords", "Meeting Topic",
+    "Output Count", "Task Description", "N_Task", "Project", "N_Brand",
+    "Meeting Invite Sent", "Projects", "N_Task Type", "Man Hour Date",
+    "Meeting Participant", "O_Meeting Method", "N_Output & Unit",
+    "N_Work Location", "O_Meeting Duration", "O_Meeting Request Date",
+  ],
+  "BubbleClockin": [
+    "Prove - Out", "Remarks", "Remarks - In", "Face Image - In", "Prove - In",
+    "Clock In Time", "OT Minutes Approved", "Remarks - Out", "Staff",
+    "Clock Out Time", "Late Minutes", "Accuracy - In", "Accuracy - Out",
+    "Face Image - Out", "Face Image File URL - In", "Reason for No Clock",
+    "Request Update End Time", "Face Image File URL - Out",
+    "Request Update Start Time", "Geo Location - In", "Geo Location - Out",
+    "Google Location - In", "Google Location - Out", "O_Status - In",
+    "O_Status - Out", "Tags - in", "Tags - out", "N_Work Location",
+    "N_Work Location - Out", "O_Photo Approval - In", "O_Photo Approval - Out",
+    "Request Update End Location", "Request Update Start Location",
+    "Ding Ding In Attendance Id", "Ding Ding Out Attendance Id",
+  ],
+};
 
 Deno.serve(async (req) => {
   try {
@@ -42,63 +58,128 @@ Deno.serve(async (req) => {
     const bubbleType = BUBBLE_TYPE_MAP[entityName];
     const baseUrl = BUBBLE_API_URL.replace(/\/$/, '');
 
-    // Read ALL records from Bubble API (paginate through everything)
-    const allRecords = [];
-    let cursor = 0;
-    const batchSize = 100;
+    // Step 1: Get total count
+    const countUrl = `${baseUrl}/${bubbleType}?limit=1&cursor=0`;
+    const countRes = await fetch(countUrl, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
+    if (!countRes.ok) throw new Error(`Bubble API error: ${countRes.status}`);
+    const countJson = await countRes.json();
+    const countResults = countJson.response?.results || [];
+    const totalRows = countResults.length + (countJson.response?.remaining || 0);
+    console.log(`Total rows: ${totalRows}`);
 
-    while (true) {
-      const url = `${baseUrl}/${bubbleType}?limit=${batchSize}&cursor=${cursor}`;
+    // Step 2: For small entities (<5000), do full scan as before
+    // For large entities, use constraint-based counting per field
+    const FULL_SCAN_LIMIT = 5000;
+
+    if (totalRows <= FULL_SCAN_LIMIT) {
+      // Full scan approach
+      const allRecords = [];
+      let cursor = 0;
+      while (true) {
+        const url = `${baseUrl}/${bubbleType}?limit=100&cursor=${cursor}`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
+        if (!res.ok) throw new Error(`Bubble API error: ${res.status}`);
+        const json = await res.json();
+        const results = json.response?.results || [];
+        allRecords.push(...results);
+        const remaining = json.response?.remaining || 0;
+        if (remaining === 0 || results.length === 0) break;
+        cursor += results.length;
+        await sleep(200);
+      }
+
+      const builtIn = new Set(["_id", "_type", "Created By", "Created Date", "Modified Date"]);
+      const allKeys = new Set();
+      for (const r of allRecords) {
+        for (const k of Object.keys(r)) {
+          if (!builtIn.has(k)) allKeys.add(k);
+        }
+      }
+
+      const fieldStats = {};
+      for (const key of allKeys) {
+        let filled = 0;
+        for (const r of allRecords) {
+          if (r[key] !== null && r[key] !== undefined && r[key] !== "" && 
+              !(Array.isArray(r[key]) && r[key].length === 0)) {
+            filled++;
+          }
+        }
+        fieldStats[key] = {
+          sampleFilled: filled, sampleTotal: allRecords.length,
+          estimatedFilled: filled, estimatedTotal: totalRows,
+          percentage: totalRows > 0 ? Math.round((filled / totalRows) * 100) : 0,
+        };
+      }
+
+      return Response.json({ entityName, bubbleType, totalRows, sampleSize: allRecords.length, fieldCount: allKeys.size, fields: fieldStats });
+    }
+
+    // Step 3: Large entity — discover fields from samples, then count each via constraints
+    console.log("Large entity mode: constraint-based counting");
+
+    // Discover field names from a few sample records
+    const fieldSet = new Set();
+    const samplePositions = [0, Math.floor(totalRows / 3), Math.floor(totalRows * 2 / 3)];
+    for (const pos of samplePositions) {
+      const url = `${baseUrl}/${bubbleType}?limit=30&cursor=${pos}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
-      if (!res.ok) throw new Error(`Bubble API error: ${res.status}`);
+      if (res.ok) {
+        const json = await res.json();
+        for (const r of (json.response?.results || [])) {
+          for (const k of Object.keys(r)) fieldSet.add(k);
+        }
+      }
+      await sleep(100);
+    }
+
+    // Also add known fields for this entity
+    if (KNOWN_FIELDS[entityName]) {
+      for (const f of KNOWN_FIELDS[entityName]) fieldSet.add(f);
+    }
+
+    const builtIn = new Set(["_id", "_type", "Created By", "Created Date", "Modified Date"]);
+    const fields = [...fieldSet].filter(f => !builtIn.has(f)).sort();
+    console.log(`Discovered ${fields.length} fields, counting each...`);
+
+    // Count non-empty values per field using Bubble constraints
+    const fieldStats = {};
+    for (const field of fields) {
+      const constraints = JSON.stringify([{ key: field, constraint_type: "is_not_empty" }]);
+      const url = `${baseUrl}/${bubbleType}?limit=1&cursor=0&constraints=${encodeURIComponent(constraints)}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
+      if (!res.ok) {
+        console.log(`Failed to count field "${field}": ${res.status}`);
+        fieldStats[field] = {
+          sampleFilled: 0, sampleTotal: totalRows,
+          estimatedFilled: 0, estimatedTotal: totalRows, percentage: 0,
+        };
+        await sleep(100);
+        continue;
+      }
       const json = await res.json();
       const results = json.response?.results || [];
-      allRecords.push(...results);
-
       const remaining = json.response?.remaining || 0;
-      if (remaining === 0 || results.length === 0) break;
+      const filled = results.length + remaining;
 
-      cursor += results.length;
-      await sleep(200);
-    }
-
-    const totalRows = allRecords.length;
-
-    // Analyze each field with exact counts
-    const builtIn = new Set(["_id", "_type", "Created By", "Created Date", "Modified Date"]);
-    const allKeys = new Set();
-    for (const r of allRecords) {
-      for (const k of Object.keys(r)) {
-        if (!builtIn.has(k)) allKeys.add(k);
-      }
-    }
-
-    const fieldStats = {};
-    for (const key of allKeys) {
-      let filled = 0;
-      for (const r of allRecords) {
-        const val = r[key];
-        if (!isEmpty(val)) filled++;
-      }
-
-      fieldStats[key] = {
-        sampleFilled: filled,
-        sampleTotal: totalRows,
-        estimatedFilled: filled,
-        estimatedTotal: totalRows,
+      fieldStats[field] = {
+        sampleFilled: filled, sampleTotal: totalRows,
+        estimatedFilled: filled, estimatedTotal: totalRows,
         percentage: totalRows > 0 ? Math.round((filled / totalRows) * 100) : 0,
       };
+      await sleep(150);
     }
 
+    console.log(`Done counting ${fields.length} fields`);
+
     return Response.json({
-      entityName,
-      bubbleType,
-      totalRows,
+      entityName, bubbleType, totalRows,
       sampleSize: totalRows,
-      fieldCount: allKeys.size,
+      fieldCount: fields.length,
       fields: fieldStats,
     });
   } catch (error) {
+    console.error("Error:", error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
