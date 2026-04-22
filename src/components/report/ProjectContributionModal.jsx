@@ -1,17 +1,19 @@
-import { useMemo } from "react";
-import { X, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { X, Users, ChevronDown, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
 const COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
 
 export default function ProjectContributionModal({ projectName, projectBubbleId, allTasks, dateToStaff, allStaff, staffMap, onClose }) {
-  // Find all tasks for this project across all staff
-  const contributions = useMemo(() => {
+  const [expandedStaff, setExpandedStaff] = useState(null);
+
+  // Find all tasks for this project across all staff, grouped
+  const { contributions, staffTaskDetails } = useMemo(() => {
     const hoursByStaff = {};
     const tasksByStaff = {};
+    const detailsByStaff = {};
 
     for (const t of allTasks) {
-      // Match by project_id (bubble_id) or project_name
       const matchById = projectBubbleId && t.project_id === projectBubbleId;
       const matchByName = t.project_name === projectName;
       if (!matchById && !matchByName) continue;
@@ -21,26 +23,27 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
 
       if (!hoursByStaff[sid]) hoursByStaff[sid] = 0;
       if (!tasksByStaff[sid]) tasksByStaff[sid] = 0;
+      if (!detailsByStaff[sid]) detailsByStaff[sid] = [];
       hoursByStaff[sid] += t.work_hour || 0;
       tasksByStaff[sid] += 1;
+      detailsByStaff[sid].push(t);
     }
 
-    return Object.entries(hoursByStaff)
+    const contribs = Object.entries(hoursByStaff)
       .map(([staffBubbleId, hours]) => {
         const staffRec = staffMap[staffBubbleId];
-        const name = staffRec?.display_name || staffBubbleId;
-        const team = staffRec?.team_name || "";
-        const position = staffRec?.position || "";
         return {
           staffBubbleId,
-          name,
-          team,
-          position,
+          name: staffRec?.display_name || staffBubbleId,
+          team: staffRec?.team_name || "",
+          position: staffRec?.position || "",
           hours: Math.round(hours * 10) / 10,
           tasks: tasksByStaff[staffBubbleId] || 0,
         };
       })
       .sort((a, b) => b.hours - a.hours);
+
+    return { contributions: contribs, staffTaskDetails: detailsByStaff };
   }, [projectName, projectBubbleId, allTasks, dateToStaff, staffMap]);
 
   const totalHours = contributions.reduce((s, c) => s + c.hours, 0);
@@ -116,6 +119,7 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 font-semibold">
+                  <th className="px-4 py-2.5 text-left w-6"></th>
                   <th className="px-4 py-2.5 text-left">員工</th>
                   <th className="px-4 py-2.5 text-left">Team</th>
                   <th className="px-4 py-2.5 text-left">職位</th>
@@ -127,27 +131,59 @@ export default function ProjectContributionModal({ projectName, projectBubbleId,
               <tbody>
                 {contributions.map((c, i) => {
                   const pct = totalHours > 0 ? Math.round(c.hours / totalHours * 100) : 0;
+                  const isOpen = expandedStaff === c.staffBubbleId;
+                  const tasks = staffTaskDetails[c.staffBubbleId] || [];
                   return (
-                    <tr key={c.staffBubbleId} className="border-b border-gray-50 hover:bg-blue-50/30">
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                          <span className="font-medium text-gray-900">{c.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-blue-600">{c.team || "—"}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-500">{c.position || "—"}</td>
-                      <td className="px-4 py-2.5 text-right text-gray-600">{c.tasks}</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-indigo-600">{c.hours}h</td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                            <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${pct}%` }} />
+                    <>
+                      <tr key={c.staffBubbleId}
+                        className="border-b border-gray-50 hover:bg-blue-50/30 cursor-pointer"
+                        onClick={() => setExpandedStaff(isOpen ? null : c.staffBubbleId)}>
+                        <td className="pl-4 py-2.5 text-gray-400">
+                          {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                            <span className="font-medium text-gray-900">{c.name}</span>
                           </div>
-                          <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-blue-600">{c.team || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-gray-500">{c.position || "—"}</td>
+                        <td className="px-4 py-2.5 text-right text-gray-600">{c.tasks}</td>
+                        <td className="px-4 py-2.5 text-right font-bold text-indigo-600">{c.hours}h</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                              <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                      {isOpen && tasks.length > 0 && (
+                        <tr key={`${c.staffBubbleId}-detail`}>
+                          <td colSpan={7} className="bg-gray-50/70 px-6 py-2">
+                            <div className="text-xs space-y-1 max-h-48 overflow-y-auto">
+                              <div className="flex gap-2 text-[10px] text-gray-400 font-semibold border-b border-gray-200 pb-1">
+                                <span className="w-28">任務名稱</span>
+                                <span className="w-24">任務類型</span>
+                                <span className="w-14 text-right">工時</span>
+                                <span className="flex-1">描述</span>
+                              </div>
+                              {tasks.sort((a, b) => (b.work_hour || 0) - (a.work_hour || 0)).slice(0, 30).map((t, j) => (
+                                <div key={j} className="flex gap-2 text-gray-600">
+                                  <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
+                                  <span className="w-24 truncate">{t.task_type_name || "—"}</span>
+                                  <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
+                                  <span className="flex-1 truncate text-gray-400">{t.task_description || ""}</span>
+                                </div>
+                              ))}
+                              {tasks.length > 30 && <div className="text-gray-400 text-center">...還有 {tasks.length - 30} 筆</div>}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>

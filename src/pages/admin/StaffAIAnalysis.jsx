@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Send, Sparkles, ArrowLeft, User, Bot } from "lucide-react";
+import { Loader2, Send, Sparkles, ArrowLeft, User, Bot, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import StaffDataPanel from "@/components/report/StaffDataPanel";
 import StaffCompareSelector from "@/components/report/StaffCompareSelector";
 import StaffComparePanel from "@/components/report/StaffComparePanel";
 import ProjectContributionModal from "@/components/report/ProjectContributionModal";
+import AppraisalReportModal from "@/components/report/AppraisalReportModal";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -37,6 +38,7 @@ export default function StaffAIAnalysis() {
   const chatEndRef = useRef(null);
   const [compareIds, setCompareIds] = useState([]);
   const [contributionProject, setContributionProject] = useState(null);
+  const [showAppraisalReport, setShowAppraisalReport] = useState(false);
 
   // Data for the left panel
   const [panelData, setPanelData] = useState(null);
@@ -290,6 +292,15 @@ ${conversationHistory}
 
   return (
     <div className="space-y-3" style={{ height: "calc(100vh - 140px)" }}>
+      {/* Appraisal Report Modal */}
+      {showAppraisalReport && summary && (
+        <AppraisalReportModal
+          staffRec={staffRec}
+          summary={summary}
+          periodLabel={periodLabel}
+          onClose={() => setShowAppraisalReport(false)}
+        />
+      )}
       {/* Project Contribution Modal */}
       {contributionProject && compareData && (
         <ProjectContributionModal
@@ -314,6 +325,10 @@ ${conversationHistory}
           </h2>
           <p className="text-xs text-gray-400">{staffRec.position || ""} · {staffRec.team_name || ""} · {periodLabel}</p>
         </div>
+        <button onClick={() => setShowAppraisalReport(true)} disabled={!summary}
+          className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-50">
+          <FileText size={14} /> 生成考核報告
+        </button>
         {allStaff.length > 0 && (
           <StaffCompareSelector
             allStaff={allStaff}
