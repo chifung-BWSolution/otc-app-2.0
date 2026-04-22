@@ -40,6 +40,7 @@ export default function ManHourReport() {
   const [staff, setStaff] = useState([]);
   const [projects, setProjects] = useState([]);
   const [taskTypes, setTaskTypes] = useState([]);
+  const [nosTasks, setNosTasks] = useState([]);
   const [dateRange, setDateRange] = useState("30"); // days
   const [search, setSearch] = useState("");
   const [expandedStaff, setExpandedStaff] = useState(null);
@@ -52,11 +53,12 @@ export default function ManHourReport() {
     cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const [dateList, staffList, projectList, taskTypeList] = await Promise.all([
+    const [dateList, staffList, projectList, taskTypeList, nosTaskList] = await Promise.all([
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
+      loadAllRecords(base44.entities.NOSTask, "display"),
     ]);
 
     // Filter dates within range
@@ -65,6 +67,7 @@ export default function ManHourReport() {
     setStaff(staffList);
     setProjects(projectList);
     setTaskTypes(taskTypeList);
+    setNosTasks(nosTaskList);
 
     // Load tasks linked to these dates
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
@@ -100,6 +103,15 @@ export default function ManHourReport() {
     }
     return m;
   }, [taskTypes]);
+
+  // Build NOSTask lookup by bubble_id
+  const nosTaskMap = useMemo(() => {
+    const m = {};
+    for (const t of nosTasks) {
+      if (t.bubble_id) m[t.bubble_id] = t;
+    }
+    return m;
+  }, [nosTasks]);
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
@@ -148,14 +160,33 @@ export default function ManHourReport() {
     );
   }, [staffSummary, search]);
 
-  // Helper to resolve task type name
+  // Helper to resolve task type name via: task_id → NOSTask → task_type_ids → NOSTaskType
   const resolveTaskTypeName = (t) => {
-    if (t.task_type_name) return t.task_type_name;
+    // 1. Direct task_type_id on the man hour task
     if (t.task_type_id) {
       const tt = taskTypeMap[t.task_type_id];
       if (tt) return tt.display;
     }
+    // 2. Lookup via NOSTask: task_id → NOSTask → first task_type_id → NOSTaskType
+    if (t.task_id) {
+      const nosTask = nosTaskMap[t.task_id];
+      if (nosTask?.task_type_ids?.length) {
+        const tt = taskTypeMap[nosTask.task_type_ids[0]];
+        if (tt) return tt.display;
+      }
+    }
+    // 3. Fallback to stored name
+    if (t.task_type_name) return t.task_type_name;
     return "";
+  };
+
+  // Helper to resolve NOS task display name
+  const resolveTaskName = (t) => {
+    if (t.task_id) {
+      const nosTask = nosTaskMap[t.task_id];
+      if (nosTask) return nosTask.display;
+    }
+    return t.task_name || t.keywords || "—";
   };
 
   // Aggregate by task type
@@ -168,7 +199,7 @@ export default function ManHourReport() {
       map[type].count += 1;
     }
     return Object.values(map).sort((a, b) => b.hours - a.hours);
-  }, [tasks, taskTypeMap]);
+  }, [tasks, taskTypeMap, nosTaskMap]);
 
   // Top 10 for charts
   const top10Staff = filteredSummary.slice(0, 10).map(s => ({ name: s.name.length > 8 ? s.name.slice(0, 8) + ".." : s.name, hours: Math.round(s.totalHours * 10) / 10 }));
@@ -313,7 +344,7 @@ export default function ManHourReport() {
                               const projName = t.project_name || proj?.display_name || proj?.pic_name || "";
                               return (
                               <div key={i} className="flex gap-2 text-gray-600">
-                                <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
+                                <span className="w-28 truncate font-medium">{resolveTaskName(t)}</span>
                                 <span className="w-32 truncate text-gray-400">{projName || "—"}</span>
                                 <span className="w-20 truncate">{resolveTaskTypeName(t) || "—"}</span>
                                 <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
