@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Menu, User } from "lucide-react";
+import { Menu } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./NotificationBell";
 import RegionBadge from "./RegionBadge";
+import UserMenu from "./UserMenu";
 import TopNavBar from "./navigation/TopNavBar";
 import SubSidebar from "./navigation/SubSidebar";
 import { findGroupByPath, menuGroups } from "./navigation/menuConfig";
@@ -104,9 +105,7 @@ export default function Layout() {
         <div className="flex items-center gap-2">
           <RegionBadge className="hidden sm:inline-flex" />
           <NotificationBell currentUser={currentUser} />
-          <button className="p-2 rounded-full hover:bg-gray-100">
-            <User size={18} className="text-gray-600" />
-          </button>
+          <UserMenu currentUser={currentUser} />
         </div>
       </header>
 
