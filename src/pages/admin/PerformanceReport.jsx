@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, BarChart2, Search, X, Users } from "lucide-react";
 import StaffAppraisalCard from "@/components/report/StaffAppraisalCard";
+import DateRangeFilter from "@/components/report/DateRangeFilter";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -18,6 +19,8 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
 export default function PerformanceReport() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState("90");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [search, setSearch] = useState("");
   const [buFilter, setBuFilter] = useState("all");
   const [teamFilter, setTeamFilter] = useState("all");
@@ -34,13 +37,20 @@ export default function PerformanceReport() {
   const [kpiItems, setKpiItems] = useState([]);
 
 
-  useEffect(() => { loadData(); }, [dateRange]);
+  useEffect(() => { loadData(); }, [dateRange, customFrom, customTo]);
 
   const loadData = async () => {
     setLoading(true);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
-    const cutoffStr = cutoff.toISOString().split("T")[0];
+    let cutoffStr, endStr;
+    if (customFrom && customTo) {
+      cutoffStr = customFrom;
+      endStr = customTo;
+    } else {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
+      cutoffStr = cutoff.toISOString().split("T")[0];
+      endStr = new Date().toISOString().split("T")[0];
+    }
 
     const [staffList, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
@@ -57,10 +67,10 @@ export default function PerformanceReport() {
     setNosTasks(nosTaskList);
     setProjects(projectList);
 
-    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr);
+    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr && d.report_date <= endStr);
     setDates(filteredDates);
 
-    const filteredKpiMonths = kpiMonthList.filter(m => m.report_month && m.report_month >= cutoffStr);
+    const filteredKpiMonths = kpiMonthList.filter(m => m.report_month && m.report_month >= cutoffStr && m.report_month <= endStr);
     setKpiMonths(filteredKpiMonths);
     const kpiMonthIds = new Set(filteredKpiMonths.map(m => m.bubble_id).filter(Boolean));
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));
@@ -77,6 +87,8 @@ export default function PerformanceReport() {
   const taskTypeMap = useMemo(() => { const m = {}; for (const t of taskTypes) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [taskTypes]);
   const nosTaskMap = useMemo(() => { const m = {}; for (const t of nosTasks) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [nosTasks]);
   const projectMap = useMemo(() => { const m = {}; for (const p of projects) { if (p.bubble_id) m[p.bubble_id] = p; } return m; }, [projects]);
+  // Map man_hour_date bubble_id -> report_date (for task date resolution)
+  const dateMap = useMemo(() => { const m = {}; for (const d of dates) { if (d.bubble_id) m[d.bubble_id] = d.report_date; } return m; }, [dates]);
 
   // Pre-compute per-staff stats for sorting and filtering
   const staffStats = useMemo(() => {
@@ -170,14 +182,13 @@ export default function PerformanceReport() {
           </h2>
           <p className="text-xs text-gray-400">逐個員工查看工時、任務、KPI、考勤數據，方便做 Appraisal</p>
         </div>
-        <select value={dateRange} onChange={e => setDateRange(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-          <option value="30">最近 30 天</option>
-          <option value="60">最近 60 天</option>
-          <option value="90">最近 90 天</option>
-          <option value="180">最近 半年</option>
-          <option value="365">最近 1 年</option>
-        </select>
+        <DateRangeFilter
+          dateRange={dateRange}
+          customFrom={customFrom}
+          customTo={customTo}
+          onPresetChange={(v) => { setCustomFrom(""); setCustomTo(""); setDateRange(v); }}
+          onCustomChange={(from, to) => { setCustomFrom(from); setCustomTo(to); }}
+        />
       </div>
 
       {/* Filters */}
@@ -223,6 +234,9 @@ export default function PerformanceReport() {
             taskTypeMap={taskTypeMap}
             nosTaskMap={nosTaskMap}
             dateRange={dateRange}
+            customFrom={customFrom}
+            customTo={customTo}
+            dateMap={dateMap}
             expanded={expandedStaff === s.id}
             onToggle={() => setExpandedStaff(expandedStaff === s.id ? null : s.id)}
           />

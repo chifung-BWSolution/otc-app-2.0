@@ -77,6 +77,13 @@ export default function ManHourReport() {
     setLoading(false);
   };
 
+  // Build date lookup: bubble_id -> report_date
+  const dateMap = useMemo(() => {
+    const m = {};
+    for (const d of dates) { if (d.bubble_id) m[d.bubble_id] = d.report_date; }
+    return m;
+  }, [dates]);
+
   // Build staff lookup by bubble_id
   const staffMap = useMemo(() => {
     const m = {};
@@ -333,6 +340,7 @@ export default function ManHourReport() {
                         <td colSpan={7} className="bg-gray-50/70 px-6 py-2">
                           <div className="text-xs space-y-1 max-h-48 overflow-y-auto">
                             <div className="flex gap-2 text-[10px] text-gray-400 font-semibold border-b border-gray-200 pb-1">
+                              <span className="w-20">任務日期</span>
                               <span className="w-28">任務名稱</span>
                               <span className="w-32">項目</span>
                               <span className="w-20">任務類型</span>
@@ -342,8 +350,10 @@ export default function ManHourReport() {
                             {s.tasks.slice(0, 30).map((t, i) => {
                               const proj = projectMap[t.project_id];
                               const projName = t.project_name || proj?.display_name || proj?.pic_name || "";
+                              const taskDate = dateMap[t.man_hour_date_id] || "";
                               return (
                               <div key={i} className="flex gap-2 text-gray-600">
+                                <span className="w-20 truncate text-gray-400">{taskDate ? taskDate.slice(0, 10) : "—"}</span>
                                 <span className="w-28 truncate font-medium">{resolveTaskName(t)}</span>
                                 <span className="w-32 truncate text-gray-400">{projName || "—"}</span>
                                 <span className="w-20 truncate">{resolveTaskTypeName(t) || "—"}</span>

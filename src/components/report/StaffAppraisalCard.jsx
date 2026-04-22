@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
-export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange }) {
+export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange, customFrom, customTo, dateMap }) {
   const [expandedProject, setExpandedProject] = useState(null);
   const name = staffRec.display_name || staffRec.full_name || "—";
   const bubbleId = staffRec.bubble_id;
@@ -236,7 +236,16 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
           {/* AI Analysis button */}
           <div className="flex justify-center">
             <button
-              onClick={() => window.open(`/admin/staff-ai-analysis?staffId=${staffRec.id}&days=${dateRange || 90}`, "_blank")}
+              onClick={() => {
+                const params = new URLSearchParams({ staffId: staffRec.id });
+                if (customFrom && customTo) {
+                  params.set("from", customFrom);
+                  params.set("to", customTo);
+                } else {
+                  params.set("days", dateRange || "90");
+                }
+                window.open(`/admin/staff-ai-analysis?${params.toString()}`, "_blank");
+              }}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
             >
               <Sparkles size={15} /> AI 績效分析
