@@ -275,7 +275,8 @@ export default function ManHourReport() {
                               <span className="flex-1">描述</span>
                             </div>
                             {s.tasks.slice(0, 30).map((t, i) => {
-                              const projName = t.project_name || projectMap[t.project_id]?.display_name || "";
+                              const proj = projectMap[t.project_id];
+                              const projName = t.project_name || proj?.display_name || proj?.pic_name || "";
                               return (
                               <div key={i} className="flex gap-2 text-gray-600">
                                 <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
