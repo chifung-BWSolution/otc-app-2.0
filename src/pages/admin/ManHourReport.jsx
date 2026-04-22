@@ -21,6 +21,18 @@ function StatCard({ label, value, sub, color = "blue" }) {
   );
 }
 
+async function loadAllRecords(entity, sort = "id", batchSize = 5000) {
+  const all = [];
+  let offset = 0;
+  while (true) {
+    const batch = await entity.filter({}, sort, batchSize, offset);
+    all.push(...batch);
+    if (batch.length < batchSize) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
 export default function ManHourReport() {
   const [loading, setLoading] = useState(true);
   const [dates, setDates] = useState([]);
@@ -42,7 +54,7 @@ export default function ManHourReport() {
     const [dateList, staffList, projectList] = await Promise.all([
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
-      base44.entities.BubbleProject.filter({}, "display_name", 1000),
+      loadAllRecords(base44.entities.BubbleProject, "display_name"),
     ]);
 
     // Filter dates within range
