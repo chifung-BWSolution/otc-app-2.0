@@ -53,7 +53,7 @@ import { RegionProvider } from '@/lib/RegionContext';
 
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -64,7 +64,7 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors or unauthenticated state
+  // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
@@ -72,12 +72,6 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
-  }
-
-  // If no token / not authenticated after loading, redirect to login
-  if (!isLoadingAuth && !isLoadingPublicSettings && !isAuthenticated) {
-    navigateToLogin();
-    return null;
   }
 
   // Render the main app
