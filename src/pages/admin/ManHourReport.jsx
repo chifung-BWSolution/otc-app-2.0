@@ -26,6 +26,7 @@ export default function ManHourReport() {
   const [dates, setDates] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [dateRange, setDateRange] = useState("30"); // days
   const [search, setSearch] = useState("");
   const [expandedStaff, setExpandedStaff] = useState(null);
@@ -38,26 +39,27 @@ export default function ManHourReport() {
     cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const [dateList, staffList] = await Promise.all([
+    const [dateList, staffList, projectList] = await Promise.all([
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
+      base44.entities.BubbleProject.filter({}, "display_name", 1000),
     ]);
 
     // Filter dates within range
     const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr);
     setDates(filteredDates);
     setStaff(staffList);
+    setProjects(projectList);
 
     // Load tasks linked to these dates
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
-    // We can't filter by man_hour_date_id in bulk easily, so load recent tasks
     const taskList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
     const filteredTasks = taskList.filter(t => dateIds.has(t.man_hour_date_id));
     setTasks(filteredTasks);
     setLoading(false);
   };
 
-  // Build staff lookup
+  // Build staff lookup by bubble_id
   const staffMap = useMemo(() => {
     const m = {};
     for (const s of staff) {
@@ -65,6 +67,15 @@ export default function ManHourReport() {
     }
     return m;
   }, [staff]);
+
+  // Build project lookup by bubble_id
+  const projectMap = useMemo(() => {
+    const m = {};
+    for (const p of projects) {
+      if (p.bubble_id) m[p.bubble_id] = p;
+    }
+    return m;
+  }, [projects]);
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
@@ -89,10 +100,17 @@ export default function ManHourReport() {
       }
     }
 
+    // Also build staff_name from ManHourDate for fallback
+    const dateStaffNames = {};
+    for (const d of dates) {
+      if (d.staff_id && d.staff_name) dateStaffNames[d.staff_id] = d.staff_name;
+    }
+
     return Object.values(map)
       .map(s => {
         const staffRec = staffMap[s.staffId];
-        return { ...s, name: staffRec?.display_name || s.staffId, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "" };
+        const name = staffRec?.display_name || dateStaffNames[s.staffId] || s.staffId;
+        return { ...s, name, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "" };
       })
       .sort((a, b) => b.totalHours - a.totalHours);
   }, [dates, tasks, staffMap]);
@@ -256,15 +274,18 @@ export default function ManHourReport() {
                               <span className="w-14 text-right">工時</span>
                               <span className="flex-1">描述</span>
                             </div>
-                            {s.tasks.slice(0, 30).map((t, i) => (
+                            {s.tasks.slice(0, 30).map((t, i) => {
+                              const projName = t.project_name || projectMap[t.project_id]?.display_name || "";
+                              return (
                               <div key={i} className="flex gap-2 text-gray-600">
-                                <span className="w-28 truncate font-medium">{t.task_name || "—"}</span>
-                                <span className="w-32 truncate text-gray-400">{t.project_name || "—"}</span>
+                                <span className="w-28 truncate font-medium">{t.task_name || t.keywords || "—"}</span>
+                                <span className="w-32 truncate text-gray-400">{projName || "—"}</span>
                                 <span className="w-20 truncate">{t.task_type_name || "—"}</span>
                                 <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
                                 <span className="flex-1 truncate text-gray-400">{t.task_description || ""}</span>
                               </div>
-                            ))}
+                              );
+                            })}
                             {s.tasks.length > 30 && <div className="text-gray-400 text-center">...還有 {s.tasks.length - 30} 筆</div>}
                           </div>
                         </td>

@@ -161,7 +161,7 @@ export default function ContactColleagues() {
               <tbody>
                 {filtered.map(s => {
                   const region = getRegionByLocation(s.base_location);
-                  const wa = whatsAppURL(s.private_phone || s.direct_phone || s.work_phone);
+                  const wa = whatsAppURL(s.work_phone || s.direct_phone || s.private_phone);
                   const staffRegionLabel = (s.bu_name || "").includes("深圳") ? "深圳" : "香港";
                   const absence = absenceMap[s.work_email];
                   return (
