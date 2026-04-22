@@ -4,6 +4,8 @@ import { Loader2, Send, Sparkles, ArrowLeft, User, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import StaffDataPanel from "@/components/report/StaffDataPanel";
+import StaffCompareSelector from "@/components/report/StaffCompareSelector";
+import StaffComparePanel from "@/components/report/StaffComparePanel";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -26,14 +28,18 @@ export default function StaffAIAnalysis() {
 
   const [loading, setLoading] = useState(true);
   const [staffRec, setStaffRec] = useState(null);
+  const [allStaff, setAllStaff] = useState([]);
   const [summary, setSummary] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const chatEndRef = useRef(null);
+  const [compareIds, setCompareIds] = useState([]);
 
   // Data for the left panel
   const [panelData, setPanelData] = useState(null);
+  // Data for compare panel
+  const [compareData, setCompareData] = useState(null);
 
   useEffect(() => { if (staffId) loadStaffData(); }, [staffId]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -62,6 +68,7 @@ export default function StaffAIAnalysis() {
       loadAll(base44.entities.BubbleStaffKPI, "id"),
     ]);
 
+    setAllStaff(allStaff);
     const rec = allStaff.find(s => s.id === staffId);
     setStaffRec(rec);
     if (!rec?.bubble_id) { setLoading(false); return; }
@@ -98,6 +105,11 @@ export default function StaffAIAnalysis() {
 
     // Set panel data
     setPanelData({ myDates, myTasks, myKpis, projectMap, taskTypeMap, nosTaskMap, dateMap });
+
+    // Set compare data (all dates + tasks + dateToStaff lookup)
+    const dateToStaffMap = {};
+    for (const d of allFilteredDates) { if (d.bubble_id && d.staff_id) dateToStaffMap[d.bubble_id] = d.staff_id; }
+    setCompareData({ allDates: allFilteredDates, allTasks: allFilteredTasks, dateToStaff: dateToStaffMap });
 
     // === Build comparison stats for ALL staff ===
     const staffHours = {};
@@ -274,29 +286,48 @@ ${conversationHistory}
         <Link to="/admin/performance-report" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
           <ArrowLeft size={18} />
         </Link>
-        <div>
+        <div className="flex-1">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
             <Sparkles size={16} className="text-purple-500" />
             AI 績效分析 — {staffRec.display_name}
           </h2>
           <p className="text-xs text-gray-400">{staffRec.position || ""} · {staffRec.team_name || ""} · {periodLabel}</p>
         </div>
+        {allStaff.length > 0 && (
+          <StaffCompareSelector
+            allStaff={allStaff}
+            currentStaffId={staffId}
+            selectedIds={compareIds}
+            onSelectionChange={setCompareIds}
+          />
+        )}
       </div>
 
       {/* Left/Right split */}
       <div className="flex gap-4 flex-1 min-h-0" style={{ height: "calc(100% - 56px)" }}>
-        {/* Left: Data panel */}
-        <div className="w-[380px] shrink-0 bg-white rounded-xl border border-gray-200 p-4 overflow-hidden hidden lg:block">
-          {panelData && (
-            <StaffDataPanel
-              staffRec={staffRec}
-              myDates={panelData.myDates}
-              myTasks={panelData.myTasks}
-              myKpis={panelData.myKpis}
-              projectMap={panelData.projectMap}
-              taskTypeMap={panelData.taskTypeMap}
-              nosTaskMap={panelData.nosTaskMap}
-              dateMap={panelData.dateMap}
+        {/* Left: Data panel + compare */}
+        <div className="w-[480px] shrink-0 flex flex-col gap-3 overflow-y-auto hidden lg:flex">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 overflow-hidden">
+            {panelData && (
+              <StaffDataPanel
+                staffRec={staffRec}
+                myDates={panelData.myDates}
+                myTasks={panelData.myTasks}
+                myKpis={panelData.myKpis}
+                projectMap={panelData.projectMap}
+                taskTypeMap={panelData.taskTypeMap}
+                nosTaskMap={panelData.nosTaskMap}
+                dateMap={panelData.dateMap}
+              />
+            )}
+          </div>
+          {compareIds.length > 0 && compareData && staffRec && (
+            <StaffComparePanel
+              currentStaff={staffRec}
+              compareStaff={allStaff.filter(s => compareIds.includes(s.id))}
+              allDates={compareData.allDates}
+              allTasks={compareData.allTasks}
+              dateToStaff={compareData.dateToStaff}
             />
           )}
         </div>

@@ -64,7 +64,7 @@ export default function StaffDataPanel({ staffRec, myDates, myTasks, myKpis, pro
       .sort((a, b) => b.hours - a.hours);
   }, [myTasks, projectMap]);
 
-  const pieData = typeBreakdown.slice(0, 6).map(t => ({
+  const pieData = typeBreakdown.map(t => ({
     name: t.name,
     value: Math.round(t.hours * 10) / 10,
   }));
@@ -109,27 +109,29 @@ export default function StaffDataPanel({ staffRec, myDates, myTasks, myKpis, pro
       {/* Pie chart */}
       {pieData.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-3">
-          <h5 className="text-xs font-bold text-gray-600 mb-2">📊 任務類型分佈</h5>
-          <div className="flex items-center gap-3">
-            <div className="w-[120px] h-[120px] shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={55} label={false}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v}h`, "工時"]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 space-y-1">
-              {pieData.map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                  <span className="flex-1 truncate text-gray-700">{item.name}</span>
-                  <span className="font-bold text-gray-600">{item.value}h</span>
+          <h5 className="text-xs font-bold text-gray-600 mb-2">📊 任務類型分佈（{pieData.length} 類）</h5>
+          <div className="w-full h-[180px] mb-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={false}>
+                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v) => [`${v}h`, "工時"]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            {pieData.map((item, i) => {
+              const pct = totalHours > 0 ? Math.round(item.value / totalHours * 100) : 0;
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span className="flex-1 text-gray-700">{item.name}</span>
+                  <span className="text-gray-400 shrink-0">{pct}%</span>
+                  <span className="font-bold text-gray-700 shrink-0 w-12 text-right">{item.value}h</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
