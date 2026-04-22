@@ -1,16 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, BarChart2 } from "lucide-react";
-import WorkHourSection from "@/components/report/WorkHourSection";
-import KPIOverviewSection from "@/components/report/KPIOverviewSection";
-import AttendanceSection from "@/components/report/AttendanceSection";
-
-const TABS = [
-  { key: "all", label: "📋 總覽" },
-  { key: "workhour", label: "📊 工時分析" },
-  { key: "kpi", label: "🎯 KPI 評核" },
-  { key: "attendance", label: "⏰ 考勤" },
-];
+import { Loader2, BarChart2, Search, X, Users } from "lucide-react";
+import StaffAppraisalCard from "@/components/report/StaffAppraisalCard";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -26,20 +17,23 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
 
 export default function PerformanceReport() {
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("all");
   const [dateRange, setDateRange] = useState("90");
+  const [search, setSearch] = useState("");
+  const [buFilter, setBuFilter] = useState("all");
+  const [teamFilter, setTeamFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("hours"); // hours | kpi | name | late
+  const [expandedStaff, setExpandedStaff] = useState(null);
 
-  // Data
   const [staff, setStaff] = useState([]);
   const [dates, setDates] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskTypes, setTaskTypes] = useState([]);
   const [nosTasks, setNosTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [kpiMonths, setKpiMonths] = useState([]);
   const [kpiItems, setKpiItems] = useState([]);
   const [clockins, setClockins] = useState([]);
   const [leaves, setLeaves] = useState([]);
-  const [ots, setOts] = useState([]);
 
   useEffect(() => { loadData(); }, [dateRange]);
 
@@ -49,38 +43,34 @@ export default function PerformanceReport() {
     cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const [staffList, dateList, taskTypeList, nosTaskList, kpiMonthList, kpiItemList, clockinList, leaveList, otList] = await Promise.all([
+    const [staffList, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList, clockinList, leaveList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAll(base44.entities.NOSTask, "display"),
+      loadAll(base44.entities.BubbleProject, "display_name"),
       loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month"),
       loadAll(base44.entities.BubbleStaffKPI, "id"),
       base44.entities.BubbleClockin.filter({}, "-clockin_time", 5000),
       base44.entities.BubbleLeave.filter({}, "-start_date_time", 5000),
-      base44.entities.BubbleOT.filter({}, "-start_date_time", 5000),
     ]);
 
     setStaff(staffList);
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
+    setProjects(projectList);
 
-    // Filter by date range
     const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr);
     setDates(filteredDates);
 
-    // Filter KPI months within range
     const filteredKpiMonths = kpiMonthList.filter(m => m.report_month && m.report_month >= cutoffStr);
     setKpiMonths(filteredKpiMonths);
     const kpiMonthIds = new Set(filteredKpiMonths.map(m => m.bubble_id).filter(Boolean));
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));
 
-    // Filter clockins within range
     setClockins(clockinList.filter(c => c.clockin_time && c.clockin_time >= cutoffStr));
     setLeaves(leaveList.filter(l => l.start_date_time && l.start_date_time >= cutoffStr));
-    setOts(otList.filter(o => o.start_date_time && o.start_date_time >= cutoffStr));
 
-    // Load tasks linked to filtered dates
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
     setTasks(taskList.filter(t => dateIds.has(t.man_hour_date_id)));
@@ -88,24 +78,93 @@ export default function PerformanceReport() {
     setLoading(false);
   };
 
-  // Build lookups
-  const staffMap = useMemo(() => {
-    const m = {};
-    for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; }
-    return m;
-  }, [staff]);
+  // Lookups
+  const staffMap = useMemo(() => { const m = {}; for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; } return m; }, [staff]);
+  const taskTypeMap = useMemo(() => { const m = {}; for (const t of taskTypes) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [taskTypes]);
+  const nosTaskMap = useMemo(() => { const m = {}; for (const t of nosTasks) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [nosTasks]);
+  const projectMap = useMemo(() => { const m = {}; for (const p of projects) { if (p.bubble_id) m[p.bubble_id] = p; } return m; }, [projects]);
 
-  const taskTypeMap = useMemo(() => {
-    const m = {};
-    for (const tt of taskTypes) { if (tt.bubble_id) m[tt.bubble_id] = tt; }
-    return m;
-  }, [taskTypes]);
+  // Pre-compute per-staff stats for sorting and filtering
+  const staffStats = useMemo(() => {
+    const hoursByStaff = {};
+    const dateToStaff = {};
+    for (const d of dates) {
+      if (!d.staff_id) continue;
+      hoursByStaff[d.staff_id] = (hoursByStaff[d.staff_id] || 0) + (d.total_work_hour || 0);
+      if (d.bubble_id) dateToStaff[d.bubble_id] = d.staff_id;
+    }
+    const tasksByStaff = {};
+    for (const t of tasks) {
+      const sid = dateToStaff[t.man_hour_date_id];
+      if (sid) tasksByStaff[sid] = (tasksByStaff[sid] || 0) + 1;
+    }
+    // KPI
+    const kpiMonthMap = {};
+    for (const m of kpiMonths) { if (m.bubble_id) kpiMonthMap[m.bubble_id] = m; }
+    const kpiByStaff = {};
+    for (const k of kpiItems) {
+      const m = kpiMonthMap[k.staff_kpi_month_id];
+      if (!m) continue;
+      if (!kpiByStaff[m.staff_id]) kpiByStaff[m.staff_id] = { total: 0, count: 0 };
+      if (k.score) { kpiByStaff[m.staff_id].total += k.score; kpiByStaff[m.staff_id].count++; }
+    }
+    // Late
+    const lateByStaff = {};
+    for (const c of clockins) {
+      if (c.staff_id && c.late_minutes > 0) lateByStaff[c.staff_id] = (lateByStaff[c.staff_id] || 0) + 1;
+    }
 
-  const nosTaskMap = useMemo(() => {
-    const m = {};
-    for (const t of nosTasks) { if (t.bubble_id) m[t.bubble_id] = t; }
-    return m;
-  }, [nosTasks]);
+    const result = {};
+    for (const s of staff) {
+      if (!s.bubble_id) continue;
+      const kpi = kpiByStaff[s.bubble_id];
+      result[s.bubble_id] = {
+        hours: hoursByStaff[s.bubble_id] || 0,
+        tasks: tasksByStaff[s.bubble_id] || 0,
+        avgKpi: kpi?.count > 0 ? Math.round(kpi.total / kpi.count * 10) / 10 : null,
+        lateCount: lateByStaff[s.bubble_id] || 0,
+      };
+    }
+    return result;
+  }, [staff, dates, tasks, kpiMonths, kpiItems, clockins]);
+
+  // Filter options
+  const buList = useMemo(() => [...new Set(staff.map(s => s.bu_name).filter(Boolean))].sort(), [staff]);
+  const teamList = useMemo(() => {
+    const filtered = buFilter === "all" ? staff : staff.filter(s => s.bu_name === buFilter);
+    return [...new Set(filtered.map(s => s.team_name).filter(Boolean))].sort();
+  }, [staff, buFilter]);
+
+  // Filter and sort staff
+  const filteredStaff = useMemo(() => {
+    let list = staff.filter(s => {
+      if (!s.bubble_id) return false;
+      const stats = staffStats[s.bubble_id];
+      // Only show staff that have any data
+      if (!stats || (stats.hours === 0 && stats.tasks === 0 && stats.avgKpi === null)) return false;
+      if (buFilter !== "all" && s.bu_name !== buFilter) return false;
+      if (teamFilter !== "all" && s.team_name !== teamFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!(s.display_name || "").toLowerCase().includes(q) && !(s.full_name || "").toLowerCase().includes(q) && !(s.team_name || "").toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+
+    list.sort((a, b) => {
+      const sa = staffStats[a.bubble_id] || {};
+      const sb = staffStats[b.bubble_id] || {};
+      switch (sortBy) {
+        case "hours": return (sb.hours || 0) - (sa.hours || 0);
+        case "kpi": return (sb.avgKpi || 0) - (sa.avgKpi || 0);
+        case "late": return (sb.lateCount || 0) - (sa.lateCount || 0);
+        case "name": return (a.display_name || "").localeCompare(b.display_name || "");
+        default: return 0;
+      }
+    });
+
+    return list;
+  }, [staff, staffStats, buFilter, teamFilter, search, sortBy]);
 
   if (loading) {
     return (
@@ -115,73 +174,82 @@ export default function PerformanceReport() {
     );
   }
 
-  const showWorkHour = tab === "all" || tab === "workhour";
-  const showKPI = tab === "all" || tab === "kpi";
-  const showAttendance = tab === "all" || tab === "attendance";
-
   return (
     <div className="space-y-4 max-w-6xl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <BarChart2 size={20} className="text-indigo-500" /> 績效總覽報告
+            <BarChart2 size={20} className="text-indigo-500" /> 員工績效評核報告
           </h2>
-          <p className="text-xs text-gray-400">整合工時、KPI、考勤數據的綜合分析</p>
+          <p className="text-xs text-gray-400">逐個員工查看工時、任務、KPI、考勤數據，方便做 Appraisal</p>
         </div>
         <select value={dateRange} onChange={e => setDateRange(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
           <option value="30">最近 30 天</option>
           <option value="60">最近 60 天</option>
           <option value="90">最近 90 天</option>
-          <option value="180">最近 180 天</option>
+          <option value="180">最近 半年</option>
           <option value="365">最近 1 年</option>
         </select>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1.5 flex-wrap">
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              tab === t.key ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}>
-            {t.label}
+      {/* Filters */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-40">
+          <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
+          <input className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            placeholder="搜尋員工姓名、Team..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <select className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white" value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter("all"); }}>
+          <option value="all">全部 BU</option>
+          {buList.map(b => <option key={b}>{b}</option>)}
+        </select>
+        <select className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white" value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+          <option value="all">全部 Team</option>
+          {teamList.map(t => <option key={t}>{t}</option>)}
+        </select>
+        <select className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="hours">按工時排序 ↓</option>
+          <option value="kpi">按KPI排序 ↓</option>
+          <option value="late">按遲到排序 ↓</option>
+          <option value="name">按姓名排序</option>
+        </select>
+        {(search || buFilter !== "all" || teamFilter !== "all") && (
+          <button onClick={() => { setSearch(""); setBuFilter("all"); setTeamFilter("all"); }}
+            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 px-1">
+            <X size={11} /> 清除
           </button>
+        )}
+        <span className="text-xs text-gray-400 ml-auto">{filteredStaff.length} 位員工</span>
+      </div>
+
+      {/* Staff cards */}
+      <div className="space-y-2">
+        {filteredStaff.map(s => (
+          <StaffAppraisalCard
+            key={s.id}
+            staffRec={s}
+            manHourDates={dates}
+            manHourTasks={tasks}
+            kpiMonths={kpiMonths}
+            kpiItems={kpiItems}
+            clockins={clockins}
+            leaves={leaves}
+            projectMap={projectMap}
+            taskTypeMap={taskTypeMap}
+            nosTaskMap={nosTaskMap}
+            expanded={expandedStaff === s.id}
+            onToggle={() => setExpandedStaff(expandedStaff === s.id ? null : s.id)}
+          />
         ))}
       </div>
 
-      {/* Sections */}
-      {showWorkHour && (
-        <WorkHourSection
-          dates={dates}
-          tasks={tasks}
-          staffMap={staffMap}
-          taskTypeMap={taskTypeMap}
-          nosTaskMap={nosTaskMap}
-        />
-      )}
-
-      {showWorkHour && showKPI && <hr className="border-gray-200" />}
-
-      {showKPI && (
-        <KPIOverviewSection
-          kpiMonths={kpiMonths}
-          kpiItems={kpiItems}
-          staff={staff}
-          staffMap={staffMap}
-        />
-      )}
-
-      {showKPI && showAttendance && <hr className="border-gray-200" />}
-
-      {showAttendance && (
-        <AttendanceSection
-          clockins={clockins}
-          leaves={leaves}
-          ots={ots}
-          staffMap={staffMap}
-        />
+      {filteredStaff.length === 0 && (
+        <div className="text-center py-16 text-gray-400">
+          <Users size={36} className="mx-auto mb-2 opacity-30" />
+          <div className="text-sm">沒有符合條件的員工，或該時段內無匯報數據</div>
+        </div>
       )}
     </div>
   );
