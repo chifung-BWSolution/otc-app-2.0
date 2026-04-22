@@ -32,8 +32,7 @@ export default function PerformanceReport() {
   const [projects, setProjects] = useState([]);
   const [kpiMonths, setKpiMonths] = useState([]);
   const [kpiItems, setKpiItems] = useState([]);
-  const [clockins, setClockins] = useState([]);
-  const [leaves, setLeaves] = useState([]);
+
 
   useEffect(() => { loadData(); }, [dateRange]);
 
@@ -43,7 +42,7 @@ export default function PerformanceReport() {
     cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const [staffList, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList, clockinList, leaveList] = await Promise.all([
+    const [staffList, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       base44.entities.BubbleManHourDate.filter({}, "-report_date", 5000),
       base44.entities.NOSTaskType.filter({}, "display", 200),
@@ -51,8 +50,6 @@ export default function PerformanceReport() {
       loadAll(base44.entities.BubbleProject, "display_name"),
       loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month"),
       loadAll(base44.entities.BubbleStaffKPI, "id"),
-      base44.entities.BubbleClockin.filter({}, "-clockin_time", 5000),
-      base44.entities.BubbleLeave.filter({}, "-start_date_time", 5000),
     ]);
 
     setStaff(staffList);
@@ -67,9 +64,6 @@ export default function PerformanceReport() {
     setKpiMonths(filteredKpiMonths);
     const kpiMonthIds = new Set(filteredKpiMonths.map(m => m.bubble_id).filter(Boolean));
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));
-
-    setClockins(clockinList.filter(c => c.clockin_time && c.clockin_time >= cutoffStr));
-    setLeaves(leaveList.filter(l => l.start_date_time && l.start_date_time >= cutoffStr));
 
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await base44.entities.BubbleManHourTask.filter({}, "-created_date", 5000);
@@ -108,12 +102,6 @@ export default function PerformanceReport() {
       if (!kpiByStaff[m.staff_id]) kpiByStaff[m.staff_id] = { total: 0, count: 0 };
       if (k.score) { kpiByStaff[m.staff_id].total += k.score; kpiByStaff[m.staff_id].count++; }
     }
-    // Late
-    const lateByStaff = {};
-    for (const c of clockins) {
-      if (c.staff_id && c.late_minutes > 0) lateByStaff[c.staff_id] = (lateByStaff[c.staff_id] || 0) + 1;
-    }
-
     const result = {};
     for (const s of staff) {
       if (!s.bubble_id) continue;
@@ -122,11 +110,10 @@ export default function PerformanceReport() {
         hours: hoursByStaff[s.bubble_id] || 0,
         tasks: tasksByStaff[s.bubble_id] || 0,
         avgKpi: kpi?.count > 0 ? Math.round(kpi.total / kpi.count * 10) / 10 : null,
-        lateCount: lateByStaff[s.bubble_id] || 0,
       };
     }
     return result;
-  }, [staff, dates, tasks, kpiMonths, kpiItems, clockins]);
+  }, [staff, dates, tasks, kpiMonths, kpiItems]);
 
   // Filter options
   const buList = useMemo(() => [...new Set(staff.map(s => s.bu_name).filter(Boolean))].sort(), [staff]);
@@ -155,11 +142,10 @@ export default function PerformanceReport() {
       const sa = staffStats[a.bubble_id] || {};
       const sb = staffStats[b.bubble_id] || {};
       switch (sortBy) {
-        case "hours": return (sb.hours || 0) - (sa.hours || 0);
-        case "kpi": return (sb.avgKpi || 0) - (sa.avgKpi || 0);
-        case "late": return (sb.lateCount || 0) - (sa.lateCount || 0);
-        case "name": return (a.display_name || "").localeCompare(b.display_name || "");
-        default: return 0;
+      case "hours": return (sb.hours || 0) - (sa.hours || 0);
+      case "kpi": return (sb.avgKpi || 0) - (sa.avgKpi || 0);
+      case "name": return (a.display_name || "").localeCompare(b.display_name || "");
+      default: return 0;
       }
     });
 
@@ -212,7 +198,6 @@ export default function PerformanceReport() {
         <select className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white" value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="hours">按工時排序 ↓</option>
           <option value="kpi">按KPI排序 ↓</option>
-          <option value="late">按遲到排序 ↓</option>
           <option value="name">按姓名排序</option>
         </select>
         {(search || buFilter !== "all" || teamFilter !== "all") && (
@@ -234,8 +219,6 @@ export default function PerformanceReport() {
             manHourTasks={tasks}
             kpiMonths={kpiMonths}
             kpiItems={kpiItems}
-            clockins={clockins}
-            leaves={leaves}
             projectMap={projectMap}
             taskTypeMap={taskTypeMap}
             nosTaskMap={nosTaskMap}
