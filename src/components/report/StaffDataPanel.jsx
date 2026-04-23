@@ -9,7 +9,13 @@ export default function StaffDataPanel({ staffRec, myDates, myTasks, myKpis, pro
   const name = staffRec.display_name || staffRec.full_name || "—";
 
   const totalHours = myDates.reduce((s, d) => s + (d.total_work_hour || 0), 0);
-  const reportDays = myDates.length;
+  // Only count dates that actually have tasks as report days
+  const dateIdsWithTasks = useMemo(() => {
+    const s = new Set();
+    for (const t of myTasks) { if (t.man_hour_date_id) s.add(t.man_hour_date_id); }
+    return s;
+  }, [myTasks]);
+  const reportDays = myDates.filter(d => d.bubble_id && dateIdsWithTasks.has(d.bubble_id)).length;
   const taskCount = myTasks.length;
   const avgDaily = reportDays > 0 ? (totalHours / reportDays).toFixed(1) : "0";
 

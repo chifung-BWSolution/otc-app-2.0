@@ -221,17 +221,26 @@ export default function ManHourReport() {
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
+    // Build set of date bubble_ids that actually have tasks
+    const dateIdsWithTasks = new Set();
+    for (const t of tasks) {
+      if (t.man_hour_date_id) dateIdsWithTasks.add(t.man_hour_date_id);
+    }
+
     const map = {};
-    const reportDatesByStaff = {}; // staff_id -> Set of unique local dates
+    const reportDatesByStaff = {}; // staff_id -> Set of unique local dates (only dates with tasks)
     for (const d of dates) {
       const sid = d.staff_id;
       if (!sid) continue;
       if (!map[sid]) map[sid] = { staffId: sid, totalHours: 0, taskCount: 0 };
       map[sid].totalHours += d.total_work_hour || 0;
-      if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
-      if (d._localDate) reportDatesByStaff[sid].add(d._localDate);
+      // Only count as a report day if the date has at least one task
+      if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id)) {
+        if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
+        if (d._localDate) reportDatesByStaff[sid].add(d._localDate);
+      }
     }
-    // Set dateCount from unique dates, not raw record count
+    // Set dateCount from unique dates that have tasks
     for (const sid of Object.keys(map)) {
       map[sid].dateCount = reportDatesByStaff[sid]?.size || 0;
     }
@@ -252,7 +261,7 @@ export default function ManHourReport() {
         const workDaysSet = clockinDaysByStaff[s.staffId];
         const workDays = workDaysSet ? workDaysSet.size : 0;
         const reportDatesSet = reportDatesByStaff[s.staffId] || new Set();
-        // Missing dates: clockin exists but no man hour report
+        // Missing dates: clockin exists but no man hour report (with tasks)
         const missingDates = workDaysSet
           ? [...workDaysSet].filter(d => !reportDatesSet.has(d)).sort()
           : [];

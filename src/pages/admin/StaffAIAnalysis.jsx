@@ -184,7 +184,9 @@ export default function StaffAIAnalysis() {
 
     // Build summary with comparison
     const totalHours = myDates.reduce((s, d) => s + (d.total_work_hour || 0), 0);
-    const reportDays = myDates.length;
+    // Only count dates that actually have tasks as report days
+    const myDateIdsWithTasks = new Set(myTasks.map(t => t.man_hour_date_id).filter(Boolean));
+    const reportDays = myDates.filter(d => d.bubble_id && myDateIdsWithTasks.has(d.bubble_id)).length;
     const avgDaily = reportDays > 0 ? (totalHours / reportDays).toFixed(1) : "0";
 
     const projMap2 = {};
