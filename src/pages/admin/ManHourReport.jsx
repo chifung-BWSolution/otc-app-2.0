@@ -26,11 +26,20 @@ async function loadAllRecords(entity, sort = "id", batchSize = 5000) {
   const all = [];
   let offset = 0;
   while (true) {
-    const batch = await entity.filter({}, sort, batchSize, offset);
+    let batch;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        batch = await entity.filter({}, sort, batchSize, offset);
+        break;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
   }
   return all;
 }
@@ -65,16 +74,14 @@ export default function ManHourReport() {
       endStr = new Date().toISOString().split("T")[0];
     }
 
-    // Stagger loads to avoid rate limits
-    const [allStaffList, taskTypeList] = await Promise.all([
+    // Stagger loads to avoid rate limits — small entities first, then large ones sequentially
+    const [allStaffList, taskTypeList, nosTaskList] = await Promise.all([
       base44.entities.Staff.list("display_name", 1000),
       base44.entities.NOSTaskType.filter({}, "display", 200),
-    ]);
-    const [dateList, nosTaskList, projectList] = await Promise.all([
-      loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
       loadAllRecords(base44.entities.NOSTask, "display"),
-      loadAllRecords(base44.entities.BubbleProject, "display_name"),
     ]);
+    const dateList = await loadAllRecords(base44.entities.BubbleManHourDate, "-report_date");
+    const projectList = await loadAllRecords(base44.entities.BubbleProject, "display_name");
     const clockinList = await loadAllRecords(base44.entities.BubbleClockin, "id");
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 

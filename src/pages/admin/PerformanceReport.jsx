@@ -9,11 +9,20 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
   let offset = 0;
   while (true) {
-    const batch = await entity.filter({}, sort, batchSize, offset);
+    let batch;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        batch = await entity.filter({}, sort, batchSize, offset);
+        break;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
   }
   return all;
 }
@@ -55,20 +64,16 @@ export default function PerformanceReport() {
       endStr = new Date().toISOString().split("T")[0];
     }
 
-    // Stagger loads to avoid rate limits
-    const [staffList, taskTypeList] = await Promise.all([
+    // Stagger loads — small entities in parallel, large ones sequentially to avoid 502s
+    const [staffList, taskTypeList, nosTaskList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       base44.entities.NOSTaskType.filter({}, "display", 200),
-    ]);
-    const [dateList, nosTaskList, projectList] = await Promise.all([
-      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
       loadAll(base44.entities.NOSTask, "display"),
-      loadAll(base44.entities.BubbleProject, "display_name"),
     ]);
-    const [kpiMonthList, kpiItemList] = await Promise.all([
-      loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month"),
-      loadAll(base44.entities.BubbleStaffKPI, "id"),
-    ]);
+    const dateList = await loadAll(base44.entities.BubbleManHourDate, "-report_date");
+    const projectList = await loadAll(base44.entities.BubbleProject, "display_name");
+    const kpiMonthList = await loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month");
+    const kpiItemList = await loadAll(base44.entities.BubbleStaffKPI, "id");
 
     setStaff(staffList);
     setTaskTypes(taskTypeList);
