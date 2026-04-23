@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { base44 } from "@/api/base44Client";
-import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
+import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2, AlertTriangle, X, Filter } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import DateRangeFilter from "@/components/report/DateRangeFilter";
+import MultiSelectDropdown from "@/components/report/MultiSelectDropdown";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
 
@@ -58,6 +59,10 @@ export default function ManHourReport() {
   const [customTo, setCustomTo] = useState("");
   const [search, setSearch] = useState("");
   const [expandedStaff, setExpandedStaff] = useState(null);
+  const [buFilter, setBuFilter] = useState([]);
+  const [teamFilter, setTeamFilter] = useState([]);
+  const [positionFilter, setPositionFilter] = useState([]);
+  const [onlyMissing, setOnlyMissing] = useState(false);
 
   useEffect(() => { loadData(); }, [dateRange, customFrom, customTo]);
 
@@ -268,22 +273,35 @@ export default function ManHourReport() {
         const workDaysSet = clockinDaysByStaff[s.staffId];
         const workDays = workDaysSet ? workDaysSet.size : 0;
         const reportDatesSet = reportDatesByStaff[s.staffId] || new Set();
-        // Missing dates: clockin exists but no man hour report (with tasks)
         const missingDates = workDaysSet
           ? [...workDaysSet].filter(d => !reportDatesSet.has(d)).sort()
           : [];
-        return { ...s, name, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "", workDays, missingDates };
+        return { ...s, name, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "", position: staffRec?.position || "", workDays, missingDates };
       })
       .sort((a, b) => b.totalHours - a.totalHours);
   }, [dates, tasks, staffMap, clockinDaysByStaff]);
 
+  // Filter option lists
+  const buList = useMemo(() => [...new Set(staffSummary.map(s => s.bu).filter(Boolean))].sort(), [staffSummary]);
+  const teamList = useMemo(() => {
+    const filtered = buFilter.length > 0 ? staffSummary.filter(s => buFilter.includes(s.bu)) : staffSummary;
+    return [...new Set(filtered.map(s => s.team).filter(Boolean))].sort();
+  }, [staffSummary, buFilter]);
+  const positionList = useMemo(() => [...new Set(staffSummary.map(s => s.position).filter(Boolean))].sort(), [staffSummary]);
+
   const filteredSummary = useMemo(() => {
-    if (!search) return staffSummary;
-    const q = search.toLowerCase();
-    return staffSummary.filter(s =>
-      s.name.toLowerCase().includes(q) || s.team.toLowerCase().includes(q) || s.bu.toLowerCase().includes(q)
-    );
-  }, [staffSummary, search]);
+    return staffSummary.filter(s => {
+      if (search) {
+        const q = search.toLowerCase();
+        if (!s.name.toLowerCase().includes(q) && !s.team.toLowerCase().includes(q) && !s.bu.toLowerCase().includes(q)) return false;
+      }
+      if (buFilter.length > 0 && !buFilter.includes(s.bu)) return false;
+      if (teamFilter.length > 0 && !teamFilter.includes(s.team)) return false;
+      if (positionFilter.length > 0 && !positionFilter.includes(s.position)) return false;
+      if (onlyMissing && s.missingDates.length === 0) return false;
+      return true;
+    });
+  }, [staffSummary, search, buFilter, teamFilter, positionFilter, onlyMissing]);
 
   // Resolve helpers
   const resolveTaskTypeName = (t) => {
@@ -384,14 +402,34 @@ export default function ManHourReport() {
 
       {/* Staff detail table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-3 border-b border-gray-100 flex items-center gap-2">
-          <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-            <Users size={14} /> 員工工時明細
-          </h3>
-          <div className="relative flex-1 max-w-64 ml-auto">
-            <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
-            <input className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              placeholder="搜尋姓名、Team..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="p-3 border-b border-gray-100 space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+              <Users size={14} /> 員工工時明細
+            </h3>
+            <div className="relative flex-1 max-w-64 ml-auto">
+              <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
+              <input className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                placeholder="搜尋姓名、Team..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <MultiSelectDropdown label="BU" options={buList} selected={buFilter} onChange={setBuFilter} />
+            <MultiSelectDropdown label="Team" options={teamList} selected={teamFilter} onChange={setTeamFilter} />
+            <MultiSelectDropdown label="職位" options={positionList} selected={positionFilter} onChange={setPositionFilter} />
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none ml-1">
+              <input type="checkbox" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)}
+                className="accent-orange-500 w-3.5 h-3.5" />
+              <AlertTriangle size={12} className="text-orange-500" />
+              <span className="text-gray-600">只顯示未報齊</span>
+            </label>
+            {(buFilter.length > 0 || teamFilter.length > 0 || positionFilter.length > 0 || onlyMissing || search) && (
+              <button onClick={() => { setBuFilter([]); setTeamFilter([]); setPositionFilter([]); setOnlyMissing(false); setSearch(""); }}
+                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 px-1 ml-auto">
+                <X size={11} /> 清除全部
+              </button>
+            )}
+            <span className="text-xs text-gray-400 ml-auto">{filteredSummary.length} 位員工</span>
           </div>
         </div>
         <div className="overflow-x-auto">
