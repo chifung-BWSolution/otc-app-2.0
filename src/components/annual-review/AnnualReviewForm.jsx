@@ -159,41 +159,38 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                 {filteredIndices.map((projIdx) => {
                   const p = projects[projIdx];
                   const isActive = selectedProject === projIdx;
-                  const isTaskExpanded = expandedTask === projIdx;
                   const hasFilled = p.sales_amount > 0 || (p.contribution_note && serializePoints(pointsMap[projIdx] || []) !== "");
                   return (
-                    <div key={projIdx} className={`border-b border-gray-100 ${isActive ? "bg-indigo-50" : ""}`}>
-                      {/* Project row */}
-                      <div className="flex items-center">
-                        <button
-                          className="p-2.5 text-gray-400 hover:text-gray-600 shrink-0"
-                          onClick={() => setExpandedTask(isTaskExpanded ? null : projIdx)}
-                        >
-                          {isTaskExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </button>
-                        <button
-                          className={`flex-1 flex items-center gap-3 pr-4 py-3 text-left transition-colors ${isActive ? "border-l-4 border-indigo-500" : "border-l-4 border-transparent hover:bg-gray-50"}`}
-                          onClick={() => setSelectedProject(projIdx)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-800 truncate">{p.project_name}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{p.tasks} 個任務</div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
-                              <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
-                            </div>
+                    <div key={projIdx} className={`border-b border-gray-100 ${isActive ? "bg-indigo-50 border-l-4 border-indigo-500" : "border-l-4 border-transparent"}`}>
+                      {/* Project row — single click to select + toggle expand */}
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
+                        onClick={() => {
+                          setSelectedProject(projIdx);
+                          setExpandedTask(expandedTask === projIdx ? null : projIdx);
+                        }}
+                      >
+                        <span className="text-gray-400 shrink-0">
+                          {expandedTask === projIdx ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate">{p.project_name}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{p.tasks} 個任務</div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
+                            <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-sm font-bold text-indigo-600">{p.hours}h</div>
-                            {hasFilled && (
-                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 mt-1" title="已填寫" />
-                            )}
-                          </div>
-                        </button>
-                      </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-bold text-indigo-600">{p.hours}h</div>
+                          {hasFilled && (
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 mt-1" title="已填寫" />
+                          )}
+                        </div>
+                      </button>
 
                       {/* Expandable task details */}
-                      {isTaskExpanded && p.tasksByType?.length > 0 && (
-                        <div className="px-4 pb-3 pl-10 space-y-2.5 border-l-2 border-indigo-200 ml-5">
+                      {expandedTask === projIdx && p.tasksByType?.length > 0 && (
+                        <div className="px-4 pb-3 ml-8 space-y-2.5 border-l-2 border-indigo-200">
                           {p.tasksByType.map((tt, j) => (
                             <div key={j}>
                               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
