@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ArrowLeft, FileText } from "lucide-react";
 import AnnualReviewForm from "@/components/annual-review/AnnualReviewForm";
+import AnnualReviewList from "@/components/annual-review/AnnualReviewList";
+import AnnualReviewReadonly from "@/components/annual-review/AnnualReviewReadonly";
 
 // Fiscal year: April 1 - March 31
-// Employees fill in the LAST (previous) fiscal year's review
+// When creating new, fill the LAST (previous) fiscal year
 function getLastFY() {
   const now = new Date();
   const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -52,41 +54,79 @@ const toLocalDate = (val) => {
 };
 
 export default function AnnualReview() {
+  // Phase 1: List view
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [staffRec, setStaffRec] = useState(null);
-  const [existingReview, setExistingReview] = useState(null);
+  const [reviews, setReviews] = useState([]);
+
+  // Phase 2: Form / readonly view
+  const [view, setView] = useState("list"); // list | form | readonly
+  const [activeReview, setActiveReview] = useState(null); // existing review being edited
   const [projectSummary, setProjectSummary] = useState([]);
+  const [formLoading, setFormLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [activeFY, setActiveFY] = useState(null);
 
-  const fy = getLastFY();
+  useEffect(() => { initList(); }, []);
 
-  useEffect(() => { init(); }, []);
-
-  const init = async () => {
+  const initList = async () => {
     setLoading(true);
     const me = await base44.auth.me();
     setUser(me);
+    if (!me.linked_staff_id) { setLoading(false); return; }
 
-    if (!me.linked_staff_id) {
-      setLoading(false);
+    const [staffList, allReviews] = await Promise.all([
+      base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1),
+      base44.entities.AnnualReview.filter({ staff_id: me.linked_staff_id }, "-created_date", 50),
+    ]);
+    setStaffRec(staffList[0] || null);
+    setReviews(allReviews);
+    setLoading(false);
+  };
+
+  // Open submitted review as readonly
+  const handleOpenReview = (review) => {
+    if (review.status === "submitted") {
+      setActiveReview(review);
+      setView("readonly");
+    } else {
+      // Draft → open form for editing
+      loadFormData(review);
+    }
+  };
+
+  // Create new form
+  const handleCreateNew = () => {
+    const fy = getLastFY();
+    // Check if already exists for this FY
+    const existing = reviews.find(r => r.fiscal_year === fy.label);
+    if (existing) {
+      if (existing.status === "submitted") {
+        // Already submitted for this FY, show readonly
+        setActiveReview(existing);
+        setView("readonly");
+        return;
+      }
+      // Draft exists, resume editing
+      loadFormData(existing);
       return;
     }
+    // No existing → new form
+    loadFormData(null);
+  };
 
-    const staffList = await base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1);
-    const staff = staffList[0] || null;
-    setStaffRec(staff);
+  // Load heavy data for the form
+  const loadFormData = async (existingReview) => {
+    setFormLoading(true);
+    setView("form");
+    setActiveReview(existingReview);
 
-    const reviews = await base44.entities.AnnualReview.filter({
-      staff_id: me.linked_staff_id,
-      fiscal_year: fy.label,
-    }, "-created_date", 1);
-    if (reviews.length > 0) {
-      setExistingReview(reviews[0]);
-    }
+    const fy = existingReview?.fiscal_year
+      ? parseFY(existingReview.fiscal_year)
+      : getLastFY();
+    setActiveFY(fy);
 
-    // Load lookup tables (stagger to avoid 502)
     const [taskTypeList, nosTaskList] = await Promise.all([
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAll(base44.entities.NOSTask, "display"),
@@ -102,7 +142,7 @@ export default function AnnualReview() {
     for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
 
     const myDates = allDates.filter(d => {
-      if (d.staff_id !== me.linked_staff_id) return false;
+      if (d.staff_id !== user.linked_staff_id) return false;
       const rd = toLocalDate(d.report_date);
       return rd && rd >= fy.start && rd <= fy.end;
     });
@@ -111,7 +151,6 @@ export default function AnnualReview() {
     const allTasks = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
     const myTasks = allTasks.filter(t => myDateIds.has(t.man_hour_date_id));
 
-    // Resolve helpers
     const resolveProjectName = (t) => {
       if (t.project_name) return t.project_name;
       if (t.project_id && projectMap[t.project_id]) return projectMap[t.project_id].display_name;
@@ -130,7 +169,6 @@ export default function AnnualReview() {
       return t.task_name || t.keywords || "—";
     };
 
-    // Aggregate by project with nested task type → task breakdown
     const projAgg = {};
     for (const t of myTasks) {
       const projName = resolveProjectName(t);
@@ -138,7 +176,6 @@ export default function AnnualReview() {
       if (!projAgg[projName]) projAgg[projName] = { project_name: projName, project_id: projId, hours: 0, tasks: 0, sales_amount: 0, contribution_note: "", tasksByType: {} };
       projAgg[projName].hours += t.work_hour || 0;
       projAgg[projName].tasks += 1;
-
       const typeName = resolveTaskTypeName(t);
       if (!projAgg[projName].tasksByType[typeName]) projAgg[projName].tasksByType[typeName] = { name: typeName, hours: 0, taskMap: {} };
       projAgg[projName].tasksByType[typeName].hours += t.work_hour || 0;
@@ -163,9 +200,9 @@ export default function AnnualReview() {
       .sort((a, b) => b.hours - a.hours);
 
     // Merge saved sales/notes from existing review
-    if (reviews.length > 0 && reviews[0].project_contributions) {
+    if (existingReview?.project_contributions) {
       const savedMap = {};
-      for (const s of reviews[0].project_contributions) { savedMap[s.project_name] = s; }
+      for (const s of existingReview.project_contributions) { savedMap[s.project_name] = s; }
       for (const p of summary) {
         const s = savedMap[p.project_name];
         if (s) {
@@ -176,11 +213,12 @@ export default function AnnualReview() {
     }
 
     setProjectSummary(summary);
-    setLoading(false);
+    setFormLoading(false);
   };
 
   const handleSave = async (formData, isSubmit) => {
     setSaving(true);
+    const fy = activeFY || getLastFY();
     const payload = {
       staff_id: user.linked_staff_id,
       staff_name: staffRec?.display_name || user.full_name || "",
@@ -197,15 +235,28 @@ export default function AnnualReview() {
       ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
-    if (existingReview) {
-      await base44.entities.AnnualReview.update(existingReview.id, payload);
-      setExistingReview({ ...existingReview, ...payload });
+    if (activeReview) {
+      await base44.entities.AnnualReview.update(activeReview.id, payload);
+      setActiveReview({ ...activeReview, ...payload });
     } else {
       const created = await base44.entities.AnnualReview.create(payload);
-      setExistingReview(created);
+      setActiveReview(created);
     }
     setSaving(false);
-    if (isSubmit) setSubmitted(true);
+
+    // Refresh list and go back
+    const allReviews = await base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50);
+    setReviews(allReviews);
+
+    if (isSubmit) {
+      setView("list");
+    }
+  };
+
+  const handleBack = () => {
+    setView("list");
+    setActiveReview(null);
+    setProjectSummary([]);
   };
 
   if (loading) {
@@ -226,37 +277,64 @@ export default function AnnualReview() {
     );
   }
 
-  if (submitted || existingReview?.status === "submitted") {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle size={32} className="text-green-600" />
+  // Readonly view for submitted reviews
+  if (view === "readonly" && activeReview) {
+    return <AnnualReviewReadonly review={activeReview} staffRec={staffRec} user={user} onBack={handleBack} />;
+  }
+
+  // Form view (new or editing draft)
+  if (view === "form") {
+    if (formLoading) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-gray-400" size={32} />
+          <span className="ml-2 text-sm text-gray-400">載入工時數據中...</span>
         </div>
-        <h2 className="text-xl font-bold text-gray-800">年度工作表現評估表已提交</h2>
-        <p className="text-sm text-gray-500">{fy.label} · {staffRec?.display_name || user.full_name}</p>
-        <p className="text-sm text-gray-400">提交時間：{existingReview?.submitted_at ? new Date(existingReview.submitted_at).toLocaleString("zh-HK") : "剛剛"}</p>
+      );
+    }
+    const fy = activeFY || getLastFY();
+    return (
+      <div className="max-w-6xl mx-auto space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+            <ArrowLeft size={18} />
+          </button>
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white flex-1">
+            <div className="flex items-center gap-3">
+              <FileText size={24} />
+              <div>
+                <h2 className="text-lg font-bold">年度工作表現評估表</h2>
+                <p className="text-sm opacity-80">{fy.label} · {staffRec?.display_name || user.full_name} · {staffRec?.team_name || ""} · {staffRec?.position || ""}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <AnnualReviewForm
+          projectSummary={projectSummary}
+          existingReview={activeReview}
+          saving={saving}
+          onSave={handleSave}
+        />
       </div>
     );
   }
 
+  // Default: list view
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
-        <div className="flex items-center gap-3">
-          <FileText size={24} />
-          <div>
-            <h2 className="text-lg font-bold">年度工作表現評估表</h2>
-            <p className="text-sm opacity-80">{fy.label} · {staffRec?.display_name || user.full_name} · {staffRec?.team_name || ""} · {staffRec?.position || ""}</p>
-          </div>
-        </div>
-      </div>
-
-      <AnnualReviewForm
-        projectSummary={projectSummary}
-        existingReview={existingReview}
-        saving={saving}
-        onSave={handleSave}
-      />
-    </div>
+    <AnnualReviewList
+      reviews={reviews}
+      staffRec={staffRec}
+      user={user}
+      onCreateNew={handleCreateNew}
+      onOpen={handleOpenReview}
+    />
   );
+}
+
+// Parse "FY2024/2025" → { label, start, end }
+function parseFY(fyLabel) {
+  const match = fyLabel.match(/FY(\d{4})\/(\d{4})/);
+  if (!match) return getLastFY();
+  const y = parseInt(match[1]);
+  return { label: fyLabel, start: `${y}-04-01`, end: `${y + 1}-03-31` };
 }
