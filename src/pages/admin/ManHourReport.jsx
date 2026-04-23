@@ -74,12 +74,14 @@ export default function ManHourReport() {
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
-    // report_date from Bubble: "2026-03-01T16:00:00.000Z" means report date = Mar 1
-    // The T16:00Z is a timezone artifact from Bubble import, NOT a real UTC time
-    // Extract the UTC date portion directly as the true report date
+    // report_date from Bubble: "2026-03-01T16:00:00.000Z" = 2026-03-02 00:00 HKT
+    // Bubble stores dates in UTC; the actual report date is the HKT (UTC+8) date
     const toReportDate = (isoStr) => {
       if (!isoStr) return null;
-      return isoStr.slice(0, 10); // "2026-03-01T16:00:00.000Z" → "2026-03-01"
+      const d = new Date(isoStr);
+      // Convert to HKT (UTC+8) to get the real report date
+      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return hkt.toISOString().slice(0, 10);
     };
     const filteredDates = dateList.filter(d => {
       const rd = toReportDate(d.report_date);
@@ -96,7 +98,7 @@ export default function ManHourReport() {
     // Filter clockins within range - parse date from "D/M/YYYY H:MM" or ISO
     const parseCkDate = (t) => {
       if (!t) return null;
-      if (t.includes("-")) return t.slice(0, 10);
+      if (t.includes("-")) return toReportDate(t); // ISO: convert to HKT date
       const parts = t.split(" ")[0]?.split("/");
       if (parts?.length === 3) {
         const [d, m, y] = parts;
@@ -159,11 +161,15 @@ export default function ManHourReport() {
     return m;
   }, [staff]);
 
-  // Parse clockin date from format "D/M/YYYY H:MM" or ISO
+  // Parse clockin date from format "D/M/YYYY H:MM" or ISO (convert ISO to HKT)
   const parseClockinDate = (timeStr) => {
     if (!timeStr) return null;
-    // ISO format: "2025-09-12T..."
-    if (timeStr.includes("-")) return timeStr.slice(0, 10);
+    // ISO format: convert to HKT date
+    if (timeStr.includes("-")) {
+      const d = new Date(timeStr);
+      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return hkt.toISOString().slice(0, 10);
+    }
     // Bubble format: "30/1/2026 9:30" (D/M/YYYY)
     const parts = timeStr.split(" ")[0]?.split("/");
     if (parts?.length === 3) {

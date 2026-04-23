@@ -87,11 +87,17 @@ export default function StaffAIAnalysis() {
     const projectMap = {};
     for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
 
-    // Filter dates in range - use UTC date portion as the true report date
+    // Convert UTC to HKT (UTC+8) to get the real report date
+    const toHKTDate = (isoStr) => {
+      if (!isoStr) return null;
+      const d = new Date(isoStr);
+      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return hkt.toISOString().slice(0, 10);
+    };
     const allFilteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
-      const rd = d.report_date.slice(0, 10);
-      return rd >= cutoffStr && rd <= endStr;
+      const rd = toHKTDate(d.report_date);
+      return rd && rd >= cutoffStr && rd <= endStr;
     });
     const myDates = allFilteredDates.filter(d => d.staff_id === bubbleId);
     const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
@@ -109,8 +115,8 @@ export default function StaffAIAnalysis() {
     // KPI
     const myKpiMonths = kpiMonthList.filter(m => {
       if (m.staff_id !== bubbleId || !m.report_month) return false;
-      const rm = m.report_month.slice(0, 10);
-      return rm >= cutoffStr && rm <= endStr;
+      const rm = toHKTDate(m.report_month);
+      return rm && rm >= cutoffStr && rm <= endStr;
     });
     const myKpiMonthIds = new Set(myKpiMonths.map(m => m.bubble_id).filter(Boolean));
     const myKpis = kpiItemList.filter(k => myKpiMonthIds.has(k.staff_kpi_month_id));
