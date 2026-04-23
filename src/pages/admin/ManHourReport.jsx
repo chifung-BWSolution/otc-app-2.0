@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { base44 } from "@/api/base44Client";
-import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import DateRangeFilter from "@/components/report/DateRangeFilter";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
 
@@ -41,109 +42,124 @@ export default function ManHourReport() {
   const [projects, setProjects] = useState([]);
   const [taskTypes, setTaskTypes] = useState([]);
   const [nosTasks, setNosTasks] = useState([]);
-  const [dateRange, setDateRange] = useState("30"); // days
+  const [clockins, setClockins] = useState([]);
+  const [dateRange, setDateRange] = useState("30");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [search, setSearch] = useState("");
   const [expandedStaff, setExpandedStaff] = useState(null);
 
-  useEffect(() => { loadData(); }, [dateRange]);
+  useEffect(() => { loadData(); }, [dateRange, customFrom, customTo]);
 
   const loadData = async () => {
     setLoading(true);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
-    const cutoffStr = cutoff.toISOString().split("T")[0];
+    let cutoffStr, endStr;
+    if (customFrom && customTo) {
+      cutoffStr = customFrom;
+      endStr = customTo;
+    } else {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
+      cutoffStr = cutoff.toISOString().split("T")[0];
+      endStr = new Date().toISOString().split("T")[0];
+    }
 
-    const [dateList, staffList, projectList, taskTypeList, nosTaskList] = await Promise.all([
+    const [dateList, staffList, projectList, taskTypeList, nosTaskList, clockinList] = await Promise.all([
       loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAllRecords(base44.entities.NOSTask, "display"),
+      loadAllRecords(base44.entities.BubbleClockin, "-clockin_time"),
     ]);
 
-    // Filter dates within range
-    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr);
+    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr && d.report_date <= endStr);
     setDates(filteredDates);
     setStaff(staffList);
     setProjects(projectList);
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
 
-    // Load tasks linked to these dates
+    // Filter clockins within range
+    const filteredClockins = clockinList.filter(c => {
+      if (!c.clockin_time) return false;
+      const d = c.clockin_time.slice(0, 10);
+      return d >= cutoffStr && d <= endStr;
+    });
+    setClockins(filteredClockins);
+
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await loadAllRecords(base44.entities.BubbleManHourTask, "-created_date");
-    const filteredTasks = taskList.filter(t => dateIds.has(t.man_hour_date_id));
-    setTasks(filteredTasks);
+    setTasks(taskList.filter(t => dateIds.has(t.man_hour_date_id)));
     setLoading(false);
   };
 
-  // Build date lookup: bubble_id -> report_date
+  // Lookups
   const dateMap = useMemo(() => {
     const m = {};
     for (const d of dates) { if (d.bubble_id) m[d.bubble_id] = d.report_date; }
     return m;
   }, [dates]);
 
-  // Build staff lookup by bubble_id
   const staffMap = useMemo(() => {
     const m = {};
-    for (const s of staff) {
-      if (s.bubble_id) m[s.bubble_id] = s;
-    }
+    for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; }
     return m;
   }, [staff]);
 
-  // Build project lookup by bubble_id
   const projectMap = useMemo(() => {
     const m = {};
-    for (const p of projects) {
-      if (p.bubble_id) m[p.bubble_id] = p;
-    }
+    for (const p of projects) { if (p.bubble_id) m[p.bubble_id] = p; }
     return m;
   }, [projects]);
 
-  // Build task type lookup by bubble_id
   const taskTypeMap = useMemo(() => {
     const m = {};
-    for (const tt of taskTypes) {
-      if (tt.bubble_id) m[tt.bubble_id] = tt;
-    }
+    for (const tt of taskTypes) { if (tt.bubble_id) m[tt.bubble_id] = tt; }
     return m;
   }, [taskTypes]);
 
-  // Build NOSTask lookup by bubble_id
   const nosTaskMap = useMemo(() => {
     const m = {};
-    for (const t of nosTasks) {
-      if (t.bubble_id) m[t.bubble_id] = t;
-    }
+    for (const t of nosTasks) { if (t.bubble_id) m[t.bubble_id] = t; }
     return m;
   }, [nosTasks]);
+
+  // Clockin work days per staff (by bubble_id)
+  const clockinDaysByStaff = useMemo(() => {
+    const m = {}; // staff_bubble_id -> Set of dates
+    for (const c of clockins) {
+      if (!c.staff_id || !c.clockin_time) continue;
+      const d = c.clockin_time.slice(0, 10);
+      if (!m[c.staff_id]) m[c.staff_id] = new Set();
+      m[c.staff_id].add(d);
+    }
+    return m;
+  }, [clockins]);
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
     const map = {};
+    const reportDatesByStaff = {}; // staff_id -> Set of report_dates
     for (const d of dates) {
       const sid = d.staff_id;
       if (!sid) continue;
-      if (!map[sid]) map[sid] = { staffId: sid, totalHours: 0, dateCount: 0, taskCount: 0, tasks: [] };
+      if (!map[sid]) map[sid] = { staffId: sid, totalHours: 0, dateCount: 0, taskCount: 0 };
       map[sid].totalHours += d.total_work_hour || 0;
       map[sid].dateCount += 1;
+      if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
+      if (d.report_date) reportDatesByStaff[sid].add(d.report_date.slice(0, 10));
     }
-    // Count tasks per staff via date linkage
+
     const dateToStaff = {};
     for (const d of dates) {
       if (d.bubble_id && d.staff_id) dateToStaff[d.bubble_id] = d.staff_id;
     }
     for (const t of tasks) {
       const sid = dateToStaff[t.man_hour_date_id];
-      if (sid && map[sid]) {
-        map[sid].taskCount += 1;
-        map[sid].tasks.push(t);
-      }
+      if (sid && map[sid]) map[sid].taskCount += 1;
     }
 
-    // Also build staff_name from ManHourDate for fallback
     const dateStaffNames = {};
     for (const d of dates) {
       if (d.staff_id && d.staff_name) dateStaffNames[d.staff_id] = d.staff_name;
@@ -153,12 +169,18 @@ export default function ManHourReport() {
       .map(s => {
         const staffRec = staffMap[s.staffId];
         const name = staffRec?.display_name || dateStaffNames[s.staffId] || s.staffId;
-        return { ...s, name, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "" };
+        const workDaysSet = clockinDaysByStaff[s.staffId];
+        const workDays = workDaysSet ? workDaysSet.size : 0;
+        const reportDatesSet = reportDatesByStaff[s.staffId] || new Set();
+        // Missing dates: clockin exists but no man hour report
+        const missingDates = workDaysSet
+          ? [...workDaysSet].filter(d => !reportDatesSet.has(d)).sort()
+          : [];
+        return { ...s, name, team: staffRec?.team_name || "", bu: staffRec?.bu_name || "", workDays, missingDates };
       })
       .sort((a, b) => b.totalHours - a.totalHours);
-  }, [dates, tasks, staffMap]);
+  }, [dates, tasks, staffMap, clockinDaysByStaff]);
 
-  // Filter by search
   const filteredSummary = useMemo(() => {
     if (!search) return staffSummary;
     const q = search.toLowerCase();
@@ -167,36 +189,15 @@ export default function ManHourReport() {
     );
   }, [staffSummary, search]);
 
-  // Helper to resolve task type name via: task_id → NOSTask → task_type_ids → NOSTaskType
+  // Resolve helpers
   const resolveTaskTypeName = (t) => {
-    // 1. Direct task_type_id on the man hour task
-    if (t.task_type_id) {
-      const tt = taskTypeMap[t.task_type_id];
-      if (tt) return tt.display;
-    }
-    // 2. Lookup via NOSTask: task_id → NOSTask → first task_type_id → NOSTaskType
-    if (t.task_id) {
-      const nosTask = nosTaskMap[t.task_id];
-      if (nosTask?.task_type_ids?.length) {
-        const tt = taskTypeMap[nosTask.task_type_ids[0]];
-        if (tt) return tt.display;
-      }
-    }
-    // 3. Fallback to stored name
+    if (t.task_type_id) { const tt = taskTypeMap[t.task_type_id]; if (tt) return tt.display; }
+    if (t.task_id) { const nosTask = nosTaskMap[t.task_id]; if (nosTask?.task_type_ids?.length) { const tt = taskTypeMap[nosTask.task_type_ids[0]]; if (tt) return tt.display; } }
     if (t.task_type_name) return t.task_type_name;
     return "";
   };
 
-  // Helper to resolve NOS task display name
-  const resolveTaskName = (t) => {
-    if (t.task_id) {
-      const nosTask = nosTaskMap[t.task_id];
-      if (nosTask) return nosTask.display;
-    }
-    return t.task_name || t.keywords || "—";
-  };
-
-  // Aggregate by task type
+  // Task type summary
   const taskTypeSummary = useMemo(() => {
     const map = {};
     for (const t of tasks) {
@@ -208,7 +209,6 @@ export default function ManHourReport() {
     return Object.values(map).sort((a, b) => b.hours - a.hours);
   }, [tasks, taskTypeMap, nosTaskMap]);
 
-  // Top 10 for charts
   const top10Staff = filteredSummary.slice(0, 10).map(s => ({ name: s.name.length > 8 ? s.name.slice(0, 8) + ".." : s.name, hours: Math.round(s.totalHours * 10) / 10 }));
   const top8TaskTypes = taskTypeSummary.slice(0, 8).map(t => ({ name: t.name.length > 10 ? t.name.slice(0, 10) + ".." : t.name, value: Math.round(t.hours * 10) / 10 }));
 
@@ -235,14 +235,13 @@ export default function ManHourReport() {
           </h2>
           <p className="text-xs text-gray-400">Man Hour Task 工時數據分析</p>
         </div>
-        <select value={dateRange} onChange={e => setDateRange(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-          <option value="7">最近 7 天</option>
-          <option value="14">最近 14 天</option>
-          <option value="30">最近 30 天</option>
-          <option value="60">最近 60 天</option>
-          <option value="90">最近 90 天</option>
-        </select>
+        <DateRangeFilter
+          dateRange={dateRange}
+          customFrom={customFrom}
+          customTo={customTo}
+          onPresetChange={(v) => { setCustomFrom(""); setCustomTo(""); setDateRange(v); }}
+          onCustomChange={(from, to) => { setCustomFrom(from); setCustomTo(to); }}
+        />
       </div>
 
       {/* Stats */}
@@ -255,7 +254,6 @@ export default function ManHourReport() {
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Top staff by hours */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
           <h3 className="text-sm font-bold text-gray-700 mb-3">🏆 Top 10 員工工時</h3>
           {top10Staff.length > 0 ? (
@@ -271,7 +269,6 @@ export default function ManHourReport() {
           ) : <div className="text-center py-10 text-gray-400 text-sm">暫無數據</div>}
         </div>
 
-        {/* Task type distribution */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
           <h3 className="text-sm font-bold text-gray-700 mb-3">📊 任務類型分佈（工時）</h3>
           {top8TaskTypes.length > 0 ? (
@@ -302,13 +299,14 @@ export default function ManHourReport() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400 font-semibold bg-gray-50">
                 <th className="px-4 py-2.5 text-left w-8"></th>
                 <th className="px-4 py-2.5 text-left">員工</th>
                 <th className="px-4 py-2.5 text-left">Team / BU</th>
-                <th className="px-4 py-2.5 text-right">匯報天數</th>
+                <th className="px-4 py-2.5 text-right">上班日</th>
+                <th className="px-4 py-2.5 text-right">匯報天</th>
                 <th className="px-4 py-2.5 text-right">任務數</th>
                 <th className="px-4 py-2.5 text-right">總工時</th>
                 <th className="px-4 py-2.5 text-right">日均工時</th>
@@ -318,6 +316,7 @@ export default function ManHourReport() {
               {filteredSummary.map(s => {
                 const isExpanded = expandedStaff === s.staffId;
                 const avgDaily = s.dateCount > 0 ? (s.totalHours / s.dateCount).toFixed(1) : "0";
+                const hasMissing = s.missingDates.length > 0;
                 return (
                   <Fragment key={s.staffId}>
                     <tr className="border-b border-gray-50 hover:bg-blue-50/30 cursor-pointer transition-colors"
@@ -330,40 +329,43 @@ export default function ManHourReport() {
                         <span className="text-blue-600 font-medium">{s.team || "—"}</span>
                         <span className="text-gray-400 ml-1">{s.bu}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-gray-600">{s.dateCount}</td>
+                      <td className="px-4 py-2.5 text-right text-gray-600">{s.workDays}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={hasMissing ? "text-orange-600 font-semibold" : "text-gray-600"}>
+                          {s.dateCount}
+                        </span>
+                        {hasMissing && (
+                          <span className="text-[10px] text-orange-500 ml-1" title={`${s.missingDates.length} 日未報`}>
+                            (-{s.missingDates.length})
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{s.taskCount}</td>
                       <td className="px-4 py-2.5 text-right font-bold text-blue-600">{Math.round(s.totalHours * 10) / 10}h</td>
                       <td className="px-4 py-2.5 text-right text-gray-500">{avgDaily}h</td>
                     </tr>
-                    {isExpanded && s.tasks.length > 0 && (
+                    {isExpanded && (
                       <tr>
-                        <td colSpan={7} className="bg-gray-50/70 px-6 py-2">
-                          <div className="text-xs space-y-1 max-h-48 overflow-y-auto">
-                            <div className="flex gap-2 text-[10px] text-gray-400 font-semibold border-b border-gray-200 pb-1">
-                              <span className="w-20">任務日期</span>
-                              <span className="w-28">任務名稱</span>
-                              <span className="w-32">項目</span>
-                              <span className="w-20">任務類型</span>
-                              <span className="w-14 text-right">工時</span>
-                              <span className="flex-1">描述</span>
-                            </div>
-                            {s.tasks.slice(0, 30).map((t, i) => {
-                              const proj = projectMap[t.project_id];
-                              const projName = t.project_name || proj?.display_name || proj?.pic_name || "";
-                              const taskDate = dateMap[t.man_hour_date_id] || "";
-                              return (
-                              <div key={i} className="flex gap-2 text-gray-600">
-                                <span className="w-20 truncate text-gray-400">{taskDate ? taskDate.slice(0, 10) : "—"}</span>
-                                <span className="w-28 truncate font-medium">{resolveTaskName(t)}</span>
-                                <span className="w-32 truncate text-gray-400">{projName || "—"}</span>
-                                <span className="w-20 truncate">{resolveTaskTypeName(t) || "—"}</span>
-                                <span className="w-14 text-right font-semibold text-blue-600">{t.work_hour || 0}h</span>
-                                <span className="flex-1 truncate text-gray-400">{t.task_description || ""}</span>
+                        <td colSpan={8} className="bg-gray-50/70 px-6 py-3">
+                          {hasMissing ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-orange-600">
+                                <AlertTriangle size={12} />
+                                有打卡但未提交工時匯報的日期（{s.missingDates.length} 日）
                               </div>
-                              );
-                            })}
-                            {s.tasks.length > 30 && <div className="text-gray-400 text-center">...還有 {s.tasks.length - 30} 筆</div>}
-                          </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {s.missingDates.map(d => (
+                                  <span key={d} className="text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-lg font-medium">
+                                    {d}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-green-600 flex items-center gap-1.5 font-medium">
+                              ✅ 所有上班日均已提交匯報
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}
