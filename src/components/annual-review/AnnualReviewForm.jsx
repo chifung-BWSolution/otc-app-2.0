@@ -8,8 +8,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [challenges, setChallenges] = useState("");
   const [goals, setGoals] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [expandedProject, setExpandedProject] = useState(null);
-  const [showTaskDetail, setShowTaskDetail] = useState(null); // project index for task breakdown
+  const [selectedProject, setSelectedProject] = useState(null);
 
   useEffect(() => {
     setProjects(projectSummary.map(p => ({ ...p })));
@@ -19,6 +18,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       setFeedback(existingReview.company_feedback || "");
     }
   }, [projectSummary, existingReview]);
+
+  // Auto-select first project
+  useEffect(() => {
+    if (projects.length > 0 && selectedProject === null) setSelectedProject(0);
+  }, [projects]);
 
   const updateProject = (idx, field, value) => {
     const next = [...projects];
@@ -42,150 +46,157 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
 
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
+  const sel = selectedProject !== null ? projects[selectedProject] : null;
+  const maxHours = projects[0]?.hours || 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Section 1: Project Contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
-          <h3 className="font-bold text-sm text-blue-800">📊 第一部分：年度項目工作摘要</h3>
-          <p className="text-xs text-blue-600 mt-0.5">
-            以下是你上個財政年度的項目工時數據（自動匯總），請展開每個項目填寫銷售數字及貢獻說明。
+        <div className="bg-blue-50 px-5 py-4 border-b border-blue-100">
+          <h3 className="font-bold text-base text-blue-800">📊 第一部分：年度項目工作摘要</h3>
+          <p className="text-sm text-blue-600 mt-0.5">
+            左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻說明。
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-5">
           {/* Summary */}
-          <div className="flex gap-3 mb-4">
-            <div className="bg-blue-50 rounded-lg px-3 py-2 text-center flex-1 border border-blue-100">
-              <div className="text-lg font-bold text-blue-600">{projects.length}</div>
-              <div className="text-[10px] text-gray-500">參與項目</div>
+          <div className="flex gap-3 mb-5">
+            <div className="bg-blue-50 rounded-lg px-4 py-3 text-center flex-1 border border-blue-100">
+              <div className="text-2xl font-bold text-blue-600">{projects.length}</div>
+              <div className="text-xs text-gray-500">參與項目</div>
             </div>
-            <div className="bg-green-50 rounded-lg px-3 py-2 text-center flex-1 border border-green-100">
-              <div className="text-lg font-bold text-green-600">{Math.round(totalHours)}h</div>
-              <div className="text-[10px] text-gray-500">總工時</div>
+            <div className="bg-green-50 rounded-lg px-4 py-3 text-center flex-1 border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{Math.round(totalHours)}h</div>
+              <div className="text-xs text-gray-500">總工時</div>
             </div>
-            <div className="bg-purple-50 rounded-lg px-3 py-2 text-center flex-1 border border-purple-100">
-              <div className="text-lg font-bold text-purple-600">{totalTasks}</div>
-              <div className="text-[10px] text-gray-500">總任務數</div>
+            <div className="bg-purple-50 rounded-lg px-4 py-3 text-center flex-1 border border-purple-100">
+              <div className="text-2xl font-bold text-purple-600">{totalTasks}</div>
+              <div className="text-xs text-gray-500">總任務數</div>
             </div>
           </div>
 
-          {/* Project rows */}
-          <div className="space-y-2">
-            {projects.map((p, i) => {
-              const isOpen = expandedProject === i;
-              const isTaskOpen = showTaskDetail === i;
-              const maxHours = projects[0]?.hours || 1;
-              return (
-                <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
-                  {/* Project header */}
-                  <button
-                    className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 text-left transition-colors"
-                    onClick={() => setExpandedProject(isOpen ? null : i)}
-                  >
-                    <span className="text-gray-400 shrink-0">
-                      {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800 truncate">{p.project_name}</span>
-                        <span className="text-[11px] text-gray-400 shrink-0">({p.tasks}個任務)</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
-                        <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
-                      </div>
-                    </div>
-                    <span className="text-xs text-indigo-600 font-bold shrink-0">{p.hours}h</span>
-                    {(p.sales_amount > 0 || p.contribution_note) && (
-                      <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" title="已填寫" />
-                    )}
-                  </button>
-
-                  {/* Expanded: task summary + form fields */}
-                  {isOpen && (
-                    <div className="border-t border-gray-100">
-                      {/* Task breakdown toggle */}
-                      {p.tasksByType?.length > 0 && (
-                        <div className="px-4 pt-3">
-                          <button
-                            className="text-xs text-indigo-600 font-semibold flex items-center gap-1 hover:text-indigo-800 transition-colors"
-                            onClick={() => setShowTaskDetail(isTaskOpen ? null : i)}
-                          >
-                            {isTaskOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                            📋 查看任務明細（{p.tasks}個任務）
-                          </button>
-
-                          {isTaskOpen && (
-                            <div className="mt-2 mb-1 space-y-2 border-l-2 border-indigo-200 pl-3 max-h-60 overflow-y-auto">
-                              {p.tasksByType.map((tt, j) => (
-                                <div key={j}>
-                                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
-                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
-                                    <span className="flex-1 truncate">{tt.name}</span>
-                                    <span className="text-blue-600">{tt.hours}h</span>
-                                  </div>
-                                  <div className="ml-4 space-y-0.5">
-                                    {tt.tasks.map((task, k) => (
-                                      <div key={k} className="flex items-center gap-1 text-[10px] text-gray-500">
-                                        <span className="flex-1 truncate">{task.name}{task.count > 1 ? ` ×${task.count}` : ""}</span>
-                                        <span className="font-medium text-gray-600 shrink-0">{Math.round(task.hours * 10) / 10}h</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Form fields */}
-                      <div className="px-4 pb-3 pt-2 space-y-2">
-                        <div>
-                          <label className="text-xs font-medium text-gray-600 block mb-1">💰 銷售額 / 收入貢獻（如適用）</label>
-                          <input
-                            type="number"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            placeholder="輸入金額（如無可留空）"
-                            value={p.sales_amount || ""}
-                            onChange={e => updateProject(i, "sales_amount", parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-600 block mb-1">📝 貢獻說明</label>
-                          <textarea
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
-                            rows={2}
-                            placeholder="描述你在此項目中的主要貢獻..."
-                            value={p.contribution_note || ""}
-                            onChange={e => updateProject(i, "contribution_note", e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {projects.length === 0 && (
-              <div className="text-center py-6 text-gray-400 text-sm">
-                本財政年度暫無項目工時記錄
+          {/* Left-Right split */}
+          <div className="flex flex-col lg:flex-row gap-4 min-h-[400px]">
+            {/* Left: Project list */}
+            <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 text-sm font-bold text-gray-700">
+                📁 項目列表
               </div>
-            )}
+              <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+                {projects.map((p, i) => {
+                  const isActive = selectedProject === i;
+                  return (
+                    <button
+                      key={i}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isActive ? "bg-indigo-50 border-l-4 border-indigo-500" : "hover:bg-gray-50 border-l-4 border-transparent"}`}
+                      onClick={() => setSelectedProject(i)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">{p.project_name}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{p.tasks} 個任務</div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
+                          <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-bold text-indigo-600">{p.hours}h</div>
+                        {(p.sales_amount > 0 || p.contribution_note) && (
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 mt-1" title="已填寫" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+                {projects.length === 0 && (
+                  <div className="text-center py-10 text-gray-400 text-sm">
+                    本財政年度暫無項目工時記錄
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Selected project detail + form */}
+            <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
+              {sel ? (
+                <>
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                    <div className="text-sm font-bold text-gray-800 truncate">{sel.project_name}</div>
+                    <div className="text-xs text-gray-500">{sel.hours}h · {sel.tasks} 個任務</div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Task breakdown */}
+                    {sel.tasksByType?.length > 0 && (
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="text-sm font-semibold text-gray-700 mb-2">📋 任務明細</div>
+                        <div className="space-y-2.5">
+                          {sel.tasksByType.map((tt, j) => (
+                            <div key={j}>
+                              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
+                                <span className="flex-1">{tt.name}</span>
+                                <span className="text-blue-600">{tt.hours}h</span>
+                              </div>
+                              <div className="ml-5 mt-1 space-y-0.5">
+                                {tt.tasks.map((task, k) => (
+                                  <div key={k} className="flex items-center gap-2 text-xs text-gray-500">
+                                    <span className="flex-1">{task.name}{task.count > 1 ? ` ×${task.count}` : ""}</span>
+                                    <span className="font-medium text-gray-600 shrink-0">{Math.round(task.hours * 10) / 10}h</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Form fields */}
+                    <div className="px-4 py-4 space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1.5">💰 銷售額 / 收入貢獻（如適用）</label>
+                        <input
+                          type="number"
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          placeholder="輸入金額（如無可留空）"
+                          value={sel.sales_amount || ""}
+                          onChange={e => updateProject(selectedProject, "sales_amount", parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1.5">📝 貢獻說明</label>
+                        <textarea
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                          rows={4}
+                          placeholder="描述你在此項目中的主要貢獻..."
+                          value={sel.contribution_note || ""}
+                          onChange={e => updateProject(selectedProject, "contribution_note", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                  ← 請從左側選擇項目
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Section 2: Challenges */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
-          <h3 className="font-bold text-sm text-orange-800">⚡ 第二部分：年度遇到的困難</h3>
-          <p className="text-xs text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰。</p>
+        <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
+          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的困難</h3>
+          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰。</p>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
             rows={5}
             placeholder="例如：跨部門溝通困難、工具不足、時間管理挑戰、技能缺口等..."
             value={challenges}
@@ -196,13 +207,13 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
 
       {/* Section 3: Goals */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-green-50 px-4 py-3 border-b border-green-100">
-          <h3 className="font-bold text-sm text-green-800">🎯 第三部分：未來一年目標</h3>
-          <p className="text-xs text-green-600 mt-0.5">請訂定你未來一年的工作目標和個人發展計劃。</p>
+        <div className="bg-green-50 px-5 py-4 border-b border-green-100">
+          <h3 className="font-bold text-base text-green-800">🎯 第三部分：未來一年目標</h3>
+          <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標和個人發展計劃。</p>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
+            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
             rows={5}
             placeholder="例如：提升某項技能、完成某個項目、達成某個KPI指標、考取證書等..."
             value={goals}
@@ -213,13 +224,13 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
 
       {/* Section 4: Company Feedback */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-purple-50 px-4 py-3 border-b border-purple-100">
-          <h3 className="font-bold text-sm text-purple-800">💬 第四部分：對公司的意見</h3>
-          <p className="text-xs text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
+        <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
+          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
+          <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
             rows={5}
             placeholder="例如：對內部流程的改善建議、對培訓制度的看法、對工作環境的意見等..."
             value={feedback}

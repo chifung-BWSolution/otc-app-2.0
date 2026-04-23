@@ -239,7 +239,7 @@ export default function AnnualReview() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4">
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
         <div className="flex items-center gap-3">
           <FileText size={24} />
