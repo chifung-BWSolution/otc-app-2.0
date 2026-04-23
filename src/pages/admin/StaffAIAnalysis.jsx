@@ -17,6 +17,7 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
+    await new Promise(r => setTimeout(r, 300));
   }
   return all;
 }
@@ -62,12 +63,17 @@ export default function StaffAIAnalysis() {
       endStr = new Date().toISOString().split("T")[0];
     }
 
-    const [allStaff, dateList, taskTypeList, nosTaskList, projectList, kpiMonthList, kpiItemList] = await Promise.all([
+    // Stagger loads to avoid rate limits
+    const [allStaff, taskTypeList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
-      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
+    ]);
+    const [dateList, nosTaskList, projectList] = await Promise.all([
+      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
       loadAll(base44.entities.NOSTask, "display"),
       loadAll(base44.entities.BubbleProject, "display_name"),
+    ]);
+    const [kpiMonthList, kpiItemList] = await Promise.all([
       loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month"),
       loadAll(base44.entities.BubbleStaffKPI, "id"),
     ]);

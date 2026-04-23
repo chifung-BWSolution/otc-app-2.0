@@ -30,6 +30,7 @@ async function loadAllRecords(entity, sort = "id", batchSize = 5000) {
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
+    await new Promise(r => setTimeout(r, 300));
   }
   return all;
 }
@@ -64,14 +65,17 @@ export default function ManHourReport() {
       endStr = new Date().toISOString().split("T")[0];
     }
 
-    const [dateList, allStaffList, projectList, taskTypeList, nosTaskList, clockinList] = await Promise.all([
-      loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
-      base44.entities.Staff.list("display_name", 1000),  // Load ALL staff for clockin name matching
-      loadAllRecords(base44.entities.BubbleProject, "display_name"),
+    // Stagger loads to avoid rate limits
+    const [allStaffList, taskTypeList] = await Promise.all([
+      base44.entities.Staff.list("display_name", 1000),
       base44.entities.NOSTaskType.filter({}, "display", 200),
-      loadAllRecords(base44.entities.NOSTask, "display"),
-      loadAllRecords(base44.entities.BubbleClockin, "id"),
     ]);
+    const [dateList, nosTaskList, projectList] = await Promise.all([
+      loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
+      loadAllRecords(base44.entities.NOSTask, "display"),
+      loadAllRecords(base44.entities.BubbleProject, "display_name"),
+    ]);
+    const clockinList = await loadAllRecords(base44.entities.BubbleClockin, "id");
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
     // report_date formats: "2026-03-01" (YYYY-MM-DD), "2026-03-01T16:00:00.000Z" (legacy ISO), "1/3/2026 0:00" (D/M/YYYY)
