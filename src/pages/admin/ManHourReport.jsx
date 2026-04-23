@@ -74,15 +74,25 @@ export default function ManHourReport() {
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
-    // report_date: could be "2026-03-01" (new import) or "2026-03-01T16:00:00.000Z" (legacy)
-    const toReportDate = (isoStr) => {
-      if (!isoStr) return null;
-      // New format: already YYYY-MM-DD
-      if (isoStr.length === 10) return isoStr;
-      // Legacy format with T16:00:00Z: convert UTC to HKT (UTC+8)
-      const d = new Date(isoStr);
-      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
-      return hkt.toISOString().slice(0, 10);
+    // report_date formats: "2026-03-01" (YYYY-MM-DD), "2026-03-01T16:00:00.000Z" (legacy ISO), "1/3/2026 0:00" (D/M/YYYY)
+    const toReportDate = (val) => {
+      if (!val) return null;
+      // Already YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+      // D/M/YYYY or D/M/YYYY H:MM format
+      const cleaned = val.split(' ')[0];
+      const parts = cleaned.split('/');
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      // Legacy ISO format: convert UTC to HKT (UTC+8)
+      if (val.includes('T')) {
+        const d = new Date(val);
+        const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+        return hkt.toISOString().slice(0, 10);
+      }
+      return null;
     };
     const filteredDates = dateList.filter(d => {
       const rd = toReportDate(d.report_date);
@@ -100,15 +110,18 @@ export default function ManHourReport() {
     const parseCkDate = (t) => {
       if (!t) return null;
       if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-      if (t.includes("-") && t.includes("T")) {
+      // D/M/YYYY or D/M/YYYY H:MM format
+      const cleaned = t.split(" ")[0];
+      const slashParts = cleaned.split("/");
+      if (slashParts.length === 3) {
+        const [d2, m, y] = slashParts;
+        return `${y}-${m.padStart(2, "0")}-${d2.padStart(2, "0")}`;
+      }
+      // Legacy ISO format
+      if (t.includes("T")) {
         const d2 = new Date(t);
         const hkt = new Date(d2.getTime() + 8 * 60 * 60 * 1000);
         return hkt.toISOString().slice(0, 10);
-      }
-      const parts = t.split(" ")[0]?.split("/");
-      if (parts?.length === 3) {
-        const [d2, m, y] = parts;
-        return `${y}-${m.padStart(2, "0")}-${d2.padStart(2, "0")}`;
       }
       return null;
     };
@@ -167,22 +180,22 @@ export default function ManHourReport() {
     return m;
   }, [staff]);
 
-  // Parse clockin date from format "D/M/YYYY H:MM" or ISO
-  const parseClockinDate = (timeStr) => {
-    if (!timeStr) return null;
-    // Plain date: YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(timeStr)) return timeStr;
-    // ISO with time: convert to HKT date
-    if (timeStr.includes("-") && timeStr.includes("T")) {
-      const d = new Date(timeStr);
-      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
-      return hkt.toISOString().slice(0, 10);
-    }
-    // Bubble format: "30/1/2026 9:30" (D/M/YYYY)
-    const parts = timeStr.split(" ")[0]?.split("/");
-    if (parts?.length === 3) {
+  // Parse any date format to YYYY-MM-DD
+  const parseClockinDate = (val) => {
+    if (!val) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    // D/M/YYYY or D/M/YYYY H:MM format
+    const cleaned = val.split(" ")[0];
+    const parts = cleaned.split("/");
+    if (parts.length === 3) {
       const [d, m, y] = parts;
       return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    // Legacy ISO format
+    if (val.includes("T")) {
+      const d = new Date(val);
+      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return hkt.toISOString().slice(0, 10);
     }
     return null;
   };

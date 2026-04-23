@@ -69,13 +69,22 @@ export default function PerformanceReport() {
     setNosTasks(nosTaskList);
     setProjects(projectList);
 
-    // Parse date: handles both "2026-03-01" (new) and "2026-03-01T16:00:00Z" (legacy)
-    const toLocalDate = (isoStr) => {
-      if (!isoStr) return null;
-      if (isoStr.length === 10) return isoStr;
-      const d = new Date(isoStr);
-      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
-      return hkt.toISOString().slice(0, 10);
+    // Parse any date format to YYYY-MM-DD
+    const toLocalDate = (val) => {
+      if (!val) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+      const cleaned = val.split(' ')[0];
+      const parts = cleaned.split('/');
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      if (val.includes('T')) {
+        const d = new Date(val);
+        const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+        return hkt.toISOString().slice(0, 10);
+      }
+      return null;
     };
     const filteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
