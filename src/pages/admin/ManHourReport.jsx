@@ -80,13 +80,13 @@ export default function ManHourReport() {
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
 
-    // Filter clockins within range - parse date from "M/D/YYYY H:MM" or ISO
+    // Filter clockins within range - parse date from "D/M/YYYY H:MM" or ISO
     const parseCkDate = (t) => {
       if (!t) return null;
       if (t.includes("-")) return t.slice(0, 10);
       const parts = t.split(" ")[0]?.split("/");
       if (parts?.length === 3) {
-        const [m, d, y] = parts;
+        const [d, m, y] = parts;
         return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
       }
       return null;
@@ -143,15 +143,15 @@ export default function ManHourReport() {
     return m;
   }, [staff]);
 
-  // Parse clockin date from format "M/D/YYYY H:MM" or ISO
+  // Parse clockin date from format "D/M/YYYY H:MM" or ISO
   const parseClockinDate = (timeStr) => {
     if (!timeStr) return null;
     // ISO format: "2025-09-12T..."
     if (timeStr.includes("-")) return timeStr.slice(0, 10);
-    // Bubble format: "9/12/2025 9:30"
+    // Bubble format: "30/1/2026 9:30" (D/M/YYYY)
     const parts = timeStr.split(" ")[0]?.split("/");
     if (parts?.length === 3) {
-      const [m, d, y] = parts;
+      const [d, m, y] = parts;
       return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
     }
     return null;
