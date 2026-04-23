@@ -1,7 +1,26 @@
 import { useState, useEffect } from "react";
-import { Save, Send, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Save, Send, ChevronDown, ChevronRight, Loader2, Plus, X } from "lucide-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+const MIN_HOURS = 40;
+const MAX_POINTS = 5;
+const MAX_POINT_LENGTH = 30;
+
+// Parse contribution_note: could be JSON array string or plain text
+function parsePoints(note) {
+  if (!note) return [""];
+  try {
+    const arr = JSON.parse(note);
+    if (Array.isArray(arr)) return arr.length > 0 ? arr : [""];
+  } catch {}
+  // Legacy plain text → single point
+  return [note];
+}
+
+function serializePoints(points) {
+  const cleaned = points.filter(p => p.trim());
+  return cleaned.length > 0 ? JSON.stringify(cleaned) : "";
+}
 
 export default function AnnualReviewForm({ projectSummary, existingReview, saving, onSave }) {
   const [projects, setProjects] = useState([]);
@@ -9,25 +28,73 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [goals, setGoals] = useState("");
   const [feedback, setFeedback] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
+  const [expandedTask, setExpandedTask] = useState(null); // index in filtered list
+  // Per-project contribution points: { [projectIndex]: string[] }
+  const [pointsMap, setPointsMap] = useState({});
 
   useEffect(() => {
-    setProjects(projectSummary.map(p => ({ ...p })));
+    const mapped = projectSummary.map(p => ({ ...p }));
+    setProjects(mapped);
     if (existingReview) {
       setChallenges(existingReview.challenges || "");
       setGoals(existingReview.next_year_goals || "");
       setFeedback(existingReview.company_feedback || "");
     }
+    // Init points from existing data
+    const pm = {};
+    mapped.forEach((p, i) => {
+      pm[i] = parsePoints(p.contribution_note);
+    });
+    setPointsMap(pm);
   }, [projectSummary, existingReview]);
 
-  // Auto-select first project
+  // Filter: only show projects with >40h
+  const filteredIndices = projects.reduce((acc, p, i) => {
+    if ((p.hours || 0) > MIN_HOURS) acc.push(i);
+    return acc;
+  }, []);
+
+  // Auto-select first filtered project
   useEffect(() => {
-    if (projects.length > 0 && selectedProject === null) setSelectedProject(0);
-  }, [projects]);
+    if (filteredIndices.length > 0 && (selectedProject === null || !filteredIndices.includes(selectedProject))) {
+      setSelectedProject(filteredIndices[0]);
+    }
+  }, [filteredIndices.length]);
 
   const updateProject = (idx, field, value) => {
     const next = [...projects];
     next[idx] = { ...next[idx], [field]: value };
     setProjects(next);
+  };
+
+  const updatePoint = (projIdx, pointIdx, value) => {
+    const trimmed = value.slice(0, MAX_POINT_LENGTH);
+    const next = { ...pointsMap };
+    const arr = [...(next[projIdx] || [""])];
+    arr[pointIdx] = trimmed;
+    next[projIdx] = arr;
+    setPointsMap(next);
+    updateProject(projIdx, "contribution_note", serializePoints(arr));
+  };
+
+  const addPoint = (projIdx) => {
+    const next = { ...pointsMap };
+    const arr = [...(next[projIdx] || [])];
+    if (arr.length < MAX_POINTS) {
+      arr.push("");
+      next[projIdx] = arr;
+      setPointsMap(next);
+    }
+  };
+
+  const removePoint = (projIdx, pointIdx) => {
+    const next = { ...pointsMap };
+    const arr = [...(next[projIdx] || [])];
+    arr.splice(pointIdx, 1);
+    if (arr.length === 0) arr.push("");
+    next[projIdx] = arr;
+    setPointsMap(next);
+    updateProject(projIdx, "contribution_note", serializePoints(arr));
   };
 
   const getFormData = () => ({
@@ -47,7 +114,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
   const sel = selectedProject !== null ? projects[selectedProject] : null;
-  const maxHours = projects[0]?.hours || 1;
+  const selPoints = selectedProject !== null ? (pointsMap[selectedProject] || [""]) : [];
+  const maxHours = filteredIndices.length > 0 ? (projects[filteredIndices[0]]?.hours || 1) : 1;
 
   return (
     <div className="space-y-5">
@@ -56,7 +124,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         <div className="bg-blue-50 px-5 py-4 border-b border-blue-100">
           <h3 className="font-bold text-base text-blue-800">📊 第一部分：年度項目工作摘要</h3>
           <p className="text-sm text-blue-600 mt-0.5">
-            左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻說明。
+            只顯示工時超過 {MIN_HOURS} 小時的項目。左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻重點。
           </p>
         </div>
 
@@ -64,8 +132,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           {/* Summary */}
           <div className="flex gap-3 mb-5">
             <div className="bg-blue-50 rounded-lg px-4 py-3 text-center flex-1 border border-blue-100">
-              <div className="text-2xl font-bold text-blue-600">{projects.length}</div>
-              <div className="text-xs text-gray-500">參與項目</div>
+              <div className="text-2xl font-bold text-blue-600">{filteredIndices.length}</div>
+              <div className="text-xs text-gray-500">主要項目（&gt;{MIN_HOURS}h）</div>
             </div>
             <div className="bg-green-50 rounded-lg px-4 py-3 text-center flex-1 border border-green-100">
               <div className="text-2xl font-bold text-green-600">{Math.round(totalHours)}h</div>
@@ -78,61 +146,52 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           </div>
 
           {/* Left-Right split */}
-          <div className="flex flex-col lg:flex-row gap-4 min-h-[400px]">
-            {/* Left: Project list */}
+          <div className="flex flex-col lg:flex-row gap-4 min-h-[420px]">
+            {/* Left: Project list + expandable task details */}
             <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
               <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 text-sm font-bold text-gray-700">
-                📁 項目列表
+                📁 項目列表（點擊展開任務明細）
               </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-                {projects.map((p, i) => {
-                  const isActive = selectedProject === i;
+              <div className="flex-1 overflow-y-auto">
+                {filteredIndices.map((projIdx) => {
+                  const p = projects[projIdx];
+                  const isActive = selectedProject === projIdx;
+                  const isTaskExpanded = expandedTask === projIdx;
+                  const hasFilled = p.sales_amount > 0 || (p.contribution_note && serializePoints(pointsMap[projIdx] || []) !== "");
                   return (
-                    <button
-                      key={i}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isActive ? "bg-indigo-50 border-l-4 border-indigo-500" : "hover:bg-gray-50 border-l-4 border-transparent"}`}
-                      onClick={() => setSelectedProject(i)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800 truncate">{p.project_name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{p.tasks} 個任務</div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
-                          <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
-                        </div>
+                    <div key={projIdx} className={`border-b border-gray-100 ${isActive ? "bg-indigo-50" : ""}`}>
+                      {/* Project row */}
+                      <div className="flex items-center">
+                        <button
+                          className="p-2.5 text-gray-400 hover:text-gray-600 shrink-0"
+                          onClick={() => setExpandedTask(isTaskExpanded ? null : projIdx)}
+                        >
+                          {isTaskExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </button>
+                        <button
+                          className={`flex-1 flex items-center gap-3 pr-4 py-3 text-left transition-colors ${isActive ? "border-l-4 border-indigo-500" : "border-l-4 border-transparent hover:bg-gray-50"}`}
+                          onClick={() => setSelectedProject(projIdx)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-800 truncate">{p.project_name}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">{p.tasks} 個任務</div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
+                              <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-sm font-bold text-indigo-600">{p.hours}h</div>
+                            {hasFilled && (
+                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 mt-1" title="已填寫" />
+                            )}
+                          </div>
+                        </button>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-sm font-bold text-indigo-600">{p.hours}h</div>
-                        {(p.sales_amount > 0 || p.contribution_note) && (
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 mt-1" title="已填寫" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-                {projects.length === 0 && (
-                  <div className="text-center py-10 text-gray-400 text-sm">
-                    本財政年度暫無項目工時記錄
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Right: Selected project detail + form */}
-            <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
-              {sel ? (
-                <>
-                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-                    <div className="text-sm font-bold text-gray-800 truncate">{sel.project_name}</div>
-                    <div className="text-xs text-gray-500">{sel.hours}h · {sel.tasks} 個任務</div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto">
-                    {/* Task breakdown */}
-                    {sel.tasksByType?.length > 0 && (
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <div className="text-sm font-semibold text-gray-700 mb-2">📋 任務明細</div>
-                        <div className="space-y-2.5">
-                          {sel.tasksByType.map((tt, j) => (
+                      {/* Expandable task details */}
+                      {isTaskExpanded && p.tasksByType?.length > 0 && (
+                        <div className="px-4 pb-3 pl-10 space-y-2.5 border-l-2 border-indigo-200 ml-5">
+                          {p.tasksByType.map((tt, j) => (
                             <div key={j}>
                               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
@@ -150,31 +209,76 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  );
+                })}
+                {filteredIndices.length === 0 && (
+                  <div className="text-center py-10 text-gray-400 text-sm">
+                    本財政年度暫無超過 {MIN_HOURS} 小時的項目
+                  </div>
+                )}
+              </div>
+            </div>
 
-                    {/* Form fields */}
-                    <div className="px-4 py-4 space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1.5">💰 銷售額 / 收入貢獻（如適用）</label>
-                        <input
-                          type="number"
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                          placeholder="輸入金額（如無可留空）"
-                          value={sel.sales_amount || ""}
-                          onChange={e => updateProject(selectedProject, "sales_amount", parseFloat(e.target.value) || 0)}
-                        />
+            {/* Right: Sales + contribution points */}
+            <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
+              {sel && filteredIndices.includes(selectedProject) ? (
+                <>
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                    <div className="text-sm font-bold text-gray-800 truncate">{sel.project_name}</div>
+                    <div className="text-xs text-gray-500">{sel.hours}h · {sel.tasks} 個任務</div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                    {/* Sales */}
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1.5">💰 銷售額 / 收入貢獻（如適用）</label>
+                      <input
+                        type="number"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        placeholder="輸入金額（如無可留空）"
+                        value={sel.sales_amount || ""}
+                        onChange={e => updateProject(selectedProject, "sales_amount", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+
+                    {/* Contribution points */}
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                        📝 貢獻重點（最多 {MAX_POINTS} 項，每項最多 {MAX_POINT_LENGTH} 字）
+                      </label>
+                      <div className="space-y-2">
+                        {selPoints.map((pt, pi) => (
+                          <div key={pi} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-5 shrink-0 text-right">{pi + 1}.</span>
+                            <input
+                              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                              placeholder={`第 ${pi + 1} 項貢獻重點...`}
+                              maxLength={MAX_POINT_LENGTH}
+                              value={pt}
+                              onChange={e => updatePoint(selectedProject, pi, e.target.value)}
+                            />
+                            <span className="text-xs text-gray-300 w-10 shrink-0 text-right">{pt.length}/{MAX_POINT_LENGTH}</span>
+                            {selPoints.length > 1 && (
+                              <button
+                                onClick={() => removePoint(selectedProject, pi)}
+                                className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1.5">📝 貢獻說明</label>
-                        <textarea
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
-                          rows={4}
-                          placeholder="描述你在此項目中的主要貢獻..."
-                          value={sel.contribution_note || ""}
-                          onChange={e => updateProject(selectedProject, "contribution_note", e.target.value)}
-                        />
-                      </div>
+                      {selPoints.length < MAX_POINTS && (
+                        <button
+                          onClick={() => addPoint(selectedProject)}
+                          className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
+                        >
+                          <Plus size={13} /> 新增一項
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>

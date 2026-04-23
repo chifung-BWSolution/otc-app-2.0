@@ -64,7 +64,19 @@ export default function AnnualReviewDetail({ review, onBack }) {
                   )}
                 </div>
                 {p.contribution_note && (
-                  <p className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">{p.contribution_note}</p>
+                  <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
+                    {(() => {
+                      try {
+                        const arr = JSON.parse(p.contribution_note);
+                        if (Array.isArray(arr)) return (
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {arr.map((pt, pi) => <li key={pi}>{pt}</li>)}
+                          </ul>
+                        );
+                      } catch {}
+                      return <p>{p.contribution_note}</p>;
+                    })()}
+                  </div>
                 )}
               </div>
             ))}
