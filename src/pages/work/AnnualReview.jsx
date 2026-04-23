@@ -4,9 +4,13 @@ import { Loader2, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import AnnualReviewForm from "@/components/annual-review/AnnualReviewForm";
 
 // Fiscal year: April 1 - March 31
-function getCurrentFY() {
+// Employees fill in the LAST (previous) fiscal year's review
+function getLastFY() {
   const now = new Date();
-  const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  // Current FY start year
+  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  // Last FY is one year before
+  const year = currentFYStart - 1;
   return { label: `FY${year}/${year + 1}`, start: `${year}-04-01`, end: `${year + 1}-03-31` };
 }
 
@@ -58,7 +62,7 @@ export default function AnnualReview() {
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const fy = getCurrentFY();
+  const fy = getLastFY();
 
   useEffect(() => { init(); }, []);
 
