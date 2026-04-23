@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Save, Send, ChevronDown, ChevronRight, Loader2, Plus, X } from "lucide-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
-const MIN_HOURS = 40;
+const INITIAL_SHOW = 10;
 const MAX_POINTS = 5;
 const MAX_POINT_LENGTH = 30;
 
@@ -29,7 +29,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [feedback, setFeedback] = useState("");
   const [otherContributions, setOtherContributions] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
-  const [expandedTask, setExpandedTask] = useState(null); // index in filtered list
+  const [expandedTask, setExpandedTask] = useState(null);
+  const [showAll, setShowAll] = useState(false);
   // Per-project contribution points: { [projectIndex]: string[] }
   const [pointsMap, setPointsMap] = useState({});
 
@@ -50,18 +51,17 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     setPointsMap(pm);
   }, [projectSummary, existingReview]);
 
-  // Filter: only show projects with >40h
-  const filteredIndices = projects.reduce((acc, p, i) => {
-    if ((p.hours || 0) > MIN_HOURS) acc.push(i);
-    return acc;
-  }, []);
+  // All project indices sorted by hours desc
+  const allIndices = projects.map((_, i) => i);
+  const visibleIndices = showAll ? allIndices : allIndices.slice(0, INITIAL_SHOW);
+  const hasMore = allIndices.length > INITIAL_SHOW && !showAll;
 
-  // Auto-select first filtered project
+  // Auto-select first project
   useEffect(() => {
-    if (filteredIndices.length > 0 && (selectedProject === null || !filteredIndices.includes(selectedProject))) {
-      setSelectedProject(filteredIndices[0]);
+    if (allIndices.length > 0 && (selectedProject === null || !allIndices.includes(selectedProject))) {
+      setSelectedProject(allIndices[0]);
     }
-  }, [filteredIndices.length]);
+  }, [allIndices.length]);
 
   const updateProject = (idx, field, value) => {
     const next = [...projects];
@@ -118,7 +118,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
   const sel = selectedProject !== null ? projects[selectedProject] : null;
   const selPoints = selectedProject !== null ? (pointsMap[selectedProject] || [""]) : [];
-  const maxHours = filteredIndices.length > 0 ? (projects[filteredIndices[0]]?.hours || 1) : 1;
+  const maxHours = allIndices.length > 0 ? (projects[allIndices[0]]?.hours || 1) : 1;
 
   return (
     <div className="space-y-5">
@@ -127,7 +127,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         <div className="bg-blue-50 px-5 py-4 border-b border-blue-100">
           <h3 className="font-bold text-base text-blue-800">📊 第一部分：年度項目工作摘要</h3>
           <p className="text-sm text-blue-600 mt-0.5">
-            只顯示工時超過 {MIN_HOURS} 小時的項目。左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻重點。
+            左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻重點。
           </p>
         </div>
 
@@ -135,8 +135,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           {/* Summary */}
           <div className="flex gap-3 mb-5">
             <div className="bg-blue-50 rounded-lg px-4 py-3 text-center flex-1 border border-blue-100">
-              <div className="text-2xl font-bold text-blue-600">{filteredIndices.length}</div>
-              <div className="text-xs text-gray-500">主要項目（&gt;{MIN_HOURS}h）</div>
+              <div className="text-2xl font-bold text-blue-600">{allIndices.length}</div>
+              <div className="text-xs text-gray-500">參與項目</div>
             </div>
             <div className="bg-green-50 rounded-lg px-4 py-3 text-center flex-1 border border-green-100">
               <div className="text-2xl font-bold text-green-600">{Math.round(totalHours)}h</div>
@@ -156,7 +156,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                 📁 項目列表（點擊展開任務明細）
               </div>
               <div className="flex-1 overflow-y-auto">
-                {filteredIndices.map((projIdx) => {
+                {visibleIndices.map((projIdx) => {
                   const p = projects[projIdx];
                   const isActive = selectedProject === projIdx;
                   const hasFilled = p.sales_amount > 0 || (p.contribution_note && serializePoints(pointsMap[projIdx] || []) !== "");
@@ -213,9 +213,17 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                     </div>
                   );
                 })}
-                {filteredIndices.length === 0 && (
+                {hasMore && (
+                  <button
+                    className="w-full py-2.5 text-xs text-indigo-600 font-semibold hover:bg-indigo-50 transition-colors"
+                    onClick={() => setShowAll(true)}
+                  >
+                    顯示更多（共 {allIndices.length} 個項目）
+                  </button>
+                )}
+                {allIndices.length === 0 && (
                   <div className="text-center py-10 text-gray-400 text-sm">
-                    本財政年度暫無超過 {MIN_HOURS} 小時的項目
+                    本財政年度暫無項目記錄
                   </div>
                 )}
               </div>
@@ -223,7 +231,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
 
             {/* Right: Sales + contribution points */}
             <div className="lg:w-1/2 flex flex-col border border-gray-200 rounded-xl overflow-hidden">
-              {sel && filteredIndices.includes(selectedProject) ? (
+              {sel && allIndices.includes(selectedProject) ? (
                 <>
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                     <div className="text-sm font-bold text-gray-800 truncate">{sel.project_name}</div>

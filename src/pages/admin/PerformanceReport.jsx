@@ -29,6 +29,8 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
 
 export default function PerformanceReport() {
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailLoaded, setDetailLoaded] = useState(false);
   const [dateRange, setDateRange] = useState("90");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -49,60 +51,79 @@ export default function PerformanceReport() {
   const [kpiItems, setKpiItems] = useState([]);
 
 
-  useEffect(() => { loadData(); }, [dateRange, customFrom, customTo]);
-
-  const loadData = async () => {
-    setLoading(true);
-    let cutoffStr, endStr;
-    if (customFrom && customTo) {
-      cutoffStr = customFrom;
-      endStr = customTo;
-    } else {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
-      cutoffStr = cutoff.toISOString().split("T")[0];
-      endStr = new Date().toISOString().split("T")[0];
+  // Parse any date format to YYYY-MM-DD
+  const toLocalDate = (val) => {
+    if (!val) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    const cleaned = val.split(' ')[0];
+    const parts = cleaned.split('/');
+    if (parts.length === 3) {
+      const [d, m, y] = parts;
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     }
+    if (val.includes('T')) {
+      const d = new Date(val);
+      const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return hkt.toISOString().slice(0, 10);
+    }
+    return null;
+  };
 
-    // Stagger loads — small entities in parallel, large ones sequentially to avoid 502s
-    const [staffList, taskTypeList, nosTaskList] = await Promise.all([
+  const getDateRange = () => {
+    if (customFrom && customTo) return { cutoffStr: customFrom, endStr: customTo };
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
+    return { cutoffStr: cutoff.toISOString().split("T")[0], endStr: new Date().toISOString().split("T")[0] };
+  };
+
+  // Phase 1: load staff list + dates (lightweight) for the table
+  useEffect(() => { loadPhase1(); }, [dateRange, customFrom, customTo]);
+
+  const loadPhase1 = async () => {
+    setLoading(true);
+    setDetailLoaded(false);
+    setExpandedStaff(null);
+    const { cutoffStr, endStr } = getDateRange();
+
+    const [staffList, dateList] = await Promise.all([
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
-      base44.entities.NOSTaskType.filter({}, "display", 200),
-      loadAll(base44.entities.NOSTask, "display"),
+      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
     ]);
-    const dateList = await loadAll(base44.entities.BubbleManHourDate, "-report_date");
-    const projectList = await loadAll(base44.entities.BubbleProject, "display_name");
-    const kpiMonthList = await loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month");
-    const kpiItemList = await loadAll(base44.entities.BubbleStaffKPI, "id");
 
     setStaff(staffList);
-    setTaskTypes(taskTypeList);
-    setNosTasks(nosTaskList);
-    setProjects(projectList);
-
-    // Parse any date format to YYYY-MM-DD
-    const toLocalDate = (val) => {
-      if (!val) return null;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-      const cleaned = val.split(' ')[0];
-      const parts = cleaned.split('/');
-      if (parts.length === 3) {
-        const [d, m, y] = parts;
-        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-      }
-      if (val.includes('T')) {
-        const d = new Date(val);
-        const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
-        return hkt.toISOString().slice(0, 10);
-      }
-      return null;
-    };
     const filteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
       const rd = toLocalDate(d.report_date);
       return rd && rd >= cutoffStr && rd <= endStr;
     });
     setDates(filteredDates);
+    // Clear detail data
+    setTasks([]);
+    setTaskTypes([]);
+    setNosTasks([]);
+    setProjects([]);
+    setKpiMonths([]);
+    setKpiItems([]);
+    setLoading(false);
+  };
+
+  // Phase 2: load detail data (tasks, kpi, projects) — triggered on first staff expand
+  const loadPhase2 = async () => {
+    if (detailLoaded || detailLoading) return;
+    setDetailLoading(true);
+    const { cutoffStr, endStr } = getDateRange();
+
+    const [taskTypeList, nosTaskList] = await Promise.all([
+      base44.entities.NOSTaskType.filter({}, "display", 200),
+      loadAll(base44.entities.NOSTask, "display"),
+    ]);
+    const projectList = await loadAll(base44.entities.BubbleProject, "display_name");
+    const kpiMonthList = await loadAll(base44.entities.BubbleStaffKPIMonth, "-report_month");
+    const kpiItemList = await loadAll(base44.entities.BubbleStaffKPI, "id");
+
+    setTaskTypes(taskTypeList);
+    setNosTasks(nosTaskList);
+    setProjects(projectList);
 
     const filteredKpiMonths = kpiMonthList.filter(m => {
       if (!m.report_month) return false;
@@ -113,11 +134,23 @@ export default function PerformanceReport() {
     const kpiMonthIds = new Set(filteredKpiMonths.map(m => m.bubble_id).filter(Boolean));
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));
 
-    const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
+    const dateIds = new Set(dates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
     setTasks(taskList.filter(t => dateIds.has(t.man_hour_date_id)));
 
-    setLoading(false);
+    setDetailLoaded(true);
+    setDetailLoading(false);
+  };
+
+  const handleToggleStaff = async (staffId) => {
+    if (expandedStaff === staffId) {
+      setExpandedStaff(null);
+      return;
+    }
+    setExpandedStaff(staffId);
+    if (!detailLoaded) {
+      await loadPhase2();
+    }
   };
 
   // Lookups
@@ -196,7 +229,7 @@ export default function PerformanceReport() {
       switch (sortBy) {
       case "hours": return (sb.hours || 0) - (sa.hours || 0);
       case "kpi": return (sb.avgKpi || 0) - (sa.avgKpi || 0);
-      case "name": return (a.display_name || "").localeCompare(b.display_name || "");
+      case "name": return (a.display_name || "").localeCompare(b.display_name || "", "zh-Hant");
       default: return 0;
       }
     });
@@ -292,7 +325,8 @@ export default function PerformanceReport() {
             customTo={customTo}
             dateMap={dateMap}
             expanded={expandedStaff === s.id}
-            onToggle={() => setExpandedStaff(expandedStaff === s.id ? null : s.id)}
+            onToggle={() => handleToggleStaff(s.id)}
+            detailLoading={detailLoading && expandedStaff === s.id && !detailLoaded}
             onShowProjectContribution={(name, bubbleId) => setContributionProject({ name, bubbleId })}
           />
         ))}

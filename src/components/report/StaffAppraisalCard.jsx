@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Sparkles, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Sparkles, Users, Loader2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
-export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange, customFrom, customTo, dateMap, onShowProjectContribution }) {
+export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTasks, kpiMonths, kpiItems, projectMap, taskTypeMap, nosTaskMap, expanded, onToggle, dateRange, customFrom, customTo, dateMap, onShowProjectContribution, detailLoading }) {
   const [expandedProject, setExpandedProject] = useState(null);
+  const [showAllProjects, setShowAllProjects] = useState(false);
   const name = staffRec.display_name || staffRec.full_name || "—";
   const bubbleId = staffRec.bubble_id;
 
@@ -134,7 +135,13 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
       </button>
 
       {/* Expanded detail */}
-      {expanded && (
+      {expanded && detailLoading && (
+        <div className="border-t border-gray-100 px-4 py-6 flex items-center justify-center gap-2 text-gray-400">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-sm">載入詳細數據...</span>
+        </div>
+      )}
+      {expanded && !detailLoading && (
         <div className="border-t border-gray-100 px-4 py-4 space-y-4">
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">
@@ -187,9 +194,9 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
           {/* Project breakdown - clickable to expand */}
           {projectBreakdown.length > 0 && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <h5 className="text-xs font-bold text-gray-600 mb-2">🚀 參與項目分佈（點擊展開明細）</h5>
+              <h5 className="text-xs font-bold text-gray-600 mb-2">🚀 參與項目分佈（點擊展開明細）— 共 {projectBreakdown.length} 個項目</h5>
               <div className="space-y-1">
-                {projectBreakdown.slice(0, 12).map((p, i) => {
+                {(showAllProjects ? projectBreakdown : projectBreakdown.slice(0, 10)).map((p, i) => {
                   const isOpen = expandedProject === p.name;
                   return (
                     <div key={i}>
@@ -245,6 +252,14 @@ export default function StaffAppraisalCard({ staffRec, manHourDates, manHourTask
                     </div>
                   );
                 })}
+                {!showAllProjects && projectBreakdown.length > 10 && (
+                  <button
+                    onClick={() => setShowAllProjects(true)}
+                    className="w-full py-2 text-xs text-indigo-600 font-semibold hover:bg-indigo-50 rounded-lg transition-colors"
+                  >
+                    顯示更多（共 {projectBreakdown.length} 個項目）
+                  </button>
+                )}
               </div>
             </div>
           )}
