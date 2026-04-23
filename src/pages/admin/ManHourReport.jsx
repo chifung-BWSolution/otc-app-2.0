@@ -74,7 +74,7 @@ export default function ManHourReport() {
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
-    // report_date is stored as UTC (e.g. "2026-04-19T16:00:00.000Z" = Apr 20 HKT)
+    // report_date is stored as UTC (e.g. "2026-03-01T16:00:00.000Z" = Mar 2 HKT)
     // Convert to local date for correct filtering
     const toLocalDate = (isoStr) => {
       if (!isoStr) return null;
