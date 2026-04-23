@@ -69,10 +69,20 @@ export default function PerformanceReport() {
     setNosTasks(nosTaskList);
     setProjects(projectList);
 
-    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr && d.report_date <= endStr);
+    // report_date from Bubble: "2026-03-01T16:00:00.000Z" means report date = Mar 1
+    // Extract UTC date portion for correct comparison
+    const filteredDates = dateList.filter(d => {
+      if (!d.report_date) return false;
+      const rd = d.report_date.slice(0, 10);
+      return rd >= cutoffStr && rd <= endStr;
+    });
     setDates(filteredDates);
 
-    const filteredKpiMonths = kpiMonthList.filter(m => m.report_month && m.report_month >= cutoffStr && m.report_month <= endStr);
+    const filteredKpiMonths = kpiMonthList.filter(m => {
+      if (!m.report_month) return false;
+      const rm = m.report_month.slice(0, 10);
+      return rm >= cutoffStr && rm <= endStr;
+    });
     setKpiMonths(filteredKpiMonths);
     const kpiMonthIds = new Set(filteredKpiMonths.map(m => m.bubble_id).filter(Boolean));
     setKpiItems(kpiItemList.filter(k => kpiMonthIds.has(k.staff_kpi_month_id)));

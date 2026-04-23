@@ -74,19 +74,19 @@ export default function ManHourReport() {
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
-    // report_date is stored as UTC (e.g. "2026-03-01T16:00:00.000Z" = Mar 2 HKT)
-    // Convert to local date for correct filtering
-    const toLocalDate = (isoStr) => {
+    // report_date from Bubble: "2026-03-01T16:00:00.000Z" means report date = Mar 1
+    // The T16:00Z is a timezone artifact from Bubble import, NOT a real UTC time
+    // Extract the UTC date portion directly as the true report date
+    const toReportDate = (isoStr) => {
       if (!isoStr) return null;
-      const d = new Date(isoStr);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      return isoStr.slice(0, 10); // "2026-03-01T16:00:00.000Z" → "2026-03-01"
     };
     const filteredDates = dateList.filter(d => {
-      const ld = toLocalDate(d.report_date);
-      return ld && ld >= cutoffStr && ld <= endStr;
+      const rd = toReportDate(d.report_date);
+      return rd && rd >= cutoffStr && rd <= endStr;
     });
-    // Attach local date to each record for downstream use
-    for (const d of filteredDates) { d._localDate = toLocalDate(d.report_date); }
+    // Attach report date to each record for downstream use
+    for (const d of filteredDates) { d._localDate = toReportDate(d.report_date); }
     setDates(filteredDates);
     setStaff(allStaffList);  // Store all staff for clockin name matching
     setProjects(projectList);
