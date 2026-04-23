@@ -25,11 +25,8 @@ function StatCard({ label, value, sub, color = "blue" }) {
 async function loadAllRecords(entity, sort = "id", batchSize = 5000) {
   const all = [];
   let offset = 0;
-  let batchNum = 0;
   while (true) {
     const batch = await entity.filter({}, sort, batchSize, offset);
-    batchNum++;
-    console.log(`[loadAll] batch #${batchNum}: requested=${batchSize} got=${batch.length} offset=${offset} total=${all.length + batch.length}`);
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
@@ -112,12 +109,7 @@ export default function ManHourReport() {
       return d && d >= cutoffStr && d <= endStr;
     });
     setClockins(filteredClockins);
-    console.log("[MHR DEBUG] total clockins loaded:", clockinList.length, "filtered to range:", filteredClockins.length, "allStaff:", allStaffList.length);
-    // Debug: check Yoko Cheung specifically
-    const yokoCk = filteredClockins.filter(c => c.staff_name === "Yoko Cheung");
-    console.log("[MHR DEBUG] Yoko clockins in range:", yokoCk.length, "dates:", yokoCk.map(c => parseCkDate(c.clockin_time)));
-    const yokoStaffBid = allStaffList.find(s => s.display_name === "Yoko Cheung")?.bubble_id;
-    console.log("[MHR DEBUG] Yoko bubble_id:", yokoStaffBid, "nameMap has:", !!{[allStaffList.find(s=>s.display_name==="Yoko Cheung")?.display_name]: true}["Yoko Cheung"]);
+
 
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await loadAllRecords(base44.entities.BubbleManHourTask, "-created_date");
