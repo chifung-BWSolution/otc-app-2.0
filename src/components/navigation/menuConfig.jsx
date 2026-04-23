@@ -131,7 +131,6 @@ export const menuGroups = [
       { label: "📊 功過記錄", path: "/admin/performance-records" },
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
-      { label: "📋 年度評估表", path: "/admin/annual-reviews" },
     ],
   },
   {
@@ -146,6 +145,7 @@ export const menuGroups = [
       { label: "📈 分析報表", path: "/superadmin/analytics" },
       { label: "📊 工作匯報報告", path: "/admin/manhour-report" },
       { label: "📈 績效總覽報告", path: "/admin/performance-report" },
+      { label: "📋 年度評估表", path: "/admin/annual-reviews" },
     ],
   },
 ];
