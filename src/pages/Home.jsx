@@ -37,6 +37,7 @@ const modules = [
       { label: "每月KPI匯報", path: "/work/kpi", icon: "🎯" },
       { label: "主要項目", path: "/work/projects", icon: "🚀" },
       { label: "特別批核", path: "/work/special-approval", icon: "✅" },
+      { label: "年度工作評估", path: "/work/annual-review", icon: "📋" },
       { label: "跟進會議", path: "/work/meetings", icon: "🤝" },
     ],
   },
@@ -98,6 +99,7 @@ const modules = [
       { label: "功過記錄", path: "/admin/performance-records", icon: "📊" },
       { label: "App管理", path: "/admin/app-management", icon: "📲" },
       { label: "課程管理", path: "/admin/course-management", icon: "🎓" },
+      { label: "年度評估表", path: "/admin/annual-reviews", icon: "📋" },
     ],
   },
   {

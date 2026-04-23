@@ -49,6 +49,7 @@ export const menuGroups = [
       { label: "🎯 每月KPI匯報", path: "/work/kpi" },
       { label: "🚀 主要項目", path: "/work/projects" },
       { label: "✅ 特別批核", path: "/work/special-approval" },
+      { label: "📋 年度工作評估", path: "/work/annual-review" },
     ],
   },
   {
@@ -130,6 +131,7 @@ export const menuGroups = [
       { label: "📊 功過記錄", path: "/admin/performance-records" },
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
+      { label: "📋 年度評估表", path: "/admin/annual-reviews" },
     ],
   },
   {

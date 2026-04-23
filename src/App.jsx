@@ -49,6 +49,8 @@ import WeeklyReport from './pages/course/WeeklyReport';
 import KnowledgeCertification from './pages/leader/KnowledgeCertification';
 import RegionManagement from './pages/admin/RegionManagement';
 import CompanyForms from './pages/company/CompanyForms';
+import AnnualReview from './pages/work/AnnualReview';
+import AnnualReviewAdmin from './pages/admin/AnnualReviewAdmin';
 import { RegionProvider } from '@/lib/RegionContext';
 
 
@@ -101,6 +103,7 @@ const AuthenticatedApp = () => {
         <Route path="/work/kpi" element={<KPIReport />} />
         <Route path="/work/projects" element={<Placeholder title="主要項目" icon="🚀" description="查看及管理主要項目進度" />} />
         <Route path="/work/special-approval" element={<Placeholder title="特別批核" icon="✅" description="提交特別批核申請" />} />
+        <Route path="/work/annual-review" element={<AnnualReview />} />
         {/* 考勤/假期 */}
         <Route path="/attendance/records" element={<Placeholder title="簽到記錄" icon="📋" description="查看出勤記錄" />} />
         <Route path="/attendance/checkin" element={<CheckIn />} />
@@ -139,6 +142,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/app-management" element={<Placeholder title="App管理" icon="📲" description="公司應用程式管理" />} />
         <Route path="/admin/course-management" element={<CourseManagement />} />
         <Route path="/admin/regions" element={<RegionManagement />} />
+        <Route path="/admin/annual-reviews" element={<AnnualReviewAdmin />} />
         {/* 管理員 */}
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />

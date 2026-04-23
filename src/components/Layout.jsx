@@ -51,6 +51,8 @@ const pageTitles = {
   "/admin/performance-records": "📊 功過記錄",
   "/admin/app-management": "📲 App管理",
   "/admin/course-management": "🎓 課程管理",
+  "/admin/annual-reviews": "📋 年度評估表",
+  "/work/annual-review": "📋 年度工作評估",
   "/superadmin/analytics": "📈 分析報表",
   "/superadmin/directory": "👥 同事一覽表",
 };
