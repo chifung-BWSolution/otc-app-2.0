@@ -1,0 +1,79 @@
+{
+  "name": "BubbleManHourDate",
+  "type": "object",
+  "properties": {
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID"
+    },
+    "report_date": {
+      "type": "string",
+      "title": "Report Date",
+      "format": "date-time"
+    },
+    "staff_id": {
+      "type": "string",
+      "title": "Staff (Bubble ID)"
+    },
+    "staff_name": {
+      "type": "string",
+      "title": "Staff Name"
+    },
+    "total_work_hour": {
+      "type": "number",
+      "title": "Total Work Hour"
+    }
+  },
+  "required": [
+    "report_date",
+    "staff_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
