@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import AnnualReviewForm from "@/components/annual-review/AnnualReviewForm";
@@ -7,9 +7,7 @@ import AnnualReviewForm from "@/components/annual-review/AnnualReviewForm";
 // Employees fill in the LAST (previous) fiscal year's review
 function getLastFY() {
   const now = new Date();
-  // Current FY start year
   const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  // Last FY is one year before
   const year = currentFYStart - 1;
   return { label: `FY${year}/${year + 1}`, start: `${year}-04-01`, end: `${year + 1}-03-31` };
 }
@@ -76,12 +74,10 @@ export default function AnnualReview() {
       return;
     }
 
-    // Load staff record
     const staffList = await base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1);
     const staff = staffList[0] || null;
     setStaffRec(staff);
 
-    // Check existing review for this FY
     const reviews = await base44.entities.AnnualReview.filter({
       staff_id: me.linked_staff_id,
       fiscal_year: fy.label,
@@ -90,8 +86,21 @@ export default function AnnualReview() {
       setExistingReview(reviews[0]);
     }
 
-    // Load man hour data for project summary
+    // Load lookup tables (stagger to avoid 502)
+    const [taskTypeList, nosTaskList] = await Promise.all([
+      base44.entities.NOSTaskType.filter({}, "display", 200),
+      loadAll(base44.entities.NOSTask, "display"),
+    ]);
+    const projectList = await loadAll(base44.entities.BubbleProject, "display_name");
     const allDates = await loadAll(base44.entities.BubbleManHourDate, "-report_date");
+
+    const projectMap = {};
+    for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
+    const taskTypeMap = {};
+    for (const t of taskTypeList) { if (t.bubble_id) taskTypeMap[t.bubble_id] = t; }
+    const nosTaskMap = {};
+    for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
+
     const myDates = allDates.filter(d => {
       if (d.staff_id !== me.linked_staff_id) return false;
       const rd = toLocalDate(d.report_date);
@@ -102,24 +111,61 @@ export default function AnnualReview() {
     const allTasks = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
     const myTasks = allTasks.filter(t => myDateIds.has(t.man_hour_date_id));
 
-    // Aggregate by project
-    const projMap = {};
+    // Resolve helpers
+    const resolveProjectName = (t) => {
+      if (t.project_name) return t.project_name;
+      if (t.project_id && projectMap[t.project_id]) return projectMap[t.project_id].display_name;
+      return "未指定項目";
+    };
+    const resolveTaskTypeName = (t) => {
+      if (t.task_type_id && taskTypeMap[t.task_type_id]) return taskTypeMap[t.task_type_id].display;
+      if (t.task_id && nosTaskMap[t.task_id]?.task_type_ids?.length) {
+        const tt = taskTypeMap[nosTaskMap[t.task_id].task_type_ids[0]];
+        if (tt) return tt.display;
+      }
+      return t.task_type_name || "未分類";
+    };
+    const resolveTaskName = (t) => {
+      if (t.task_id && nosTaskMap[t.task_id]) return nosTaskMap[t.task_id].display;
+      return t.task_name || t.keywords || "—";
+    };
+
+    // Aggregate by project with nested task type → task breakdown
+    const projAgg = {};
     for (const t of myTasks) {
-      const projName = t.project_name || "未指定項目";
+      const projName = resolveProjectName(t);
       const projId = t.project_id || "";
-      if (!projMap[projName]) projMap[projName] = { project_name: projName, project_id: projId, hours: 0, tasks: 0, sales_amount: 0, contribution_note: "" };
-      projMap[projName].hours += t.work_hour || 0;
-      projMap[projName].tasks += 1;
+      if (!projAgg[projName]) projAgg[projName] = { project_name: projName, project_id: projId, hours: 0, tasks: 0, sales_amount: 0, contribution_note: "", tasksByType: {} };
+      projAgg[projName].hours += t.work_hour || 0;
+      projAgg[projName].tasks += 1;
+
+      const typeName = resolveTaskTypeName(t);
+      if (!projAgg[projName].tasksByType[typeName]) projAgg[projName].tasksByType[typeName] = { name: typeName, hours: 0, taskMap: {} };
+      projAgg[projName].tasksByType[typeName].hours += t.work_hour || 0;
+      const tName = resolveTaskName(t);
+      if (!projAgg[projName].tasksByType[typeName].taskMap[tName]) projAgg[projName].tasksByType[typeName].taskMap[tName] = { name: tName, hours: 0, count: 0 };
+      projAgg[projName].tasksByType[typeName].taskMap[tName].hours += t.work_hour || 0;
+      projAgg[projName].tasksByType[typeName].taskMap[tName].count += 1;
     }
-    const summary = Object.values(projMap)
-      .map(p => ({ ...p, hours: Math.round(p.hours * 10) / 10 }))
+
+    const summary = Object.values(projAgg)
+      .map(p => ({
+        ...p,
+        hours: Math.round(p.hours * 10) / 10,
+        tasksByType: Object.values(p.tasksByType)
+          .map(tt => ({
+            ...tt,
+            hours: Math.round(tt.hours * 10) / 10,
+            tasks: Object.values(tt.taskMap).sort((a, b) => b.hours - a.hours),
+          }))
+          .sort((a, b) => b.hours - a.hours),
+      }))
       .sort((a, b) => b.hours - a.hours);
 
-    // If existing review has project contributions, merge sales/notes into summary
+    // Merge saved sales/notes from existing review
     if (reviews.length > 0 && reviews[0].project_contributions) {
-      const saved = reviews[0].project_contributions;
       const savedMap = {};
-      for (const s of saved) { savedMap[s.project_name] = s; }
+      for (const s of reviews[0].project_contributions) { savedMap[s.project_name] = s; }
       for (const p of summary) {
         const s = savedMap[p.project_name];
         if (s) {

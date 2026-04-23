@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Save, Send, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+
 export default function AnnualReviewForm({ projectSummary, existingReview, saving, onSave }) {
   const [projects, setProjects] = useState([]);
   const [challenges, setChallenges] = useState("");
   const [goals, setGoals] = useState("");
   const [feedback, setFeedback] = useState("");
   const [expandedProject, setExpandedProject] = useState(null);
+  const [showTaskDetail, setShowTaskDetail] = useState(null); // project index for task breakdown
 
   useEffect(() => {
     setProjects(projectSummary.map(p => ({ ...p })));
@@ -24,7 +27,14 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   };
 
   const getFormData = () => ({
-    project_contributions: projects,
+    project_contributions: projects.map(p => ({
+      project_name: p.project_name,
+      project_id: p.project_id,
+      hours: p.hours,
+      tasks: p.tasks,
+      sales_amount: p.sales_amount,
+      contribution_note: p.contribution_note,
+    })),
     challenges,
     next_year_goals: goals,
     company_feedback: feedback,
@@ -40,7 +50,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
           <h3 className="font-bold text-sm text-blue-800">📊 第一部分：年度項目工作摘要</h3>
           <p className="text-xs text-blue-600 mt-0.5">
-            以下是你本財政年度的項目工時數據（自動匯總），請補充銷售數字或貢獻說明。
+            以下是你上個財政年度的項目工時數據（自動匯總），請展開每個項目填寫銷售數字及貢獻說明。
           </p>
         </div>
 
@@ -65,8 +75,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <div className="space-y-2">
             {projects.map((p, i) => {
               const isOpen = expandedProject === i;
+              const isTaskOpen = showTaskDetail === i;
+              const maxHours = projects[0]?.hours || 1;
               return (
                 <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
+                  {/* Project header */}
                   <button
                     className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 text-left transition-colors"
                     onClick={() => setExpandedProject(isOpen ? null : i)}
@@ -74,34 +87,81 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                     <span className="text-gray-400 shrink-0">
                       {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </span>
-                    <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.project_name}</span>
-                    <span className="text-xs text-blue-600 font-bold shrink-0">{p.hours}h</span>
-                    <span className="text-xs text-gray-400 shrink-0">{p.tasks}個任務</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-800 truncate">{p.project_name}</span>
+                        <span className="text-[11px] text-gray-400 shrink-0">({p.tasks}個任務)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                        <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(100, (p.hours / maxHours) * 100)}%` }} />
+                      </div>
+                    </div>
+                    <span className="text-xs text-indigo-600 font-bold shrink-0">{p.hours}h</span>
                     {(p.sales_amount > 0 || p.contribution_note) && (
                       <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" title="已填寫" />
                     )}
                   </button>
+
+                  {/* Expanded: task summary + form fields */}
                   {isOpen && (
-                    <div className="px-4 pb-3 pt-1 bg-gray-50/50 space-y-2 border-t border-gray-100">
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">💰 銷售額 / 收入貢獻（如適用）</label>
-                        <input
-                          type="number"
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                          placeholder="輸入金額（如無可留空）"
-                          value={p.sales_amount || ""}
-                          onChange={e => updateProject(i, "sales_amount", parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">📝 貢獻說明</label>
-                        <textarea
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
-                          rows={2}
-                          placeholder="描述你在此項目中的主要貢獻..."
-                          value={p.contribution_note || ""}
-                          onChange={e => updateProject(i, "contribution_note", e.target.value)}
-                        />
+                    <div className="border-t border-gray-100">
+                      {/* Task breakdown toggle */}
+                      {p.tasksByType?.length > 0 && (
+                        <div className="px-4 pt-3">
+                          <button
+                            className="text-xs text-indigo-600 font-semibold flex items-center gap-1 hover:text-indigo-800 transition-colors"
+                            onClick={() => setShowTaskDetail(isTaskOpen ? null : i)}
+                          >
+                            {isTaskOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                            📋 查看任務明細（{p.tasks}個任務）
+                          </button>
+
+                          {isTaskOpen && (
+                            <div className="mt-2 mb-1 space-y-2 border-l-2 border-indigo-200 pl-3 max-h-60 overflow-y-auto">
+                              {p.tasksByType.map((tt, j) => (
+                                <div key={j}>
+                                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
+                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
+                                    <span className="flex-1 truncate">{tt.name}</span>
+                                    <span className="text-blue-600">{tt.hours}h</span>
+                                  </div>
+                                  <div className="ml-4 space-y-0.5">
+                                    {tt.tasks.map((task, k) => (
+                                      <div key={k} className="flex items-center gap-1 text-[10px] text-gray-500">
+                                        <span className="flex-1 truncate">{task.name}{task.count > 1 ? ` ×${task.count}` : ""}</span>
+                                        <span className="font-medium text-gray-600 shrink-0">{Math.round(task.hours * 10) / 10}h</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Form fields */}
+                      <div className="px-4 pb-3 pt-2 space-y-2">
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 block mb-1">💰 銷售額 / 收入貢獻（如適用）</label>
+                          <input
+                            type="number"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            placeholder="輸入金額（如無可留空）"
+                            value={p.sales_amount || ""}
+                            onChange={e => updateProject(i, "sales_amount", parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 block mb-1">📝 貢獻說明</label>
+                          <textarea
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                            rows={2}
+                            placeholder="描述你在此項目中的主要貢獻..."
+                            value={p.contribution_note || ""}
+                            onChange={e => updateProject(i, "contribution_note", e.target.value)}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
