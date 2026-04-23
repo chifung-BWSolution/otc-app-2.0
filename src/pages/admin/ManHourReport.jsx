@@ -80,11 +80,20 @@ export default function ManHourReport() {
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
 
-    // Filter clockins within range
+    // Filter clockins within range - parse date from "M/D/YYYY H:MM" or ISO
+    const parseCkDate = (t) => {
+      if (!t) return null;
+      if (t.includes("-")) return t.slice(0, 10);
+      const parts = t.split(" ")[0]?.split("/");
+      if (parts?.length === 3) {
+        const [m, d, y] = parts;
+        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+      }
+      return null;
+    };
     const filteredClockins = clockinList.filter(c => {
-      if (!c.clockin_time) return false;
-      const d = c.clockin_time.slice(0, 10);
-      return d >= cutoffStr && d <= endStr;
+      const d = parseCkDate(c.clockin_time);
+      return d && d >= cutoffStr && d <= endStr;
     });
     setClockins(filteredClockins);
 
@@ -125,17 +134,43 @@ export default function ManHourReport() {
     return m;
   }, [nosTasks]);
 
-  // Clockin work days per staff (by bubble_id)
+  // Build staff name -> bubble_id lookup for clockin matching
+  const staffNameToBubbleId = useMemo(() => {
+    const m = {};
+    for (const s of staff) {
+      if (s.bubble_id && s.display_name) m[s.display_name] = s.bubble_id;
+    }
+    return m;
+  }, [staff]);
+
+  // Parse clockin date from format "M/D/YYYY H:MM" or ISO
+  const parseClockinDate = (timeStr) => {
+    if (!timeStr) return null;
+    // ISO format: "2025-09-12T..."
+    if (timeStr.includes("-")) return timeStr.slice(0, 10);
+    // Bubble format: "9/12/2025 9:30"
+    const parts = timeStr.split(" ")[0]?.split("/");
+    if (parts?.length === 3) {
+      const [m, d, y] = parts;
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    return null;
+  };
+
+  // Clockin work days per staff (by staff_name -> bubble_id)
   const clockinDaysByStaff = useMemo(() => {
     const m = {}; // staff_bubble_id -> Set of dates
     for (const c of clockins) {
-      if (!c.staff_id || !c.clockin_time) continue;
-      const d = c.clockin_time.slice(0, 10);
-      if (!m[c.staff_id]) m[c.staff_id] = new Set();
-      m[c.staff_id].add(d);
+      if (!c.staff_name || !c.clockin_time) continue;
+      const bubbleId = c.staff_id || staffNameToBubbleId[c.staff_name];
+      if (!bubbleId) continue;
+      const d = parseClockinDate(c.clockin_time);
+      if (!d) continue;
+      if (!m[bubbleId]) m[bubbleId] = new Set();
+      m[bubbleId].add(d);
     }
     return m;
-  }, [clockins]);
+  }, [clockins, staffNameToBubbleId]);
 
   // Aggregate by staff
   const staffSummary = useMemo(() => {
