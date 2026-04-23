@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { base44 } from "@/api/base44Client";
-import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2, AlertTriangle, X, Filter } from "lucide-react";
+import { BarChart2, Clock, Users, Search, ChevronDown, ChevronRight, Loader2, AlertTriangle, X, Filter, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import DateRangeFilter from "@/components/report/DateRangeFilter";
 import MultiSelectDropdown from "@/components/report/MultiSelectDropdown";
@@ -63,6 +63,8 @@ export default function ManHourReport() {
   const [teamFilter, setTeamFilter] = useState([]);
   const [positionFilter, setPositionFilter] = useState([]);
   const [onlyMissing, setOnlyMissing] = useState(false);
+  const [sortCol, setSortCol] = useState("hours"); // name | team | workDays | reportDays | missing | tasks | hours | avgDaily
+  const [sortDir, setSortDir] = useState("desc"); // asc | desc
 
   useEffect(() => { loadData(); }, [dateRange, customFrom, customTo]);
 
@@ -290,7 +292,7 @@ export default function ManHourReport() {
   const positionList = useMemo(() => [...new Set(staffSummary.map(s => s.position).filter(Boolean))].sort(), [staffSummary]);
 
   const filteredSummary = useMemo(() => {
-    return staffSummary.filter(s => {
+    const list = staffSummary.filter(s => {
       if (search) {
         const q = search.toLowerCase();
         if (!s.name.toLowerCase().includes(q) && !s.team.toLowerCase().includes(q) && !s.bu.toLowerCase().includes(q)) return false;
@@ -301,7 +303,41 @@ export default function ManHourReport() {
       if (onlyMissing && s.missingDates.length === 0) return false;
       return true;
     });
-  }, [staffSummary, search, buFilter, teamFilter, positionFilter, onlyMissing]);
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      const avgA = a.dateCount > 0 ? a.totalHours / a.dateCount : 0;
+      const avgB = b.dateCount > 0 ? b.totalHours / b.dateCount : 0;
+      switch (sortCol) {
+        case "name": return dir * (a.name || "").localeCompare(b.name || "", "zh-Hant");
+        case "team": return dir * (a.team || "").localeCompare(b.team || "", "zh-Hant");
+        case "workDays": return dir * (a.workDays - b.workDays);
+        case "reportDays": return dir * (a.dateCount - b.dateCount);
+        case "missing": return dir * (a.missingDates.length - b.missingDates.length);
+        case "tasks": return dir * (a.taskCount - b.taskCount);
+        case "hours": return dir * (a.totalHours - b.totalHours);
+        case "avgDaily": return dir * (avgA - avgB);
+        default: return 0;
+      }
+    });
+    return list;
+  }, [staffSummary, search, buFilter, teamFilter, positionFilter, onlyMissing, sortCol, sortDir]);
+
+  const handleSort = (col) => {
+    if (sortCol === col) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortCol(col);
+      setSortDir(col === "name" || col === "team" ? "asc" : "desc");
+    }
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortCol !== col) return <ArrowUpDown size={11} className="text-gray-300 ml-0.5" />;
+    return sortDir === "asc"
+      ? <ArrowUp size={11} className="text-indigo-500 ml-0.5" />
+      : <ArrowDown size={11} className="text-indigo-500 ml-0.5" />;
+  };
 
   // Resolve helpers
   const resolveTaskTypeName = (t) => {
@@ -437,13 +473,27 @@ export default function ManHourReport() {
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400 font-semibold bg-gray-50">
                 <th className="px-4 py-2.5 text-left w-8"></th>
-                <th className="px-4 py-2.5 text-left">員工</th>
-                <th className="px-4 py-2.5 text-left">Team / BU</th>
-                <th className="px-4 py-2.5 text-right">上班日</th>
-                <th className="px-4 py-2.5 text-right">匯報天</th>
-                <th className="px-4 py-2.5 text-right">任務數</th>
-                <th className="px-4 py-2.5 text-right">總工時</th>
-                <th className="px-4 py-2.5 text-right">日均工時</th>
+                <th className="px-4 py-2.5 text-left cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("name")}>
+                  <span className="inline-flex items-center">員工 <SortIcon col="name" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-left cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("team")}>
+                  <span className="inline-flex items-center">Team / BU <SortIcon col="team" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-right cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("workDays")}>
+                  <span className="inline-flex items-center justify-end">上班日 <SortIcon col="workDays" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-right cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("missing")}>
+                  <span className="inline-flex items-center justify-end">缺報日 <SortIcon col="missing" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-right cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("tasks")}>
+                  <span className="inline-flex items-center justify-end">任務數 <SortIcon col="tasks" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-right cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("hours")}>
+                  <span className="inline-flex items-center justify-end">總工時 <SortIcon col="hours" /></span>
+                </th>
+                <th className="px-4 py-2.5 text-right cursor-pointer select-none hover:text-gray-600" onClick={() => handleSort("avgDaily")}>
+                  <span className="inline-flex items-center justify-end">日均工時 <SortIcon col="avgDaily" /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -465,13 +515,10 @@ export default function ManHourReport() {
                       </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{s.workDays}</td>
                       <td className="px-4 py-2.5 text-right">
-                        <span className={hasMissing ? "text-orange-600 font-semibold" : "text-gray-600"}>
-                          {s.dateCount}
-                        </span>
-                        {hasMissing && (
-                          <span className="text-[10px] text-orange-500 ml-1" title={`${s.missingDates.length} 日未報`}>
-                            (-{s.missingDates.length})
-                          </span>
+                        {hasMissing ? (
+                          <span className="text-orange-600 font-semibold">{s.missingDates.length} 日</span>
+                        ) : (
+                          <span className="text-green-600 text-xs">✓</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{s.taskCount}</td>
