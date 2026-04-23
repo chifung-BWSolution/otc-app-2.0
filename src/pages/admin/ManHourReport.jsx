@@ -25,8 +25,11 @@ function StatCard({ label, value, sub, color = "blue" }) {
 async function loadAllRecords(entity, sort = "id", batchSize = 5000) {
   const all = [];
   let offset = 0;
+  let batchNum = 0;
   while (true) {
     const batch = await entity.filter({}, sort, batchSize, offset);
+    batchNum++;
+    console.log(`[loadAll] batch #${batchNum}: requested=${batchSize} got=${batch.length} offset=${offset} total=${all.length + batch.length}`);
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
