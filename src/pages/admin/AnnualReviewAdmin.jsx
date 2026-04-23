@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, FileText, Search, ChevronDown, ChevronRight, Eye, Users } from "lucide-react";
+import { Loader2, FileText, Search, Eye, Users, X } from "lucide-react";
 import AnnualReviewDetail from "@/components/annual-review/AnnualReviewDetail";
+import MultiSelectDropdown from "@/components/report/MultiSelectDropdown";
 
 export default function AnnualReviewAdmin() {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [fyFilter, setFyFilter] = useState("all");
+  const [buFilter, setBuFilter] = useState([]);
+  const [teamFilter, setTeamFilter] = useState([]);
   const [selectedReview, setSelectedReview] = useState(null);
 
   useEffect(() => { loadData(); }, []);
@@ -19,8 +23,18 @@ export default function AnnualReviewAdmin() {
     setLoading(false);
   };
 
+  const fyList = useMemo(() => [...new Set(reviews.map(r => r.fiscal_year).filter(Boolean))].sort().reverse(), [reviews]);
+  const buList = useMemo(() => [...new Set(reviews.map(r => r.staff_bu).filter(Boolean))].sort(), [reviews]);
+  const teamList = useMemo(() => {
+    const src = buFilter.length > 0 ? reviews.filter(r => buFilter.includes(r.staff_bu)) : reviews;
+    return [...new Set(src.map(r => r.staff_team).filter(Boolean))].sort();
+  }, [reviews, buFilter]);
+
   const filtered = reviews.filter(r => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (fyFilter !== "all" && r.fiscal_year !== fyFilter) return false;
+    if (buFilter.length > 0 && !buFilter.includes(r.staff_bu)) return false;
+    if (teamFilter.length > 0 && !teamFilter.includes(r.staff_team)) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!(r.staff_name || "").toLowerCase().includes(q) &&
@@ -30,8 +44,9 @@ export default function AnnualReviewAdmin() {
     return true;
   });
 
-  const submittedCount = reviews.filter(r => r.status === "submitted").length;
-  const draftCount = reviews.filter(r => r.status === "draft").length;
+  const submittedCount = filtered.filter(r => r.status === "submitted").length;
+  const draftCount = filtered.filter(r => r.status === "draft").length;
+  const hasFilters = search || statusFilter !== "all" || fyFilter !== "all" || buFilter.length > 0 || teamFilter.length > 0;
 
   if (loading) {
     return (
@@ -62,7 +77,7 @@ export default function AnnualReviewAdmin() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-indigo-50 rounded-xl p-3 text-center border border-indigo-100">
-          <div className="text-xl font-bold text-indigo-600">{reviews.length}</div>
+          <div className="text-xl font-bold text-indigo-600">{filtered.length}</div>
           <div className="text-xs text-gray-500">總數</div>
         </div>
         <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
@@ -76,8 +91,8 @@ export default function AnnualReviewAdmin() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 items-center">
-        <div className="relative flex-1 max-w-72">
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-40 max-w-72">
           <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
           <input
             className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -88,6 +103,14 @@ export default function AnnualReviewAdmin() {
         </div>
         <select
           className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white"
+          value={fyFilter}
+          onChange={e => setFyFilter(e.target.value)}
+        >
+          <option value="all">全部年度</option>
+          {fyList.map(fy => <option key={fy} value={fy}>{fy}</option>)}
+        </select>
+        <select
+          className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
@@ -95,6 +118,14 @@ export default function AnnualReviewAdmin() {
           <option value="submitted">已提交</option>
           <option value="draft">草稿</option>
         </select>
+        <MultiSelectDropdown label="BU" options={buList} selected={buFilter} onChange={setBuFilter} />
+        <MultiSelectDropdown label="Team" options={teamList} selected={teamFilter} onChange={setTeamFilter} />
+        {hasFilters && (
+          <button onClick={() => { setSearch(""); setStatusFilter("all"); setFyFilter("all"); setBuFilter([]); setTeamFilter([]); }}
+            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 px-1">
+            <X size={11} /> 清除
+          </button>
+        )}
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} 筆</span>
       </div>
 
