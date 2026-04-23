@@ -69,23 +69,24 @@ export default function PerformanceReport() {
     setNosTasks(nosTaskList);
     setProjects(projectList);
 
-    // report_date from Bubble stored in UTC; convert to HKT (UTC+8) to get real date
-    const toHKTDate = (isoStr) => {
+    // Parse date: handles both "2026-03-01" (new) and "2026-03-01T16:00:00Z" (legacy)
+    const toLocalDate = (isoStr) => {
       if (!isoStr) return null;
+      if (isoStr.length === 10) return isoStr;
       const d = new Date(isoStr);
       const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
       return hkt.toISOString().slice(0, 10);
     };
     const filteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
-      const rd = toHKTDate(d.report_date);
+      const rd = toLocalDate(d.report_date);
       return rd && rd >= cutoffStr && rd <= endStr;
     });
     setDates(filteredDates);
 
     const filteredKpiMonths = kpiMonthList.filter(m => {
       if (!m.report_month) return false;
-      const rm = toHKTDate(m.report_month);
+      const rm = toLocalDate(m.report_month);
       return rm && rm >= cutoffStr && rm <= endStr;
     });
     setKpiMonths(filteredKpiMonths);

@@ -74,12 +74,13 @@ export default function ManHourReport() {
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
-    // report_date from Bubble: "2026-03-01T16:00:00.000Z" = 2026-03-02 00:00 HKT
-    // Bubble stores dates in UTC; the actual report date is the HKT (UTC+8) date
+    // report_date: could be "2026-03-01" (new import) or "2026-03-01T16:00:00.000Z" (legacy)
     const toReportDate = (isoStr) => {
       if (!isoStr) return null;
+      // New format: already YYYY-MM-DD
+      if (isoStr.length === 10) return isoStr;
+      // Legacy format with T16:00:00Z: convert UTC to HKT (UTC+8)
       const d = new Date(isoStr);
-      // Convert to HKT (UTC+8) to get the real report date
       const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
       return hkt.toISOString().slice(0, 10);
     };
@@ -95,14 +96,19 @@ export default function ManHourReport() {
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
 
-    // Filter clockins within range - parse date from "D/M/YYYY H:MM" or ISO
+    // Filter clockins within range
     const parseCkDate = (t) => {
       if (!t) return null;
-      if (t.includes("-")) return toReportDate(t); // ISO: convert to HKT date
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+      if (t.includes("-") && t.includes("T")) {
+        const d2 = new Date(t);
+        const hkt = new Date(d2.getTime() + 8 * 60 * 60 * 1000);
+        return hkt.toISOString().slice(0, 10);
+      }
       const parts = t.split(" ")[0]?.split("/");
       if (parts?.length === 3) {
-        const [d, m, y] = parts;
-        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        const [d2, m, y] = parts;
+        return `${y}-${m.padStart(2, "0")}-${d2.padStart(2, "0")}`;
       }
       return null;
     };
@@ -161,11 +167,13 @@ export default function ManHourReport() {
     return m;
   }, [staff]);
 
-  // Parse clockin date from format "D/M/YYYY H:MM" or ISO (convert ISO to HKT)
+  // Parse clockin date from format "D/M/YYYY H:MM" or ISO
   const parseClockinDate = (timeStr) => {
     if (!timeStr) return null;
-    // ISO format: convert to HKT date
-    if (timeStr.includes("-")) {
+    // Plain date: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(timeStr)) return timeStr;
+    // ISO with time: convert to HKT date
+    if (timeStr.includes("-") && timeStr.includes("T")) {
       const d = new Date(timeStr);
       const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
       return hkt.toISOString().slice(0, 10);
@@ -220,15 +228,10 @@ export default function ManHourReport() {
       if (sid && map[sid]) map[sid].taskCount += 1;
     }
 
-    const dateStaffNames = {};
-    for (const d of dates) {
-      if (d.staff_id && d.staff_name) dateStaffNames[d.staff_id] = d.staff_name;
-    }
-
     return Object.values(map)
       .map(s => {
         const staffRec = staffMap[s.staffId];
-        const name = staffRec?.display_name || dateStaffNames[s.staffId] || s.staffId;
+        const name = staffRec?.display_name || s.staffId;
         const workDaysSet = clockinDaysByStaff[s.staffId];
         const workDays = workDaysSet ? workDaysSet.size : 0;
         const reportDatesSet = reportDatesByStaff[s.staffId] || new Set();

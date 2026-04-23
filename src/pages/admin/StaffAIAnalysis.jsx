@@ -87,16 +87,17 @@ export default function StaffAIAnalysis() {
     const projectMap = {};
     for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
 
-    // Convert UTC to HKT (UTC+8) to get the real report date
-    const toHKTDate = (isoStr) => {
+    // Parse date: handles both "2026-03-01" (new) and "2026-03-01T16:00:00Z" (legacy)
+    const toLocalDate = (isoStr) => {
       if (!isoStr) return null;
+      if (isoStr.length === 10) return isoStr;
       const d = new Date(isoStr);
       const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000);
       return hkt.toISOString().slice(0, 10);
     };
     const allFilteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
-      const rd = toHKTDate(d.report_date);
+      const rd = toLocalDate(d.report_date);
       return rd && rd >= cutoffStr && rd <= endStr;
     });
     const myDates = allFilteredDates.filter(d => d.staff_id === bubbleId);
@@ -115,7 +116,7 @@ export default function StaffAIAnalysis() {
     // KPI
     const myKpiMonths = kpiMonthList.filter(m => {
       if (m.staff_id !== bubbleId || !m.report_month) return false;
-      const rm = toHKTDate(m.report_month);
+      const rm = toLocalDate(m.report_month);
       return rm && rm >= cutoffStr && rm <= endStr;
     });
     const myKpiMonthIds = new Set(myKpiMonths.map(m => m.bubble_id).filter(Boolean));
