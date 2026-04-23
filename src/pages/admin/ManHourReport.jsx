@@ -70,7 +70,7 @@ export default function ManHourReport() {
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAllRecords(base44.entities.NOSTask, "display"),
-      loadAllRecords(base44.entities.BubbleClockin, "-clockin_time"),
+      loadAllRecords(base44.entities.BubbleClockin, "id"),
     ]);
     const staffList = allStaffList.filter(s => s.o_status === "Active");
 
@@ -109,6 +109,12 @@ export default function ManHourReport() {
       return d && d >= cutoffStr && d <= endStr;
     });
     setClockins(filteredClockins);
+    console.log("[MHR DEBUG] total clockins loaded:", clockinList.length, "filtered to range:", filteredClockins.length, "allStaff:", allStaffList.length);
+    // Debug: check Yoko Cheung specifically
+    const yokoCk = filteredClockins.filter(c => c.staff_name === "Yoko Cheung");
+    console.log("[MHR DEBUG] Yoko clockins in range:", yokoCk.length, "dates:", yokoCk.map(c => parseCkDate(c.clockin_time)));
+    const yokoStaffBid = allStaffList.find(s => s.display_name === "Yoko Cheung")?.bubble_id;
+    console.log("[MHR DEBUG] Yoko bubble_id:", yokoStaffBid, "nameMap has:", !!{[allStaffList.find(s=>s.display_name==="Yoko Cheung")?.display_name]: true}["Yoko Cheung"]);
 
     const dateIds = new Set(filteredDates.map(d => d.bubble_id).filter(Boolean));
     const taskList = await loadAllRecords(base44.entities.BubbleManHourTask, "-created_date");
