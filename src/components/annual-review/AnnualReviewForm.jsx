@@ -3,8 +3,6 @@ import { Save, Send, ChevronDown, ChevronRight, Loader2, Plus, X } from "lucide-
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 const INITIAL_SHOW = 10;
-const MAX_POINTS = 5;
-const MAX_POINT_LENGTH = 30;
 
 // Parse contribution_note: could be JSON array string or plain text
 function parsePoints(note) {
@@ -51,8 +49,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     setPointsMap(pm);
   }, [projectSummary, existingReview]);
 
-  // All project indices sorted by hours desc
-  const allIndices = projects.map((_, i) => i);
+  // Filter projects: only show those with >= 40h
+  const allIndices = projects.map((_, i) => i).filter(i => (projects[i].hours || 0) >= 40);
   const visibleIndices = showAll ? allIndices : allIndices.slice(0, INITIAL_SHOW);
   const hasMore = allIndices.length > INITIAL_SHOW && !showAll;
 
@@ -70,10 +68,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   };
 
   const updatePoint = (projIdx, pointIdx, value) => {
-    const trimmed = value.slice(0, MAX_POINT_LENGTH);
     const next = { ...pointsMap };
     const arr = [...(next[projIdx] || [""])];
-    arr[pointIdx] = trimmed;
+    arr[pointIdx] = value;
     next[projIdx] = arr;
     setPointsMap(next);
     updateProject(projIdx, "contribution_note", serializePoints(arr));
@@ -82,11 +79,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const addPoint = (projIdx) => {
     const next = { ...pointsMap };
     const arr = [...(next[projIdx] || [])];
-    if (arr.length < MAX_POINTS) {
-      arr.push("");
-      next[projIdx] = arr;
-      setPointsMap(next);
-    }
+    arr.push("");
+    next[projIdx] = arr;
+    setPointsMap(next);
   };
 
   const removePoint = (projIdx, pointIdx) => {
@@ -254,7 +249,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                     {/* Contribution points */}
                     <div>
                       <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                        📝 貢獻重點（最多 {MAX_POINTS} 項，每項最多 {MAX_POINT_LENGTH} 字）
+                        📝 貢獻重點
                       </label>
                       <div className="space-y-2">
                         {selPoints.map((pt, pi) => (
@@ -263,11 +258,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                             <input
                               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                               placeholder={`第 ${pi + 1} 項貢獻重點...`}
-                              maxLength={MAX_POINT_LENGTH}
                               value={pt}
                               onChange={e => updatePoint(selectedProject, pi, e.target.value)}
                             />
-                            <span className="text-xs text-gray-300 w-10 shrink-0 text-right">{pt.length}/{MAX_POINT_LENGTH}</span>
                             {selPoints.length > 1 && (
                               <button
                                 onClick={() => removePoint(selectedProject, pi)}
@@ -279,7 +272,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                           </div>
                         ))}
                       </div>
-                      {selPoints.length < MAX_POINTS && (
+                      {(
                         <button
                           onClick={() => addPoint(selectedProject)}
                           className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
