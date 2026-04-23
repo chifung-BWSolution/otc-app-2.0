@@ -73,7 +73,19 @@ export default function ManHourReport() {
       loadAllRecords(base44.entities.BubbleClockin, "-clockin_time"),
     ]);
 
-    const filteredDates = dateList.filter(d => d.report_date && d.report_date >= cutoffStr && d.report_date <= endStr);
+    // report_date is stored as UTC (e.g. "2026-04-19T16:00:00.000Z" = Apr 20 HKT)
+    // Convert to local date for correct filtering
+    const toLocalDate = (isoStr) => {
+      if (!isoStr) return null;
+      const d = new Date(isoStr);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    };
+    const filteredDates = dateList.filter(d => {
+      const ld = toLocalDate(d.report_date);
+      return ld && ld >= cutoffStr && ld <= endStr;
+    });
+    // Attach local date to each record for downstream use
+    for (const d of filteredDates) { d._localDate = toLocalDate(d.report_date); }
     setDates(filteredDates);
     setStaff(staffList);
     setProjects(projectList);
@@ -107,10 +119,7 @@ export default function ManHourReport() {
   const dateMap = useMemo(() => {
     const m = {};
     for (const d of dates) {
-      if (d.bubble_id && d.report_date) {
-        const rd = new Date(d.report_date);
-        m[d.bubble_id] = `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`;
-      }
+      if (d.bubble_id) m[d.bubble_id] = d._localDate || d.report_date?.slice(0, 10);
     }
     return m;
   }, [dates]);
@@ -188,13 +197,7 @@ export default function ManHourReport() {
       map[sid].totalHours += d.total_work_hour || 0;
       map[sid].dateCount += 1;
       if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
-      if (d.report_date) {
-        // report_date is stored as UTC (e.g. "2026-04-19T16:00:00.000Z" = Apr 20 HKT)
-        // Convert to local date string for correct comparison
-        const rd = new Date(d.report_date);
-        const localDate = `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`;
-        reportDatesByStaff[sid].add(localDate);
-      }
+      if (d._localDate) reportDatesByStaff[sid].add(d._localDate);
     }
 
     const dateToStaff = {};
