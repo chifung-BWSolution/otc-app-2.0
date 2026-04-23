@@ -189,6 +189,7 @@ export default function AnnualReview() {
       staff_position: staffRec?.position || "",
       fiscal_year: fy.label,
       project_contributions: formData.project_contributions,
+      other_contributions: formData.other_contributions,
       challenges: formData.challenges,
       next_year_goals: formData.next_year_goals,
       company_feedback: formData.company_feedback,

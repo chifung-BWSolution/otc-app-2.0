@@ -27,6 +27,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [challenges, setChallenges] = useState("");
   const [goals, setGoals] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [otherContributions, setOtherContributions] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null); // index in filtered list
   // Per-project contribution points: { [projectIndex]: string[] }
@@ -39,6 +40,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       setChallenges(existingReview.challenges || "");
       setGoals(existingReview.next_year_goals || "");
       setFeedback(existingReview.company_feedback || "");
+      setOtherContributions(existingReview.other_contributions || "");
     }
     // Init points from existing data
     const pm = {};
@@ -106,6 +108,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       sales_amount: p.sales_amount,
       contribution_note: p.contribution_note,
     })),
+    other_contributions: otherContributions,
     challenges,
     next_year_goals: goals,
     company_feedback: feedback,
@@ -292,10 +295,27 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
-      {/* Section 2: Challenges */}
+      {/* Section 1.5: Other Contributions */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-teal-50 px-5 py-4 border-b border-teal-100">
+          <h3 className="font-bold text-base text-teal-800">🏆 第二部分：其他對公司的貢獻 / 成就 / 創新 / 品牌升級</h3>
+          <p className="text-sm text-teal-600 mt-0.5">請列出不在上述項目中的其他重要貢獻、成就、創新舉措或品牌提升事項。</p>
+        </div>
+        <div className="p-5">
+          <textarea
+            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 resize-none"
+            rows={5}
+            placeholder="例如：推動了新的工作流程、獲得客戶特別表揚、完成品牌升級項目、引入創新技術方案等..."
+            value={otherContributions}
+            onChange={e => setOtherContributions(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Section 3: Challenges */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
-          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的困難</h3>
+          <h3 className="font-bold text-base text-orange-800">⚡ 第三部分：年度遇到的困難</h3>
           <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰。</p>
         </div>
         <div className="p-5">
@@ -309,10 +329,10 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
-      {/* Section 3: Goals */}
+      {/* Section 4: Goals */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-green-50 px-5 py-4 border-b border-green-100">
-          <h3 className="font-bold text-base text-green-800">🎯 第三部分：未來一年目標</h3>
+          <h3 className="font-bold text-base text-green-800">🎯 第四部分：未來一年目標</h3>
           <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標和個人發展計劃。</p>
         </div>
         <div className="p-5">
@@ -326,10 +346,10 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
-      {/* Section 4: Company Feedback */}
+      {/* Section 5: Company Feedback */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
-          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
+          <h3 className="font-bold text-base text-purple-800">💬 第五部分：對公司的意見</h3>
           <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
         </div>
         <div className="p-5">

@@ -87,13 +87,16 @@ export default function AnnualReviewDetail({ review, onBack }) {
         </div>
       </div>
 
-      {/* Section 2: Challenges */}
+      {/* Section 2: Other Contributions */}
+      <SectionCard color="teal" icon="🏆" title="其他貢獻 / 成就 / 創新 / 品牌升級" content={r.other_contributions} />
+
+      {/* Section 3: Challenges */}
       <SectionCard color="orange" icon="⚡" title="年度遇到的困難" content={r.challenges} />
 
-      {/* Section 3: Goals */}
+      {/* Section 4: Goals */}
       <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
 
-      {/* Section 4: Company Feedback */}
+      {/* Section 5: Company Feedback */}
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {/* Meta */}
@@ -107,9 +110,9 @@ export default function AnnualReviewDetail({ review, onBack }) {
 }
 
 function SectionCard({ color, icon, title, content }) {
-  const bgMap = { orange: "bg-orange-50", green: "bg-green-50", purple: "bg-purple-50" };
-  const borderMap = { orange: "border-orange-100", green: "border-green-100", purple: "border-purple-100" };
-  const textMap = { orange: "text-orange-800", green: "text-green-800", purple: "text-purple-800" };
+  const bgMap = { teal: "bg-teal-50", orange: "bg-orange-50", green: "bg-green-50", purple: "bg-purple-50" };
+  const borderMap = { teal: "border-teal-100", orange: "border-orange-100", green: "border-green-100", purple: "border-purple-100" };
+  const textMap = { teal: "text-teal-800", orange: "text-orange-800", green: "text-green-800", purple: "text-purple-800" };
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
