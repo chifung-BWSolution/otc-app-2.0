@@ -189,15 +189,18 @@ export default function ManHourReport() {
   // Aggregate by staff
   const staffSummary = useMemo(() => {
     const map = {};
-    const reportDatesByStaff = {}; // staff_id -> Set of report_dates
+    const reportDatesByStaff = {}; // staff_id -> Set of unique local dates
     for (const d of dates) {
       const sid = d.staff_id;
       if (!sid) continue;
-      if (!map[sid]) map[sid] = { staffId: sid, totalHours: 0, dateCount: 0, taskCount: 0 };
+      if (!map[sid]) map[sid] = { staffId: sid, totalHours: 0, taskCount: 0 };
       map[sid].totalHours += d.total_work_hour || 0;
-      map[sid].dateCount += 1;
       if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
       if (d._localDate) reportDatesByStaff[sid].add(d._localDate);
+    }
+    // Set dateCount from unique dates, not raw record count
+    for (const sid of Object.keys(map)) {
+      map[sid].dateCount = reportDatesByStaff[sid]?.size || 0;
     }
 
     const dateToStaff = {};
