@@ -106,7 +106,12 @@ export default function ManHourReport() {
   // Lookups
   const dateMap = useMemo(() => {
     const m = {};
-    for (const d of dates) { if (d.bubble_id) m[d.bubble_id] = d.report_date; }
+    for (const d of dates) {
+      if (d.bubble_id && d.report_date) {
+        const rd = new Date(d.report_date);
+        m[d.bubble_id] = `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`;
+      }
+    }
     return m;
   }, [dates]);
 
@@ -183,7 +188,13 @@ export default function ManHourReport() {
       map[sid].totalHours += d.total_work_hour || 0;
       map[sid].dateCount += 1;
       if (!reportDatesByStaff[sid]) reportDatesByStaff[sid] = new Set();
-      if (d.report_date) reportDatesByStaff[sid].add(d.report_date.slice(0, 10));
+      if (d.report_date) {
+        // report_date is stored as UTC (e.g. "2026-04-19T16:00:00.000Z" = Apr 20 HKT)
+        // Convert to local date string for correct comparison
+        const rd = new Date(d.report_date);
+        const localDate = `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`;
+        reportDatesByStaff[sid].add(localDate);
+      }
     }
 
     const dateToStaff = {};
