@@ -65,7 +65,7 @@ export default function StaffAIAnalysis() {
 
     // Stagger loads to avoid rate limits
     const [allStaff, taskTypeList] = await Promise.all([
-      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
+      base44.entities.Staff.list("display_name", 2000),
       base44.entities.NOSTaskType.filter({}, "display", 200),
     ]);
     const [dateList, nosTaskList, projectList] = await Promise.all([

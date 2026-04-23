@@ -79,6 +79,8 @@ export default function PerformanceReport() {
   // Phase 1: load staff list + dates (lightweight) for the table
   useEffect(() => { loadPhase1(); }, [dateRange, customFrom, customTo]);
 
+  const [allStaffIncInactive, setAllStaffIncInactive] = useState([]);
+
   const loadPhase1 = async () => {
     setLoading(true);
     setDetailLoaded(false);
@@ -86,11 +88,13 @@ export default function PerformanceReport() {
     const { cutoffStr, endStr } = getDateRange();
 
     const [staffList, dateList] = await Promise.all([
-      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
+      base44.entities.Staff.list("display_name", 2000),
       loadAll(base44.entities.BubbleManHourDate, "-report_date"),
     ]);
 
-    setStaff(staffList);
+    const activeStaff = staffList.filter(s => s.o_status === "Active");
+    setStaff(activeStaff);
+    setAllStaffIncInactive(staffList);
     const filteredDates = dateList.filter(d => {
       if (!d.report_date) return false;
       const rd = toLocalDate(d.report_date);
@@ -154,7 +158,8 @@ export default function PerformanceReport() {
   };
 
   // Lookups
-  const staffBubbleMap = useMemo(() => { const m = {}; for (const s of staff) { if (s.bubble_id) m[s.bubble_id] = s; } return m; }, [staff]);
+  // staffBubbleMap includes ALL staff (active + inactive) for name resolution in modals
+  const staffBubbleMap = useMemo(() => { const m = {}; for (const s of allStaffIncInactive) { if (s.bubble_id) m[s.bubble_id] = s; } return m; }, [allStaffIncInactive]);
   // dateToStaff for contribution modal
   const dateToStaffMap = useMemo(() => { const m = {}; for (const d of dates) { if (d.bubble_id && d.staff_id) m[d.bubble_id] = d.staff_id; } return m; }, [dates]);
   const taskTypeMap = useMemo(() => { const m = {}; for (const t of taskTypes) { if (t.bubble_id) m[t.bubble_id] = t; } return m; }, [taskTypes]);
@@ -254,7 +259,7 @@ export default function PerformanceReport() {
           projectBubbleId={contributionProject.bubbleId}
           allTasks={tasks}
           dateToStaff={dateToStaffMap}
-          allStaff={staff}
+          allStaff={allStaffIncInactive}
           staffMap={staffBubbleMap}
           nosTaskMap={nosTaskMap}
           taskTypeMap={taskTypeMap}
