@@ -64,14 +64,15 @@ export default function ManHourReport() {
       endStr = new Date().toISOString().split("T")[0];
     }
 
-    const [dateList, staffList, projectList, taskTypeList, nosTaskList, clockinList] = await Promise.all([
+    const [dateList, allStaffList, projectList, taskTypeList, nosTaskList, clockinList] = await Promise.all([
       loadAllRecords(base44.entities.BubbleManHourDate, "-report_date"),
-      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 500),
+      base44.entities.Staff.list("display_name", 1000),  // Load ALL staff for clockin name matching
       loadAllRecords(base44.entities.BubbleProject, "display_name"),
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAllRecords(base44.entities.NOSTask, "display"),
       loadAllRecords(base44.entities.BubbleClockin, "-clockin_time"),
     ]);
+    const staffList = allStaffList.filter(s => s.o_status === "Active");
 
     // report_date is stored as UTC (e.g. "2026-04-19T16:00:00.000Z" = Apr 20 HKT)
     // Convert to local date for correct filtering
@@ -87,7 +88,7 @@ export default function ManHourReport() {
     // Attach local date to each record for downstream use
     for (const d of filteredDates) { d._localDate = toLocalDate(d.report_date); }
     setDates(filteredDates);
-    setStaff(staffList);
+    setStaff(allStaffList);  // Store all staff for clockin name matching
     setProjects(projectList);
     setTaskTypes(taskTypeList);
     setNosTasks(nosTaskList);
