@@ -58,19 +58,20 @@ export default function AnnualReviewDetail({ review, onBack }) {
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
 
-  const projects = r.project_contributions || [];
-  const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
-  const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
-  const totalSales = projects.reduce((s, p) => s + (p.sales_amount || 0), 0);
-  // Set of project names where staff actually wrote contribution notes or sales
-  const contributedProjectNames = useMemo(() => new Set(
-    projects.filter(p => {
-      if (p.sales_amount > 0) return true;
-      if (!p.contribution_note) return false;
-      try { const arr = JSON.parse(p.contribution_note); return Array.isArray(arr) && arr.some(s => s.trim()); } catch {}
-      return p.contribution_note.trim().length > 0;
-    }).map(p => p.project_name)
-  ), [projects]);
+  const allProjects = r.project_contributions || [];
+  const totalHours = allProjects.reduce((s, p) => s + (p.hours || 0), 0);
+  const totalTasks = allProjects.reduce((s, p) => s + (p.tasks || 0), 0);
+  const totalSales = allProjects.reduce((s, p) => s + (p.sales_amount || 0), 0);
+
+  // Split: projects with actual contribution notes/sales vs the rest
+  const hasContribution = (p) => {
+    if (p.sales_amount > 0) return true;
+    if (!p.contribution_note) return false;
+    try { const arr = JSON.parse(p.contribution_note); return Array.isArray(arr) && arr.some(s => s.trim()); } catch {}
+    return p.contribution_note.trim().length > 0;
+  };
+  const contributedProjects = useMemo(() => allProjects.filter(hasContribution), [allProjects]);
+  const contributedProjectNames = useMemo(() => new Set(contributedProjects.map(p => p.project_name)), [contributedProjects]);
 
   const fy = parseFY(r.fiscal_year);
 
@@ -266,20 +267,22 @@ export default function AnnualReviewDetail({ review, onBack }) {
         </div>
         <div className="p-4">
           <div className="flex gap-3 mb-4">
-            <StatBadge color="blue" value={projects.length} label="參與項目" />
+            <StatBadge color="blue" value={allProjects.length} label="參與項目" />
             <StatBadge color="green" value={`${Math.round(totalHours)}h`} label="總工時" />
             <StatBadge color="purple" value={totalTasks} label="總任務數" />
             {totalSales > 0 && <StatBadge color="yellow" value={`$${totalSales.toLocaleString()}`} label="銷售額" />}
           </div>
 
-          <div className="space-y-2">
-            {projects.map((p, i) => (
-              <ProjectCard key={i} project={p} />
-            ))}
-            {projects.length === 0 && (
-              <div className="text-center py-4 text-gray-400 text-xs">無項目記錄</div>
-            )}
-          </div>
+          {contributedProjects.length > 0 && (
+            <div className="space-y-2">
+              {contributedProjects.map((p, i) => (
+                <ProjectCard key={i} project={p} />
+              ))}
+            </div>
+          )}
+          {contributedProjects.length === 0 && allProjects.length === 0 && (
+            <div className="text-center py-4 text-gray-400 text-xs">無項目記錄</div>
+          )}
 
           {/* Other projects >= 40h without contributions */}
           {otherProjects.length > 0 && (
