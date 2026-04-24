@@ -1,21 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Ban, ChevronDown, ChevronUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { QUESTIONS, SECTION_COLORS } from "./PeerReviewQuestions";
 
-const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd"];
-
-// Custom bar label: show who picked this option
-function BarLabel({ x, y, width, height, value, payload, reviewerNames }) {
-  if (!value || value === 0) return null;
-  const names = reviewerNames || [];
-  return (
-    <text x={x + width + 6} y={y + height / 2} dy={4} fontSize={12} fill="#4b5563" fontWeight={500}>
-      {names.join("、")}
-    </text>
-  );
-}
+const BAR_COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd"];
 
 export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   const [loading, setLoading] = useState(true);
@@ -39,7 +27,6 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   const submittedReviews = useMemo(() => reviews.filter(r => r.status === "submitted"), [reviews]);
   const noCollabReviews = useMemo(() => reviews.filter(r => r.status === "no_collaboration"), [reviews]);
 
-  // Build chart data with reviewer names per option
   const chartData = useMemo(() => {
     return QUESTIONS.map(q => {
       const optionReviewers = {};
@@ -48,10 +35,12 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
         const ans = r[q.key];
         if (ans && optionReviewers[ans]) optionReviewers[ans].push(r.reviewer_name);
       }
+      const maxCount = Math.max(1, ...q.options.map(opt => optionReviewers[opt.value].length));
       return {
         question: q,
+        maxCount,
         data: q.options.map(opt => ({
-          name: `${opt.value}`,
+          value: opt.value,
           label: opt.label,
           count: optionReviewers[opt.value].length,
           reviewerNames: optionReviewers[opt.value],
@@ -60,7 +49,6 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
     });
   }, [submittedReviews]);
 
-  // Reviews with comments
   const reviewsWithComments = useMemo(() => submittedReviews.filter(r => r.comment && r.comment.trim()), [submittedReviews]);
 
   if (loading) {
@@ -115,38 +103,20 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
         </div>
       )}
 
-      {/* Bar charts per section */}
+      {/* Custom chart per section */}
       {submittedReviews.length > 0 && sections.map(sec => {
         const colors = SECTION_COLORS[sec.color];
         return (
           <div key={sec.section}>
             <div className={`text-sm font-bold mb-3 ${colors.text}`}>{sec.label}</div>
-            {sec.items.map(({ question, data }) => (
-              <div key={question.key} className="mb-5">
-                <div className="text-sm text-gray-700 font-medium mb-2">{question.label}</div>
-                <ResponsiveContainer width="100%" height={130}>
-                  <BarChart data={data} layout="vertical" margin={{ top: 0, right: 120, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="name" width={28} tick={{ fontSize: 12, fontWeight: 600 }} />
-                    <Tooltip
-                      formatter={(value, name, props) => [value + " 人", props.payload.label]}
-                      labelFormatter={() => ""}
-                    />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}
-                      label={(props) => <BarLabel {...props} reviewerNames={data[props.index]?.reviewerNames} />}
-                    >
-                      {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            {sec.items.map(({ question, data, maxCount }) => (
+              <QuestionChart key={question.key} question={question} data={data} maxCount={maxCount} />
             ))}
           </div>
         );
       })}
 
-      {/* Extra comments section */}
+      {/* Extra comments */}
       {reviewsWithComments.length > 0 && (
         <div>
           <button onClick={() => setShowDetail(!showDetail)}
@@ -166,6 +136,50 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function QuestionChart({ question, data, maxCount }) {
+  return (
+    <div className="mb-5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+      <div className="text-sm text-gray-700 font-semibold mb-3">{question.label}</div>
+      <div className="space-y-3">
+        {data.map((opt, i) => {
+          const pct = maxCount > 0 ? (opt.count / maxCount) * 100 : 0;
+          return (
+            <div key={opt.value}>
+              {/* Option label */}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold w-5 h-5 rounded flex items-center justify-center text-white shrink-0"
+                  style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }}>
+                  {opt.value}
+                </span>
+                <span className="text-xs text-gray-600 flex-1">{opt.label}</span>
+                <span className="text-xs font-bold text-gray-500">{opt.count} 人</span>
+              </div>
+              {/* Bar */}
+              <div className="h-5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.max(pct, opt.count > 0 ? 8 : 0)}%`, backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }}
+                />
+              </div>
+              {/* Reviewer name tags */}
+              {opt.reviewerNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {opt.reviewerNames.map((name, ni) => (
+                    <span key={ni} className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
+                      style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] + "cc" }}>
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
