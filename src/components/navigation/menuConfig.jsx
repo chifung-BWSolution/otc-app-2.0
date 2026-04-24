@@ -50,6 +50,7 @@ export const menuGroups = [
       { label: "🚀 主要項目", path: "/work/projects" },
       { label: "✅ 特別批核", path: "/work/special-approval" },
       { label: "📋 年度工作評估", path: "/work/annual-review" },
+      { label: "👥 同事互評", path: "/work/peer-review" },
     ],
   },
   {

@@ -50,6 +50,7 @@ import KnowledgeCertification from './pages/leader/KnowledgeCertification';
 import RegionManagement from './pages/admin/RegionManagement';
 import CompanyForms from './pages/company/CompanyForms';
 import AnnualReview from './pages/work/AnnualReview';
+import PeerReview from './pages/work/PeerReview';
 import AnnualReviewAdmin from './pages/admin/AnnualReviewAdmin';
 import { RegionProvider } from '@/lib/RegionContext';
 
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
         <Route path="/work/projects" element={<Placeholder title="主要項目" icon="🚀" description="查看及管理主要項目進度" />} />
         <Route path="/work/special-approval" element={<Placeholder title="特別批核" icon="✅" description="提交特別批核申請" />} />
         <Route path="/work/annual-review" element={<AnnualReview />} />
+        <Route path="/work/peer-review" element={<PeerReview />} />
         {/* 考勤/假期 */}
         <Route path="/attendance/records" element={<Placeholder title="簽到記錄" icon="📋" description="查看出勤記錄" />} />
         <Route path="/attendance/checkin" element={<CheckIn />} />

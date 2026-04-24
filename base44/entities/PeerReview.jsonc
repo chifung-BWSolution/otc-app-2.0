@@ -1,0 +1,121 @@
+{
+  "name": "PeerReview",
+  "type": "object",
+  "properties": {
+    "reviewer_staff_id": {
+      "type": "string",
+      "title": "\u8a55\u6838\u8005 Staff Bubble ID"
+    },
+    "reviewer_name": {
+      "type": "string",
+      "title": "\u8a55\u6838\u8005\u59d3\u540d"
+    },
+    "reviewer_team_group": {
+      "type": "string",
+      "title": "\u8a55\u6838\u8005 Team Group"
+    },
+    "reviewee_staff_id": {
+      "type": "string",
+      "title": "\u88ab\u8a55\u6838\u8005 Staff Bubble ID"
+    },
+    "reviewee_name": {
+      "type": "string",
+      "title": "\u88ab\u8a55\u6838\u8005\u59d3\u540d"
+    },
+    "reviewee_team_group": {
+      "type": "string",
+      "title": "\u88ab\u8a55\u6838\u8005 Team Group"
+    },
+    "fiscal_year": {
+      "type": "string",
+      "title": "\u8ca1\u653f\u5e74\u5ea6",
+      "description": "e.g. FY2025/2026"
+    },
+    "q1_encourage_strength": {
+      "type": "string",
+      "title": "Q1 \u6700\u51fa\u8272\u8868\u73fe"
+    },
+    "q2_encourage_growth": {
+      "type": "string",
+      "title": "Q2 \u9f13\u52f5\u767c\u5c55\u65b9\u5411"
+    },
+    "q3_thanks_support": {
+      "type": "string",
+      "title": "Q3 \u611f\u8b1d\u652f\u6301\u65b9\u9762"
+    },
+    "q4_thanks_impact": {
+      "type": "string",
+      "title": "Q4 \u7a4d\u6975\u5f71\u97ff\u884c\u52d5"
+    },
+    "q5_improve_collab": {
+      "type": "string",
+      "title": "Q5 \u63d0\u5347\u5354\u4f5c\u6548\u7387"
+    },
+    "q6_improve_growth": {
+      "type": "string",
+      "title": "Q6 \u5c08\u696d\u6210\u9577\u5efa\u8b70"
+    },
+    "comment": {
+      "type": "string",
+      "title": "\u984d\u5916\u88dc\u5145\uff08\u9078\u586b\uff09"
+    },
+    "status": {
+      "type": "string",
+      "title": "\u72c0\u614b",
+      "enum": [
+        "draft",
+        "submitted"
+      ],
+      "default": "draft"
+    },
+    "submitted_at": {
+      "type": "string",
+      "title": "\u63d0\u4ea4\u6642\u9593",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "reviewer_staff_id",
+    "reviewee_staff_id",
+    "fiscal_year",
+    "status"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "data.reviewer_staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.reviewer_staff_id": "{{user.linked_staff_id}}",
+          "data.status": "draft"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

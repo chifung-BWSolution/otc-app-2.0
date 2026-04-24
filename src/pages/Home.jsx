@@ -38,6 +38,7 @@ const modules = [
       { label: "主要項目", path: "/work/projects", icon: "🚀" },
       { label: "特別批核", path: "/work/special-approval", icon: "✅" },
       { label: "年度工作評估", path: "/work/annual-review", icon: "📋" },
+      { label: "同事互評", path: "/work/peer-review", icon: "👥" },
       { label: "跟進會議", path: "/work/meetings", icon: "🤝" },
     ],
   },
