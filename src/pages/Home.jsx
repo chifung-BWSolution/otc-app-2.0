@@ -101,6 +101,7 @@ const modules = [
       { label: "App管理", path: "/admin/app-management", icon: "📲" },
       { label: "課程管理", path: "/admin/course-management", icon: "🎓" },
       { label: "年度評估表", path: "/admin/annual-reviews", icon: "📋" },
+      { label: "同事互評管理", path: "/admin/peer-reviews", icon: "👥" },
     ],
   },
   {

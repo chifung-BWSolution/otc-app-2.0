@@ -71,6 +71,7 @@ export default function PeerReview() {
       reviewee_name: selectedColleague.display_name,
       reviewee_team_group: selectedColleague.team_group,
       fiscal_year: fiscalYear,
+      no_collaboration: false,
       status: submit ? "submitted" : "draft",
       ...(submit ? { submitted_at: new Date().toISOString() } : {}),
     };
@@ -81,17 +82,46 @@ export default function PeerReview() {
       await base44.entities.PeerReview.create(data);
     }
 
-    // Refresh reviews
+    await refreshReviews();
+    setSaving(false);
+    if (submit) setSelectedColleague(null);
+  };
+
+  const handleNoCollab = async () => {
+    if (!myStaff || !selectedColleague) return;
+    setSaving(true);
+    const existing = existingReviewFor(selectedColleague.bubble_id);
+    const data = {
+      reviewer_staff_id: myStaff.bubble_id,
+      reviewer_name: myStaff.display_name,
+      reviewer_team_group: myStaff.team_group,
+      reviewee_staff_id: selectedColleague.bubble_id,
+      reviewee_name: selectedColleague.display_name,
+      reviewee_team_group: selectedColleague.team_group,
+      fiscal_year: fiscalYear,
+      no_collaboration: true,
+      no_collab_approved: "pending",
+      status: "no_collaboration",
+      submitted_at: new Date().toISOString(),
+    };
+
+    if (existing) {
+      await base44.entities.PeerReview.update(existing.id, data);
+    } else {
+      await base44.entities.PeerReview.create(data);
+    }
+
+    await refreshReviews();
+    setSaving(false);
+    setSelectedColleague(null);
+  };
+
+  const refreshReviews = async () => {
     const myReviews = await base44.entities.PeerReview.filter(
       { reviewer_staff_id: myStaff.bubble_id, fiscal_year: fiscalYear },
       "-created_date", 200
     );
     setReviews(myReviews);
-    setSaving(false);
-
-    if (submit) {
-      setSelectedColleague(null);
-    }
   };
 
   if (loading) {
@@ -130,6 +160,7 @@ export default function PeerReview() {
           existingReview={existing}
           saving={saving}
           onSave={handleSave}
+          onNoCollab={handleNoCollab}
           onBack={() => setSelectedColleague(null)}
         />
       </div>

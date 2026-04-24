@@ -6,6 +6,10 @@
       "type": "string",
       "title": "\u6536\u4ef6\u4ebaEmail"
     },
+    "recipient_staff_id": {
+      "type": "string",
+      "title": "\u6536\u4ef6\u4eba Staff ID"
+    },
     "title": {
       "type": "string",
       "title": "\u6a19\u984c"
@@ -19,13 +23,14 @@
       "title": "\u985e\u578b",
       "enum": [
         "app_expiry",
-        "general"
+        "general",
+        "peer_review_rejected"
       ],
       "default": "general"
     },
     "ref_id": {
       "type": "string",
-      "title": "\u95dc\u806fID\uff08App ID\u7b49\uff09"
+      "title": "\u95dc\u806fID"
     },
     "ref_name": {
       "type": "string",

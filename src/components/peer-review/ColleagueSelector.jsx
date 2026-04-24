@@ -1,4 +1,4 @@
-import { Search, CheckCircle2, Clock, FileEdit } from "lucide-react";
+import { Search, CheckCircle2, Clock, FileEdit, Ban } from "lucide-react";
 import { useState, useMemo } from "react";
 
 export default function ColleagueSelector({ colleagues, existingReviews, myStaffId, onSelect }) {
@@ -25,7 +25,7 @@ export default function ColleagueSelector({ colleagues, existingReviews, myStaff
       });
   }, [colleagues, myStaffId, search]);
 
-  const submittedCount = existingReviews.filter(r => r.status === "submitted").length;
+  const submittedCount = existingReviews.filter(r => r.status === "submitted" || r.status === "no_collaboration").length;
   const eligibleCount = colleagues.filter(c => c.bubble_id !== myStaffId).length;
 
   return (
@@ -84,6 +84,10 @@ export default function ColleagueSelector({ colleagues, existingReviews, myStaff
                 {status === "submitted" ? (
                   <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full font-semibold shrink-0">
                     <CheckCircle2 size={12} /> 已提交
+                  </span>
+                ) : status === "no_collaboration" ? (
+                  <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-semibold shrink-0">
+                    <Ban size={12} /> 無合作過
                   </span>
                 ) : status === "draft" ? (
                   <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full font-semibold shrink-0">

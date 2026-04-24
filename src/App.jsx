@@ -52,6 +52,7 @@ import CompanyForms from './pages/company/CompanyForms';
 import AnnualReview from './pages/work/AnnualReview';
 import PeerReview from './pages/work/PeerReview';
 import AnnualReviewAdmin from './pages/admin/AnnualReviewAdmin';
+import PeerReviewAdmin from './pages/admin/PeerReviewAdmin';
 import { RegionProvider } from '@/lib/RegionContext';
 
 
@@ -145,6 +146,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/course-management" element={<CourseManagement />} />
         <Route path="/admin/regions" element={<RegionManagement />} />
         <Route path="/admin/annual-reviews" element={<AnnualReviewAdmin />} />
+        <Route path="/admin/peer-reviews" element={<PeerReviewAdmin />} />
         {/* 管理員 */}
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />

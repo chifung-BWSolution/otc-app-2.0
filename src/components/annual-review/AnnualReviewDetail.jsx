@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee } from "lucide-react";
+import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -354,7 +355,17 @@ export default function AnnualReviewDetail({ review, onBack }) {
       {/* Section 5: Company Feedback */}
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
-      {/* Section 6: Attendance Stats */}
+      {/* Section 6: Peer Review Results */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-indigo-50 px-4 py-3 border-b border-indigo-100">
+          <h3 className="font-bold text-sm text-indigo-800">👥 同事互評結果</h3>
+        </div>
+        <div className="p-4">
+          <PeerReviewResultSection staffId={r.staff_id} fiscalYear={r.fiscal_year} />
+        </div>
+      </div>
+
+      {/* Section 7: Attendance Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
           <h3 className="font-bold text-sm text-slate-800">📋 年度考勤紀錄</h3>

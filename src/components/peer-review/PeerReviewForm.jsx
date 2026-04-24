@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Save, Send, Loader2, ArrowLeft } from "lucide-react";
+import { Save, Send, Loader2, ArrowLeft, Ban } from "lucide-react";
 import { QUESTIONS, SECTION_COLORS } from "./PeerReviewQuestions";
 
-export default function PeerReviewForm({ reviewee, existingReview, saving, onSave, onBack }) {
+export default function PeerReviewForm({ reviewee, existingReview, saving, onSave, onNoCollab, onBack }) {
   const [answers, setAnswers] = useState(() => {
     const init = {};
     for (const q of QUESTIONS) {
@@ -49,6 +49,11 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
         </div>
         {existingReview?.status === "submitted" && (
           <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">已提交</span>
+        )}
+        {existingReview?.status === "no_collaboration" && (
+          <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
+            無合作過 {existingReview.no_collab_approved === "approved" ? "✅" : existingReview.no_collab_approved === "rejected" ? "❌ 已拒絕" : "⏳ 待審批"}
+          </span>
         )}
       </div>
 
@@ -105,32 +110,48 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
       </div>
 
       {/* Actions */}
-      {existingReview?.status !== "submitted" && (
-        <div className="flex gap-3 pb-6">
-          <button
-            onClick={() => onSave(answers, false)}
-            disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            儲存草稿
-          </button>
+      {existingReview?.status !== "submitted" && existingReview?.status !== "no_collaboration" && (
+        <div className="space-y-3 pb-6">
+          {/* No collaboration button */}
           <button
             onClick={() => {
-              if (!isComplete) {
-                alert("請先完成所有問題再提交");
-                return;
-              }
-              if (window.confirm("確認提交互評？提交後將無法修改。")) {
-                onSave(answers, true);
+              if (window.confirm(`確認你同 ${reviewee.display_name} 無合作過？管理員會審核此申請。`)) {
+                onNoCollab();
               }
             }}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-100 border border-gray-200 transition-colors disabled:opacity-50"
           >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            正式提交
+            <Ban size={14} />
+            我同呢位同事無合作過
           </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => onSave(answers, false)}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              儲存草稿
+            </button>
+            <button
+              onClick={() => {
+                if (!isComplete) {
+                  alert("請先完成所有問題再提交");
+                  return;
+                }
+                if (window.confirm("確認提交互評？提交後將無法修改。")) {
+                  onSave(answers, true);
+                }
+              }}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              正式提交
+            </button>
+          </div>
         </div>
       )}
     </div>

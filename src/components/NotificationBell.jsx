@@ -90,7 +90,7 @@ export default function NotificationBell({ currentUser }) {
                 >
                   <div className="flex items-start gap-2">
                     <span className="text-lg shrink-0 mt-0.5">
-                      {notif.type === "app_expiry" ? "⚠️" : "🔔"}
+                      {notif.type === "app_expiry" ? "⚠️" : notif.type === "peer_review_rejected" ? "👥" : "🔔"}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold text-gray-800">{notif.title}</div>

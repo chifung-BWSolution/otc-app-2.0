@@ -59,12 +59,28 @@
       "type": "string",
       "title": "\u984d\u5916\u88dc\u5145\uff08\u9078\u586b\uff09"
     },
+    "no_collaboration": {
+      "type": "boolean",
+      "title": "\u7121\u5408\u4f5c\u904e",
+      "default": false
+    },
+    "no_collab_approved": {
+      "type": "string",
+      "title": "\u7121\u5408\u4f5c\u904e\u5be9\u6279\u72c0\u614b",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",
       "enum": [
         "draft",
-        "submitted"
+        "submitted",
+        "no_collaboration"
       ],
       "default": "draft"
     },
