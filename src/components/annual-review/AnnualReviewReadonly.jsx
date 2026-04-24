@@ -79,7 +79,31 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
       </div>
 
       <SectionCard color="teal" icon="🏆" title="其他貢獻 / 成就 / 創新 / 品牌升級" content={r.other_contributions} />
-      <SectionCard color="orange" icon="⚡" title="年度遇到的困難" content={r.challenges} />
+
+      {/* Challenges + Solution */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
+          <h3 className="font-bold text-sm text-orange-800">⚡ 年度遇到的困難及解決方法</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">遇到的困難</div>
+            {r.challenges ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">如何解決</div>
+            {r.challenges_solution ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges_solution}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+        </div>
+      </div>
       <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 

@@ -23,6 +23,7 @@ function serializePoints(points) {
 export default function AnnualReviewForm({ projectSummary, existingReview, saving, onSave }) {
   const [projects, setProjects] = useState([]);
   const [challenges, setChallenges] = useState("");
+  const [challengesSolution, setChallengesSolution] = useState("");
   const [goals, setGoals] = useState("");
   const [feedback, setFeedback] = useState("");
   const [otherContributions, setOtherContributions] = useState("");
@@ -37,6 +38,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     setProjects(mapped);
     if (existingReview) {
       setChallenges(existingReview.challenges || "");
+      setChallengesSolution(existingReview.challenges_solution || "");
       setGoals(existingReview.next_year_goals || "");
       setFeedback(existingReview.company_feedback || "");
       setOtherContributions(existingReview.other_contributions || "");
@@ -105,6 +107,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     })),
     other_contributions: otherContributions,
     challenges,
+    challenges_solution: challengesSolution,
     next_year_goals: goals,
     company_feedback: feedback,
   });
@@ -310,20 +313,33 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
-      {/* Section 3: Challenges */}
+      {/* Section 3: Challenges + Solution */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
-          <h3 className="font-bold text-base text-orange-800">⚡ 第三部分：年度遇到的困難</h3>
-          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰。</p>
+          <h3 className="font-bold text-base text-orange-800">⚡ 第三部分：年度遇到的困難及解決方法</h3>
+          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰，以及你如何解決。</p>
         </div>
-        <div className="p-5">
-          <textarea
-            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
-            rows={5}
-            placeholder="例如：跨部門溝通困難、工具不足、時間管理挑戰、技能缺口等..."
-            value={challenges}
-            onChange={e => setChallenges(e.target.value)}
-          />
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">遇到的困難</label>
+            <textarea
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+              rows={4}
+              placeholder="例如：跨部門溝通困難、工具不足、時間管理挑戰、技能缺口等..."
+              value={challenges}
+              onChange={e => setChallenges(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">如何解決</label>
+            <textarea
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+              rows={4}
+              placeholder="例如：主動協調各方會議、引入新工具提升效率、調整工作優先順序等..."
+              value={challengesSolution}
+              onChange={e => setChallengesSolution(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

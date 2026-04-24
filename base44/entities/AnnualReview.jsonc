@@ -62,6 +62,10 @@
       "type": "string",
       "title": "\u5e74\u5ea6\u9047\u5230\u7684\u56f0\u96e3"
     },
+    "challenges_solution": {
+      "type": "string",
+      "title": "\u5982\u4f55\u89e3\u6c7a\u56f0\u96e3"
+    },
     "next_year_goals": {
       "type": "string",
       "title": "\u672a\u4f86\u4e00\u5e74\u76ee\u6a19"
@@ -89,5 +93,43 @@
     "staff_id",
     "fiscal_year",
     "status"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}",
+          "data.status": "draft"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

@@ -1,11 +1,195 @@
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
+import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee } from "lucide-react";
+
+async function loadAll(entity, sort = "id", batchSize = 5000) {
+  const all = [];
+  let offset = 0;
+  while (true) {
+    let batch;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { batch = await entity.filter({}, sort, batchSize, offset); break; }
+      catch (err) { if (attempt === 2) throw err; await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); }
+    }
+    all.push(...batch);
+    if (batch.length < batchSize) break;
+    offset += batch.length;
+    await new Promise(r => setTimeout(r, 500));
+  }
+  return all;
+}
+
+const toLocalDate = (val) => {
+  if (!val) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const cleaned = val.split(' ')[0];
+  const parts = cleaned.split('/');
+  if (parts.length === 3) { const [d, m, y] = parts; return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`; }
+  if (val.includes('T')) { const d = new Date(val); const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000); return hkt.toISOString().slice(0, 10); }
+  return null;
+};
+
+// Parse FY label → { start, end }
+function parseFY(fyLabel) {
+  const match = fyLabel.match(/FY(\d{4})\/(\d{4})/);
+  if (!match) return null;
+  const y = parseInt(match[1]);
+  return { start: `${y}-04-01`, end: `${y + 1}-03-31` };
+}
+
+// Parse datetime string to JS Date in HKT context
+function parseToDate(val) {
+  if (!val) return null;
+  if (val.includes('T')) return new Date(val);
+  // D/M/YYYY H:MM format
+  const [datePart, timePart] = val.split(' ');
+  const parts = datePart.split('/');
+  if (parts.length === 3) {
+    const [d, m, y] = parts;
+    const [hh, mm] = (timePart || '0:00').split(':');
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), parseInt(hh), parseInt(mm));
+  }
+  return new Date(val);
+}
 
 export default function AnnualReviewDetail({ review, onBack }) {
   const r = review;
+  const [loading, setLoading] = useState(true);
+  const [attendanceStats, setAttendanceStats] = useState(null);
+  const [allProjectSummary, setAllProjectSummary] = useState([]);
+
   const projects = r.project_contributions || [];
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
   const totalSales = projects.reduce((s, p) => s + (p.sales_amount || 0), 0);
+  // Set of project names the staff wrote contributions for
+  const contributedProjectNames = useMemo(() => new Set(projects.map(p => p.project_name)), [projects]);
+
+  const fy = parseFY(r.fiscal_year);
+
+  useEffect(() => { if (fy && r.staff_id) loadAttendanceStats(); }, [r.staff_id, r.fiscal_year]);
+
+  const loadAttendanceStats = async () => {
+    setLoading(true);
+    const staffId = r.staff_id;
+
+    // Load data in staggered batches
+    const [clockinList, leaveList] = await Promise.all([
+      loadAll(base44.entities.BubbleClockin, "id"),
+      loadAll(base44.entities.BubbleLeave, "id"),
+    ]);
+
+    // Also load man hour dates + tasks for project summary
+    const [dateList, taskList] = await Promise.all([
+      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
+      loadAll(base44.entities.BubbleManHourTask, "-created_date"),
+    ]);
+
+    // === Work days (clockin) vs Report days ===
+    const myClockins = clockinList.filter(c => c.staff_id === staffId && c.clockin_time);
+    const clockinDates = new Set();
+    let totalLateMinutes = 0;
+    let voluntaryOTMinutes = 0;
+
+    for (const c of myClockins) {
+      const d = toLocalDate(c.clockin_time);
+      if (!d || d < fy.start || d > fy.end) continue;
+      clockinDates.add(d);
+
+      // Late minutes
+      if (c.late_minutes && c.late_minutes > 0) {
+        totalLateMinutes += c.late_minutes;
+      }
+
+      // Voluntary OT: weekdays clock out after 18:30, Saturday after 13:30
+      // Then subtract approved OT minutes
+      if (c.clock_out_time) {
+        const outDate = parseToDate(c.clock_out_time);
+        if (outDate) {
+          const outLocalDate = toLocalDate(c.clock_out_time);
+          if (outLocalDate && outLocalDate >= fy.start && outLocalDate <= fy.end) {
+            const dayOfWeek = outDate.getDay(); // 0=Sun, 6=Sat
+            const outHour = outDate.getHours();
+            const outMin = outDate.getMinutes();
+            const outTotalMin = outHour * 60 + outMin;
+
+            let threshold = null;
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+              threshold = 18 * 60 + 30; // 18:30
+            } else if (dayOfWeek === 6) {
+              threshold = 13 * 60 + 30; // 13:30
+            }
+
+            if (threshold !== null && outTotalMin > threshold) {
+              let extraMin = outTotalMin - threshold;
+              // Subtract approved OT minutes
+              const approvedOT = c.ot_minutes || 0;
+              extraMin = Math.max(0, extraMin - approvedOT);
+              voluntaryOTMinutes += extraMin;
+            }
+          }
+        }
+      }
+    }
+
+    // Report days (man hour dates with tasks)
+    const myDates = dateList.filter(d => {
+      if (d.staff_id !== staffId) return false;
+      const rd = toLocalDate(d.report_date);
+      return rd && rd >= fy.start && rd <= fy.end;
+    });
+    const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
+    const myTasks = taskList.filter(t => myDateIds.has(t.man_hour_date_id));
+    const dateIdsWithTasks = new Set(myTasks.map(t => t.man_hour_date_id).filter(Boolean));
+    const reportDates = new Set();
+    for (const d of myDates) {
+      if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id) && d._localDate !== undefined) {
+        reportDates.add(d._localDate);
+      } else if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id)) {
+        const rd = toLocalDate(d.report_date);
+        if (rd) reportDates.add(rd);
+      }
+    }
+
+    // Build ALL project summary (>= 40h) from tasks
+    const projAgg = {};
+    for (const t of myTasks) {
+      const projName = t.project_name || "未指定項目";
+      if (!projAgg[projName]) projAgg[projName] = { project_name: projName, hours: 0, tasks: 0 };
+      projAgg[projName].hours += t.work_hour || 0;
+      projAgg[projName].tasks += 1;
+    }
+    const allProjs = Object.values(projAgg)
+      .map(p => ({ ...p, hours: Math.round(p.hours * 10) / 10 }))
+      .filter(p => p.hours >= 40)
+      .sort((a, b) => b.hours - a.hours);
+    setAllProjectSummary(allProjs);
+
+    // === No-pay leave (UL) ===
+    const myLeaves = leaveList.filter(l => {
+      if (l.staff_id !== staffId) return false;
+      const leaveType = (l.leave_type || "").toUpperCase();
+      if (!leaveType.includes("UL") && !leaveType.includes("UNPAID") && !leaveType.includes("NO PAY")) return false;
+      const sd = toLocalDate(l.start_date_time || l.end_date_time);
+      return sd && sd >= fy.start && sd <= fy.end;
+    });
+    const ulDays = myLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0);
+
+    setAttendanceStats({
+      workDays: clockinDates.size,
+      reportDays: reportDates.size,
+      totalLateMinutes,
+      voluntaryOTMinutes,
+      ulDays,
+      ulCount: myLeaves.length,
+    });
+    setLoading(false);
+  };
+
+  // Projects the staff didn't write contributions for but had >= 40h
+  const otherProjects = useMemo(() => {
+    return allProjectSummary.filter(p => !contributedProjectNames.has(p.project_name));
+  }, [allProjectSummary, contributedProjectNames]);
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -25,79 +209,133 @@ export default function AnnualReviewDetail({ review, onBack }) {
         )}
       </div>
 
-      {/* Section 1: Projects */}
+      {/* Section 1: Projects with contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
           <h3 className="font-bold text-sm text-blue-800">📊 項目工作摘要</h3>
         </div>
         <div className="p-4">
           <div className="flex gap-3 mb-4">
-            <div className="bg-blue-50 rounded-lg px-3 py-2 text-center flex-1 border border-blue-100">
-              <div className="text-lg font-bold text-blue-600">{projects.length}</div>
-              <div className="text-[10px] text-gray-500">參與項目</div>
-            </div>
-            <div className="bg-green-50 rounded-lg px-3 py-2 text-center flex-1 border border-green-100">
-              <div className="text-lg font-bold text-green-600">{Math.round(totalHours)}h</div>
-              <div className="text-[10px] text-gray-500">總工時</div>
-            </div>
-            <div className="bg-purple-50 rounded-lg px-3 py-2 text-center flex-1 border border-purple-100">
-              <div className="text-lg font-bold text-purple-600">{totalTasks}</div>
-              <div className="text-[10px] text-gray-500">總任務數</div>
-            </div>
-            {totalSales > 0 && (
-              <div className="bg-yellow-50 rounded-lg px-3 py-2 text-center flex-1 border border-yellow-100">
-                <div className="text-lg font-bold text-yellow-600">${totalSales.toLocaleString()}</div>
-                <div className="text-[10px] text-gray-500">銷售額</div>
-              </div>
-            )}
+            <StatBadge color="blue" value={projects.length} label="參與項目" />
+            <StatBadge color="green" value={`${Math.round(totalHours)}h`} label="總工時" />
+            <StatBadge color="purple" value={totalTasks} label="總任務數" />
+            {totalSales > 0 && <StatBadge color="yellow" value={`$${totalSales.toLocaleString()}`} label="銷售額" />}
           </div>
 
           <div className="space-y-2">
             {projects.map((p, i) => (
-              <div key={i} className="border border-gray-100 rounded-lg px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800 flex-1">{p.project_name}</span>
-                  <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
-                  <span className="text-xs text-gray-400">{p.tasks}個任務</span>
-                  {p.sales_amount > 0 && (
-                    <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
-                  )}
-                </div>
-                {p.contribution_note && (
-                  <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
-                    {(() => {
-                      try {
-                        const arr = JSON.parse(p.contribution_note);
-                        if (Array.isArray(arr)) return (
-                          <ul className="list-disc list-inside space-y-0.5">
-                            {arr.map((pt, pi) => <li key={pi}>{pt}</li>)}
-                          </ul>
-                        );
-                      } catch {}
-                      return <p>{p.contribution_note}</p>;
-                    })()}
-                  </div>
-                )}
-              </div>
+              <ProjectCard key={i} project={p} />
             ))}
             {projects.length === 0 && (
               <div className="text-center py-4 text-gray-400 text-xs">無項目記錄</div>
             )}
           </div>
+
+          {/* Other projects >= 40h without contributions */}
+          {otherProjects.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="text-xs font-bold text-gray-500 mb-2">📁 其他 ≥40h 項目（員工未撰寫貢獻重點）</div>
+              <div className="space-y-1.5">
+                {otherProjects.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="text-sm text-gray-700 flex-1">{p.project_name}</span>
+                    <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
+                    <span className="text-xs text-gray-400">{p.tasks}個任務</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Section 2: Other Contributions */}
       <SectionCard color="teal" icon="🏆" title="其他貢獻 / 成就 / 創新 / 品牌升級" content={r.other_contributions} />
 
-      {/* Section 3: Challenges */}
-      <SectionCard color="orange" icon="⚡" title="年度遇到的困難" content={r.challenges} />
+      {/* Section 3: Challenges + Solution */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
+          <h3 className="font-bold text-sm text-orange-800">⚡ 年度遇到的困難及解決方法</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">遇到的困難</div>
+            {r.challenges ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">如何解決</div>
+            {r.challenges_solution ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges_solution}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Section 4: Goals */}
       <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
 
       {/* Section 5: Company Feedback */}
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
+
+      {/* Section 6: Attendance Stats */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+          <h3 className="font-bold text-sm text-slate-800">📋 年度考勤紀錄</h3>
+        </div>
+        <div className="p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-6 gap-2 text-gray-400">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm">載入考勤數據...</span>
+            </div>
+          ) : attendanceStats ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <AttendanceStat
+                icon={<Calendar size={16} className="text-blue-500" />}
+                label="上班日 vs 匯報日"
+                value={`${attendanceStats.workDays} / ${attendanceStats.reportDays}`}
+                sub={attendanceStats.workDays > attendanceStats.reportDays
+                  ? `差 ${attendanceStats.workDays - attendanceStats.reportDays} 日`
+                  : "全部已匯報"}
+                warn={attendanceStats.workDays > attendanceStats.reportDays}
+              />
+              <AttendanceStat
+                icon={<AlertTriangle size={16} className="text-orange-500" />}
+                label="年度遲到分鐘"
+                value={`${attendanceStats.totalLateMinutes} 分鐘`}
+                sub={attendanceStats.totalLateMinutes > 0
+                  ? `≈ ${(attendanceStats.totalLateMinutes / 60).toFixed(1)} 小時`
+                  : "無遲到記錄"}
+                warn={attendanceStats.totalLateMinutes > 60}
+              />
+              <AttendanceStat
+                icon={<Coffee size={16} className="text-red-500" />}
+                label="無薪假 (UL)"
+                value={`${attendanceStats.ulDays} 日`}
+                sub={`${attendanceStats.ulCount} 次申請`}
+                warn={attendanceStats.ulDays > 0}
+              />
+              <AttendanceStat
+                icon={<Clock size={16} className="text-green-500" />}
+                label="自願加班"
+                value={`${attendanceStats.voluntaryOTMinutes} 分鐘`}
+                sub={attendanceStats.voluntaryOTMinutes > 0
+                  ? `≈ ${(attendanceStats.voluntaryOTMinutes / 60).toFixed(1)} 小時`
+                  : "無自願加班"}
+                warn={false}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-400 text-sm">無法載入考勤數據</div>
+          )}
+        </div>
+      </div>
 
       {/* Meta */}
       {r.submitted_at && (
@@ -109,11 +347,67 @@ export default function AnnualReviewDetail({ review, onBack }) {
   );
 }
 
+function StatBadge({ color, value, label }) {
+  const colors = {
+    blue: "bg-blue-50 border-blue-100 text-blue-600",
+    green: "bg-green-50 border-green-100 text-green-600",
+    purple: "bg-purple-50 border-purple-100 text-purple-600",
+    yellow: "bg-yellow-50 border-yellow-100 text-yellow-600",
+  };
+  return (
+    <div className={`rounded-lg px-3 py-2 text-center flex-1 border ${colors[color]}`}>
+      <div className="text-lg font-bold">{value}</div>
+      <div className="text-[10px] text-gray-500">{label}</div>
+    </div>
+  );
+}
+
+function ProjectCard({ project }) {
+  const p = project;
+  return (
+    <div className="border border-gray-100 rounded-lg px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-800 flex-1">{p.project_name}</span>
+        <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
+        <span className="text-xs text-gray-400">{p.tasks}個任務</span>
+        {p.sales_amount > 0 && (
+          <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
+        )}
+      </div>
+      {p.contribution_note && (
+        <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
+          {(() => {
+            try {
+              const arr = JSON.parse(p.contribution_note);
+              if (Array.isArray(arr)) return (
+                <ul className="list-disc list-inside space-y-0.5">
+                  {arr.map((pt, pi) => <li key={pi}>{pt}</li>)}
+                </ul>
+              );
+            } catch {}
+            return <p>{p.contribution_note}</p>;
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttendanceStat({ icon, label, value, sub, warn }) {
+  return (
+    <div className={`rounded-xl p-3 border text-center ${warn ? "bg-orange-50 border-orange-100" : "bg-gray-50 border-gray-100"}`}>
+      <div className="flex items-center justify-center mb-1">{icon}</div>
+      <div className={`text-base font-bold ${warn ? "text-orange-600" : "text-gray-800"}`}>{value}</div>
+      <div className="text-[10px] text-gray-500 font-medium">{label}</div>
+      {sub && <div className={`text-[10px] mt-0.5 ${warn ? "text-orange-500" : "text-gray-400"}`}>{sub}</div>}
+    </div>
+  );
+}
+
 function SectionCard({ color, icon, title, content }) {
   const bgMap = { teal: "bg-teal-50", orange: "bg-orange-50", green: "bg-green-50", purple: "bg-purple-50" };
   const borderMap = { teal: "border-teal-100", orange: "border-orange-100", green: "border-green-100", purple: "border-purple-100" };
   const textMap = { teal: "text-teal-800", orange: "text-orange-800", green: "text-green-800", purple: "text-purple-800" };
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className={`${bgMap[color]} px-4 py-3 border-b ${borderMap[color]}`}>
