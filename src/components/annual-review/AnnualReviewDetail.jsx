@@ -62,8 +62,15 @@ export default function AnnualReviewDetail({ review, onBack }) {
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
   const totalSales = projects.reduce((s, p) => s + (p.sales_amount || 0), 0);
-  // Set of project names the staff wrote contributions for
-  const contributedProjectNames = useMemo(() => new Set(projects.map(p => p.project_name)), [projects]);
+  // Set of project names where staff actually wrote contribution notes or sales
+  const contributedProjectNames = useMemo(() => new Set(
+    projects.filter(p => {
+      if (p.sales_amount > 0) return true;
+      if (!p.contribution_note) return false;
+      try { const arr = JSON.parse(p.contribution_note); return Array.isArray(arr) && arr.some(s => s.trim()); } catch {}
+      return p.contribution_note.trim().length > 0;
+    }).map(p => p.project_name)
+  ), [projects]);
 
   const fy = parseFY(r.fiscal_year);
 
