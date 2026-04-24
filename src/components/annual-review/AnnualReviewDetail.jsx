@@ -82,7 +82,9 @@ export default function AnnualReviewDetail({ review, onBack }) {
   useEffect(() => { if (fy && r.staff_id) loadAttendanceStats(); }, [r.staff_id, r.fiscal_year]);
 
   const handleGenerateAppraisal = async () => {
+    if (generatingAI) return; // prevent double-click
     setGeneratingAI(true);
+    try {
     // Build a comprehensive prompt from all data
     const projectsText = allProjects.map(p => {
       let line = `- ${p.project_name}: ${p.hours}h, ${p.tasks}個任務`;
@@ -179,8 +181,13 @@ ${attText}
       is_final: false,
     });
 
-    setGeneratingAI(false);
     navigate(`/admin/appraisal-reports?reportId=${newReport.id}`);
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      alert("AI 報告生成失敗：" + (err.message || "未知錯誤"));
+    } finally {
+      setGeneratingAI(false);
+    }
   };
 
   const loadAttendanceStats = async () => {
