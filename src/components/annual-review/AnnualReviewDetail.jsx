@@ -73,8 +73,9 @@ export default function AnnualReviewDetail({ review, onBack }) {
     setLoading(true);
     const staffId = r.staff_id;
 
-    // Load data in staggered batches
-    const [clockinList, leaveList] = await Promise.all([
+    // Load staff list to map staff_name → bubble_id (clockin records often have null staff_id)
+    const [staffList, clockinList, leaveList] = await Promise.all([
+      base44.entities.Staff.list("display_name", 2000),
       loadAll(base44.entities.BubbleClockin, "id"),
       loadAll(base44.entities.BubbleLeave, "id"),
     ]);
@@ -85,8 +86,29 @@ export default function AnnualReviewDetail({ review, onBack }) {
       loadAll(base44.entities.BubbleManHourTask, "-created_date"),
     ]);
 
+    // Build staff_name → bubble_id lookup (clockin often has staff_name but null staff_id)
+    const staffNameToBubbleId = {};
+    const staffBubbleIdToName = {};
+    for (const s of staffList) {
+      if (s.bubble_id && s.display_name) {
+        staffNameToBubbleId[s.display_name] = s.bubble_id;
+        staffBubbleIdToName[s.bubble_id] = s.display_name;
+      }
+    }
+    const staffName = staffBubbleIdToName[staffId] || r.staff_name;
+
     // === Work days (clockin) vs Report days ===
-    const myClockins = clockinList.filter(c => c.staff_id === staffId && c.clockin_time);
+    // Match clockins by staff_id OR staff_name
+    const myClockins = clockinList.filter(c => {
+      if (!c.clockin_time) return false;
+      if (c.staff_id === staffId) return true;
+      if (!c.staff_id && c.staff_name) {
+        const mappedId = staffNameToBubbleId[c.staff_name];
+        return mappedId === staffId;
+      }
+      return false;
+    });
+
     const clockinDates = new Set();
     let totalLateMinutes = 0;
     let voluntaryOTMinutes = 0;
@@ -143,9 +165,7 @@ export default function AnnualReviewDetail({ review, onBack }) {
     const dateIdsWithTasks = new Set(myTasks.map(t => t.man_hour_date_id).filter(Boolean));
     const reportDates = new Set();
     for (const d of myDates) {
-      if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id) && d._localDate !== undefined) {
-        reportDates.add(d._localDate);
-      } else if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id)) {
+      if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id)) {
         const rd = toLocalDate(d.report_date);
         if (rd) reportDates.add(rd);
       }
@@ -166,10 +186,13 @@ export default function AnnualReviewDetail({ review, onBack }) {
     setAllProjectSummary(allProjs);
 
     // === No-pay leave (UL) ===
+    // Match by staff_id, and check if display_name contains UL-related keywords
     const myLeaves = leaveList.filter(l => {
       if (l.staff_id !== staffId) return false;
-      const leaveType = (l.leave_type || "").toUpperCase();
-      if (!leaveType.includes("UL") && !leaveType.includes("UNPAID") && !leaveType.includes("NO PAY")) return false;
+      // Check if this is UL leave via display_name (e.g. "Mandy Mau - 無薪事假 (上午)")
+      const dn = (l.display_name || "").toLowerCase();
+      const isUL = dn.includes("無薪") || dn.includes("unpaid") || dn.includes("no pay") || dn.includes(" ul ");
+      if (!isUL) return false;
       const sd = toLocalDate(l.start_date_time || l.end_date_time);
       return sd && sd >= fy.start && sd <= fy.end;
     });
