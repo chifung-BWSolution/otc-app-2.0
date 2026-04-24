@@ -238,10 +238,10 @@ export default function AnnualReviewDetail({ review, onBack }) {
     setLoading(false);
   };
 
-  // Projects the staff didn't write contributions for but had >= 40h
+  // Projects ≥40h where staff didn't write contribution notes (from review data directly)
   const otherProjects = useMemo(() => {
-    return allProjectSummary.filter(p => !contributedProjectNames.has(p.project_name));
-  }, [allProjectSummary, contributedProjectNames]);
+    return allProjects.filter(p => (p.hours || 0) >= 40 && !hasContribution(p));
+  }, [allProjects]);
 
   return (
     <div className="max-w-3xl space-y-4">
