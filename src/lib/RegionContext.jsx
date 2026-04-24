@@ -25,9 +25,23 @@ export function RegionProvider({ children }) {
       setRegions(regionList);
 
       let baseLocation = "";
-      if (me?.email) {
-        const staffList = await base44.entities.Staff.filter({ work_email: me.email }, "-created_date", 1);
-        baseLocation = staffList[0]?.o_base_location || "";
+      if (me) {
+        let staffRec = null;
+        // Priority 1: match by linked_staff_id on User record
+        if (me.linked_staff_id) {
+          const byId = await base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "-created_date", 1);
+          staffRec = byId[0] || null;
+        }
+        // Priority 2: match by work_email or linked_user_email
+        if (!staffRec && me.email) {
+          const byEmail = await base44.entities.Staff.filter({ work_email: me.email }, "-created_date", 1);
+          staffRec = byEmail[0] || null;
+          if (!staffRec) {
+            const byLinked = await base44.entities.Staff.filter({ linked_user_email: me.email }, "-created_date", 1);
+            staffRec = byLinked[0] || null;
+          }
+        }
+        baseLocation = staffRec?.o_base_location || "";
       }
       setUserBaseLocation(baseLocation);
 
