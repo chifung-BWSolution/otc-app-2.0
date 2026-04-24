@@ -179,10 +179,11 @@ export default function AnnualReviewDetail({ review, onBack }) {
       }
     }
 
-    // Build ALL project summary (>= 40h) from tasks
+    // Build ALL project summary (>= 40h) from tasks, exclude "未指定項目"
     const projAgg = {};
     for (const t of myTasks) {
-      const projName = t.project_name || "未指定項目";
+      const projName = t.project_name;
+      if (!projName) continue; // skip tasks without a project name
       if (!projAgg[projName]) projAgg[projName] = { project_name: projName, hours: 0, tasks: 0 };
       projAgg[projName].hours += t.work_hour || 0;
       projAgg[projName].tasks += 1;
