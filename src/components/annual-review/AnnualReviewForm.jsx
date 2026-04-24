@@ -127,6 +127,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <p className="text-sm text-blue-600 mt-0.5">
             左邊選擇項目查看任務明細，右邊填寫銷售數字及貢獻重點。
           </p>
+          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 40 小時或以上的項目。</p>
         </div>
 
         <div className="p-5">
