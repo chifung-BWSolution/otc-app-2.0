@@ -58,7 +58,7 @@ export default function AnnualReviewDetail({ review, onBack }) {
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
 
-  const allProjects = r.project_contributions || [];
+  const allProjects = (r.project_contributions || []).filter(p => p.project_name && p.project_name !== "未指定項目");
   const totalHours = allProjects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = allProjects.reduce((s, p) => s + (p.tasks || 0), 0);
   const totalSales = allProjects.reduce((s, p) => s + (p.sales_amount || 0), 0);
