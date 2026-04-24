@@ -57,6 +57,22 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
         )}
       </div>
 
+      {/* No collaboration - at top */}
+      {existingReview?.status !== "submitted" && existingReview?.status !== "no_collaboration" && (
+        <button
+          onClick={() => {
+            if (window.confirm(`確認你同 ${reviewee.display_name} 無合作過？管理員會審核此申請。`)) {
+              onNoCollab();
+            }
+          }}
+          disabled={saving}
+          className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-100 border border-gray-200 transition-colors disabled:opacity-50"
+        >
+          <Ban size={14} />
+          我同呢位同事無合作過
+        </button>
+      )}
+
       {/* Question sections */}
       {sections.map(sec => {
         const colors = SECTION_COLORS[sec.color];
@@ -112,20 +128,6 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
       {/* Actions */}
       {existingReview?.status !== "submitted" && existingReview?.status !== "no_collaboration" && (
         <div className="space-y-3 pb-6">
-          {/* No collaboration button */}
-          <button
-            onClick={() => {
-              if (window.confirm(`確認你同 ${reviewee.display_name} 無合作過？管理員會審核此申請。`)) {
-                onNoCollab();
-              }
-            }}
-            disabled={saving}
-            className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-100 border border-gray-200 transition-colors disabled:opacity-50"
-          >
-            <Ban size={14} />
-            我同呢位同事無合作過
-          </button>
-
           <div className="flex gap-3">
             <button
               onClick={() => onSave(answers, false)}

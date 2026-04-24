@@ -1,10 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Ban, Eye, ChevronDown, ChevronUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import { Loader2, Ban, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { QUESTIONS, SECTION_COLORS } from "./PeerReviewQuestions";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd"];
+
+// Custom bar label: show who picked this option
+function BarLabel({ x, y, width, height, value, payload, reviewerNames }) {
+  if (!value || value === 0) return null;
+  const names = reviewerNames || [];
+  return (
+    <text x={x + width + 6} y={y + height / 2} dy={4} fontSize={12} fill="#4b5563" fontWeight={500}>
+      {names.join("、")}
+    </text>
+  );
+}
 
 export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   const [loading, setLoading] = useState(true);
@@ -28,25 +39,29 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   const submittedReviews = useMemo(() => reviews.filter(r => r.status === "submitted"), [reviews]);
   const noCollabReviews = useMemo(() => reviews.filter(r => r.status === "no_collaboration"), [reviews]);
 
-  // Build chart data: for each question, count how many selected each option
+  // Build chart data with reviewer names per option
   const chartData = useMemo(() => {
     return QUESTIONS.map(q => {
-      const counts = {};
-      for (const opt of q.options) counts[opt.value] = 0;
+      const optionReviewers = {};
+      for (const opt of q.options) optionReviewers[opt.value] = [];
       for (const r of submittedReviews) {
         const ans = r[q.key];
-        if (ans && counts[ans] !== undefined) counts[ans]++;
+        if (ans && optionReviewers[ans]) optionReviewers[ans].push(r.reviewer_name);
       }
       return {
         question: q,
         data: q.options.map(opt => ({
           name: `${opt.value}`,
           label: opt.label,
-          count: counts[opt.value],
+          count: optionReviewers[opt.value].length,
+          reviewerNames: optionReviewers[opt.value],
         })),
       };
     });
   }, [submittedReviews]);
+
+  // Reviews with comments
+  const reviewsWithComments = useMemo(() => submittedReviews.filter(r => r.comment && r.comment.trim()), [submittedReviews]);
 
   if (loading) {
     return (
@@ -58,10 +73,10 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   }
 
   if (reviews.length === 0) {
-    return <div className="text-center py-4 text-gray-400 text-xs">暫無同事互評數據</div>;
+    return <div className="text-center py-4 text-gray-400 text-sm">暫無同事互評數據</div>;
   }
 
-  // Group questions by section for display
+  // Group questions by section
   const sections = [];
   let lastSection = null;
   for (const cd of chartData) {
@@ -73,26 +88,26 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Summary stats */}
       <div className="flex gap-3">
-        <div className="bg-indigo-50 rounded-lg px-3 py-2 text-center flex-1 border border-indigo-100">
-          <div className="text-lg font-bold text-indigo-600">{submittedReviews.length}</div>
-          <div className="text-[10px] text-gray-500">已提交互評</div>
+        <div className="bg-indigo-50 rounded-lg px-4 py-3 text-center flex-1 border border-indigo-100">
+          <div className="text-2xl font-bold text-indigo-600">{submittedReviews.length}</div>
+          <div className="text-xs text-gray-500">已提交互評</div>
         </div>
-        <div className="bg-gray-50 rounded-lg px-3 py-2 text-center flex-1 border border-gray-200">
-          <div className="text-lg font-bold text-gray-500">{noCollabReviews.length}</div>
-          <div className="text-[10px] text-gray-500">無合作過</div>
+        <div className="bg-gray-50 rounded-lg px-4 py-3 text-center flex-1 border border-gray-200">
+          <div className="text-2xl font-bold text-gray-500">{noCollabReviews.length}</div>
+          <div className="text-xs text-gray-500">無合作過</div>
         </div>
       </div>
 
       {/* No collab list */}
       {noCollabReviews.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs font-bold text-gray-500 mb-1.5 flex items-center gap-1"><Ban size={12} /> 標記無合作過的同事</div>
+          <div className="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1"><Ban size={14} /> 標記無合作過的同事</div>
           <div className="flex flex-wrap gap-1.5">
             {noCollabReviews.map(r => (
-              <span key={r.id} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-full text-gray-600">
+              <span key={r.id} className="text-sm bg-white border border-gray-200 px-2.5 py-1 rounded-full text-gray-600">
                 {r.reviewer_name} {r.no_collab_approved === "approved" ? "✅" : r.no_collab_approved === "rejected" ? "❌" : "⏳"}
               </span>
             ))}
@@ -105,20 +120,22 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
         const colors = SECTION_COLORS[sec.color];
         return (
           <div key={sec.section}>
-            <div className={`text-xs font-bold mb-2 ${colors.text}`}>{sec.label}</div>
+            <div className={`text-sm font-bold mb-3 ${colors.text}`}>{sec.label}</div>
             {sec.items.map(({ question, data }) => (
-              <div key={question.key} className="mb-4">
-                <div className="text-xs text-gray-600 mb-1.5">{question.label}</div>
-                <ResponsiveContainer width="100%" height={120}>
-                  <BarChart data={data} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+              <div key={question.key} className="mb-5">
+                <div className="text-sm text-gray-700 font-medium mb-2">{question.label}</div>
+                <ResponsiveContainer width="100%" height={130}>
+                  <BarChart data={data} layout="vertical" margin={{ top: 0, right: 120, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} />
-                    <YAxis type="category" dataKey="name" width={25} tick={{ fontSize: 11 }} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" width={28} tick={{ fontSize: 12, fontWeight: 600 }} />
                     <Tooltip
                       formatter={(value, name, props) => [value + " 人", props.payload.label]}
                       labelFormatter={() => ""}
                     />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]}
+                      label={(props) => <BarLabel {...props} reviewerNames={data[props.index]?.reviewerNames} />}
+                    >
                       {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Bar>
                   </BarChart>
@@ -129,36 +146,26 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
         );
       })}
 
-      {/* Detail toggle: who answered what */}
-      <div>
-        <button onClick={() => setShowDetail(!showDetail)}
-          className="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold hover:text-indigo-800">
-          {showDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          {showDetail ? "收起詳細回覆" : "查看每位同事的回覆"}
-        </button>
-        {showDetail && (
-          <div className="mt-2 space-y-2">
-            {submittedReviews.map(r => (
-              <div key={r.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <div className="text-xs font-bold text-gray-700 mb-1.5">{r.reviewer_name}</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  {QUESTIONS.map(q => {
-                    const ans = r[q.key];
-                    const opt = q.options.find(o => o.value === ans);
-                    return (
-                      <div key={q.key} className="text-[11px]">
-                        <span className="text-gray-400">Q{q.key.match(/q(\d)/)?.[1] || ""}:</span>{" "}
-                        <span className="font-medium text-gray-700">{opt ? `${opt.value}. ${opt.label}` : "—"}</span>
-                      </div>
-                    );
-                  })}
+      {/* Extra comments section */}
+      {reviewsWithComments.length > 0 && (
+        <div>
+          <button onClick={() => setShowDetail(!showDetail)}
+            className="flex items-center gap-1.5 text-sm text-indigo-600 font-semibold hover:text-indigo-800">
+            {showDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {showDetail ? "收起額外補充" : `查看額外補充 (${reviewsWithComments.length})`}
+          </button>
+          {showDetail && (
+            <div className="mt-2 space-y-2">
+              {reviewsWithComments.map(r => (
+                <div key={r.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-sm font-bold text-gray-700 mb-1">{r.reviewer_name}</div>
+                  <div className="text-sm text-gray-600 leading-relaxed">💬 {r.comment}</div>
                 </div>
-                {r.comment && <div className="text-[11px] text-gray-500 mt-1 border-t border-gray-200 pt-1">💬 {r.comment}</div>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

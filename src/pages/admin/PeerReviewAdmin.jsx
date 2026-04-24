@@ -15,7 +15,7 @@ export default function PeerReviewAdmin() {
   const [reviews, setReviews] = useState([]);
   const [staff, setStaff] = useState([]);
   const [search, setSearch] = useState("");
-  const [fyFilter, setFyFilter] = useState(getCurrentFY());
+  const [fyFilter, setFyFilter] = useState("");
   const [tabFilter, setTabFilter] = useState("all"); // all | no_collab | detail
   const [expandedStaff, setExpandedStaff] = useState(null);
   const [detailReview, setDetailReview] = useState(null);
@@ -30,6 +30,14 @@ export default function PeerReviewAdmin() {
     ]);
     setReviews(revs);
     setStaff(staffList);
+    // Default FY to the one with most data
+    if (!fyFilter) {
+      const fyCounts = {};
+      for (const r of revs) { fyCounts[r.fiscal_year] = (fyCounts[r.fiscal_year] || 0) + 1; }
+      const best = Object.entries(fyCounts).sort((a, b) => b[1] - a[1])[0];
+      if (best) setFyFilter(best[0]);
+      else setFyFilter(getCurrentFY());
+    }
     setLoading(false);
   };
 
