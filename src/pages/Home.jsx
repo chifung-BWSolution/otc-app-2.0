@@ -102,6 +102,7 @@ const modules = [
       { label: "課程管理", path: "/admin/course-management", icon: "🎓" },
       { label: "年度評估表", path: "/admin/annual-reviews", icon: "📋" },
       { label: "同事互評管理", path: "/admin/peer-reviews", icon: "👥" },
+      { label: "員工表現報告", path: "/admin/appraisal-reports", icon: "📄" },
     ],
   },
   {

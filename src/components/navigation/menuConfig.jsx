@@ -148,6 +148,7 @@ export const menuGroups = [
       { label: "📈 績效總覽報告", path: "/admin/performance-report" },
       { label: "📋 年度評估表", path: "/admin/annual-reviews" },
       { label: "👥 同事互評管理", path: "/admin/peer-reviews" },
+      { label: "📄 員工年度表現報告", path: "/admin/appraisal-reports" },
     ],
   },
 ];

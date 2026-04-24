@@ -1,0 +1,121 @@
+{
+  "name": "AppraisalReport",
+  "type": "object",
+  "properties": {
+    "annual_review_id": {
+      "type": "string",
+      "title": "Annual Review ID"
+    },
+    "staff_id": {
+      "type": "string",
+      "title": "Staff Bubble ID"
+    },
+    "staff_name": {
+      "type": "string",
+      "title": "\u54e1\u5de5\u59d3\u540d"
+    },
+    "staff_team": {
+      "type": "string",
+      "title": "\u6240\u5c6c Team"
+    },
+    "staff_bu": {
+      "type": "string",
+      "title": "\u6240\u5c6c BU"
+    },
+    "staff_position": {
+      "type": "string",
+      "title": "\u8077\u4f4d"
+    },
+    "fiscal_year": {
+      "type": "string",
+      "title": "\u8ca1\u653f\u5e74\u5ea6"
+    },
+    "report_content": {
+      "type": "string",
+      "title": "AI \u5831\u544a\u5167\u5bb9 (Markdown)"
+    },
+    "version": {
+      "type": "number",
+      "title": "\u7248\u672c\u865f",
+      "default": 1
+    },
+    "is_final": {
+      "type": "boolean",
+      "title": "\u5df2\u78ba\u8a8d",
+      "default": false
+    },
+    "boss_feedback": {
+      "type": "string",
+      "title": "\u8001\u95c6\u4fee\u6539\u6307\u793a"
+    },
+    "score_projects": {
+      "type": "number",
+      "title": "\u9805\u76ee\u5de5\u4f5c\u8ca2\u737b (70\u5206)"
+    },
+    "score_contributions": {
+      "type": "number",
+      "title": "\u5176\u4ed6\u8ca2\u737b (10\u5206)"
+    },
+    "score_challenges": {
+      "type": "number",
+      "title": "\u56f0\u96e3\u53ca\u89e3\u6c7a\u65b9\u6cd5 (5\u5206)"
+    },
+    "score_goals": {
+      "type": "number",
+      "title": "\u672a\u4f86\u76ee\u6a19 (5\u5206)"
+    },
+    "score_peer_review": {
+      "type": "number",
+      "title": "\u540c\u4e8b\u4e92\u8a55 (5\u5206)"
+    },
+    "score_attendance": {
+      "type": "number",
+      "title": "\u8003\u52e4 (5\u5206)"
+    },
+    "total_score": {
+      "type": "number",
+      "title": "\u7e3d\u5206 (100\u5206)"
+    },
+    "scoring_completed": {
+      "type": "boolean",
+      "title": "\u5df2\u5b8c\u6210\u8a55\u5206",
+      "default": false
+    }
+  },
+  "required": [
+    "annual_review_id",
+    "staff_id",
+    "fiscal_year"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

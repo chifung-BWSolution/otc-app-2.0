@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
@@ -54,8 +55,10 @@ function parseToDate(val) {
 }
 
 export default function AnnualReviewDetail({ review, onBack }) {
+  const navigate = useNavigate();
   const r = review;
   const [loading, setLoading] = useState(true);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
 
@@ -77,6 +80,106 @@ export default function AnnualReviewDetail({ review, onBack }) {
   const fy = parseFY(r.fiscal_year);
 
   useEffect(() => { if (fy && r.staff_id) loadAttendanceStats(); }, [r.staff_id, r.fiscal_year]);
+
+  const handleGenerateAppraisal = async () => {
+    setGeneratingAI(true);
+    // Build a comprehensive prompt from all data
+    const projectsText = allProjects.map(p => {
+      let line = `- ${p.project_name}: ${p.hours}h, ${p.tasks}個任務`;
+      if (p.sales_amount > 0) line += `, 銷售額 $${p.sales_amount.toLocaleString()}`;
+      if (p.contribution_note) {
+        try { const arr = JSON.parse(p.contribution_note); if (Array.isArray(arr)) line += `\n  重點：${arr.join("；")}`; }
+        catch { line += `\n  重點：${p.contribution_note}`; }
+      }
+      return line;
+    }).join("\n") || "（無項目記錄）";
+
+    const attText = attendanceStats ? `上班日 ${attendanceStats.workDays} / 匯報日 ${attendanceStats.reportDays}，遲到 ${attendanceStats.totalLateMinutes} 分鐘，自願加班 ${attendanceStats.voluntaryOTMinutes} 分鐘，無薪假 ${attendanceStats.ulDays} 日（事假 ${attendanceStats.ulPersonalDays} 日、病假 ${attendanceStats.ulSickDays} 日）` : "（考勤數據未載入）";
+
+    // Load peer reviews for summary
+    let peerText = "（無互評數據）";
+    try {
+      const peers = await base44.entities.PeerReview.filter(
+        { reviewee_staff_id: r.staff_id, fiscal_year: r.fiscal_year, status: "submitted" },
+        "-created_date", 200
+      );
+      if (peers.length > 0) {
+        peerText = `共收到 ${peers.length} 份互評。`;
+        const comments = peers.filter(p => p.comment && p.comment.trim()).map(p => `${p.reviewer_name}：${p.comment}`);
+        if (comments.length > 0) peerText += `\n同事評語：\n${comments.join("\n")}`;
+      }
+    } catch {}
+
+    const prompt = `你是一位專業的人力資源顧問，請根據以下員工年度評估資料，生成一份結構清晰、專業的年度表現整合報告。
+
+員工：${r.staff_name}
+職位：${r.staff_position}
+Team：${r.staff_team} / BU：${r.staff_bu}
+年度：${r.fiscal_year}
+
+=== 📊 項目工作摘要 ===
+總參與項目：${allProjects.length}
+總工時：${Math.round(totalHours)}h / 總任務數：${totalTasks}
+${totalSales > 0 ? `總銷售額：$${totalSales.toLocaleString()}` : ""}
+項目詳情：
+${projectsText}
+
+=== 🏆 其他貢獻 / 成就 / 創新 / 品牌升級 ===
+${r.other_contributions || "（未填寫）"}
+
+=== ⚡ 年度遇到的困難 ===
+困難：${r.challenges || "（未填寫）"}
+解決方法：${r.challenges_solution || "（未填寫）"}
+
+=== 🎯 未來一年目標 ===
+${r.next_year_goals || "（未填寫）"}
+
+=== 💬 對公司的意見 ===
+${r.company_feedback || "（未填寫）"}
+
+=== 👥 同事互評結果 ===
+${peerText}
+
+=== 📋 考勤紀錄 ===
+${attText}
+
+請按以下結構生成報告（使用 Markdown 格式，繁體中文）：
+1. ## 📊 項目工作貢獻分析 — 分析項目貢獻的深度和廣度，突出亮點
+2. ## 🏆 其他貢獻 / 成就 / 創新 / 品牌升級 — 評價非項目的額外貢獻
+3. ## ⚡ 年度困難及解決方法評估 — 評價面對挑戰的態度和解決能力
+4. ## 🎯 未來一年目標評估 — 評價目標設定的合理性和進取性
+5. ## 👥 同事互評結果分析 — 綜合同事的評價，提煉關鍵訊息
+6. ## 📋 考勤紀錄分析 — 分析出勤表現
+7. ## 📝 整體評價及建議 — 給出綜合評價和發展建議
+
+每個部分要具體分析，不要空泛。語氣專業但有建設性。`;
+
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt,
+      response_json_schema: {
+        type: "object",
+        properties: { report_markdown: { type: "string" } },
+        required: ["report_markdown"]
+      },
+      model: "claude_sonnet_4_6"
+    });
+
+    const newReport = await base44.entities.AppraisalReport.create({
+      annual_review_id: r.id,
+      staff_id: r.staff_id,
+      staff_name: r.staff_name,
+      staff_team: r.staff_team,
+      staff_bu: r.staff_bu,
+      staff_position: r.staff_position,
+      fiscal_year: r.fiscal_year,
+      report_content: res.report_markdown,
+      version: 1,
+      is_final: false,
+    });
+
+    setGeneratingAI(false);
+    navigate(`/admin/appraisal-reports?reportId=${newReport.id}`);
+  };
 
   const loadAttendanceStats = async () => {
     setLoading(true);
@@ -437,6 +540,18 @@ export default function AnnualReviewDetail({ review, onBack }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* AI Appraisal Button */}
+      <div className="flex justify-center pt-2 pb-2">
+        <button
+          onClick={handleGenerateAppraisal}
+          disabled={generatingAI}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
+        >
+          {generatingAI ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {generatingAI ? "AI 生成報告中..." : "AI 整合並進行 Appraisal"}
+        </button>
       </div>
 
       {/* Meta */}
