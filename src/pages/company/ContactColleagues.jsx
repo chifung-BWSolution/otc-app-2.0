@@ -5,6 +5,7 @@ import { useRegion } from "@/lib/RegionContext";
 import ContactProfilePanel from "@/components/contact/ContactProfilePanel";
 import { useAbsenceStatus } from "@/hooks/useAbsenceStatus";
 import { AbsenceBadge, HolidayBanner } from "@/components/contact/AbsenceBadge";
+import MultiTeamSelect from "@/components/filters/MultiTeamSelect";
 
 function normalizePhone(raw) {
   if (!raw) return "";
@@ -30,7 +31,7 @@ export default function ContactColleagues() {
   const [search, setSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [buFilter, setBuFilter] = useState("all");
-  const [teamFilter, setTeamFilter] = useState("all");
+  const [teamFilter, setTeamFilter] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(null);
 
@@ -64,15 +65,15 @@ export default function ContactColleagues() {
       const region = getRegionByLocation(s.base_location);
       const matchRegion = regionFilter === "all" || region?.code === regionFilter;
       const matchBu = buFilter === "all" || s.bu_name === buFilter;
-      const matchTeam = teamFilter === "all" || s.team_name === teamFilter;
+      const matchTeam = teamFilter.length === 0 || teamFilter.includes(s.team_name);
       const matchRole = roleFilter === "all" || s.team_role_name === roleFilter;
       return matchSearch && matchRegion && matchBu && matchTeam && matchRole;
     });
   }, [staff, search, regionFilter, buFilter, teamFilter, roleFilter, getRegionByLocation]);
 
-  const hasFilter = search || regionFilter !== "all" || buFilter !== "all" || teamFilter !== "all" || roleFilter !== "all";
+  const hasFilter = search || regionFilter !== "all" || buFilter !== "all" || teamFilter.length > 0 || roleFilter !== "all";
   const clearFilters = () => {
-    setSearch(""); setRegionFilter("all"); setBuFilter("all"); setTeamFilter("all"); setRoleFilter("all");
+    setSearch(""); setRegionFilter("all"); setBuFilter("all"); setTeamFilter([]); setRoleFilter("all");
   };
 
   return (
@@ -122,14 +123,11 @@ export default function ContactColleagues() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter("all"); }}>
+            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter([]); }}>
               <option value="all">全部 BU</option>
               {bus.map(b => <option key={b}>{b}</option>)}
             </select>
-            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-              <option value="all">全部 Team</option>
-              {teams.map(t => <option key={t}>{t}</option>)}
-            </select>
+            <MultiTeamSelect teams={teams} selected={teamFilter} onChange={setTeamFilter} />
             <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
               <option value="all">全部職能</option>
               {roles.map(r => <option key={r}>{r}</option>)}

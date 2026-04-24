@@ -4,6 +4,7 @@ import { Search, X, Plus, Users, Bell } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import StaffAdminFormModal from "@/components/staff/StaffAdminFormModal";
 import PendingUpdatesPanel from "@/components/staff/PendingUpdatesPanel";
+import MultiTeamSelect from "@/components/filters/MultiTeamSelect";
 
 const statusColor = {
   Active: "bg-green-100 text-green-700",
@@ -21,7 +22,7 @@ export default function StaffDirectory() {
 
   const [search, setSearch] = useState("");
   const [buFilter, setBuFilter] = useState("");
-  const [teamFilter, setTeamFilter] = useState("");
+  const [teamFilter, setTeamFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState("Active");
 
   const [showAdminForm, setShowAdminForm] = useState(false);
@@ -55,6 +56,9 @@ export default function StaffDirectory() {
     ? teamList.filter(t => t.bu_name === buList.find(b => b.id === buFilter)?.display)
     : teamList;
 
+  // When BU changes, clear team filter
+  const handleBuChange = (val) => { setBuFilter(val); setTeamFilter([]); };
+
   const filtered = staff.filter(s => {
     const q = search.toLowerCase();
     const matchSearch = !search ||
@@ -63,7 +67,7 @@ export default function StaffDirectory() {
       (s.position || '').toLowerCase().includes(q) ||
       (s.work_email || '').toLowerCase().includes(q);
     const matchBu = !buFilter || s.bu_name === buList.find(b => b.id === buFilter)?.display;
-    const matchTeam = !teamFilter || s.team_name === teamList.find(t => t.id === teamFilter)?.display;
+    const matchTeam = teamFilter.length === 0 || teamFilter.some(tf => s.team_name === teamList.find(t => t.id === tf)?.display);
     const matchStatus = !statusFilter || s.o_status === statusFilter;
     return matchSearch && matchBu && matchTeam && matchStatus;
   });
@@ -155,17 +159,17 @@ export default function StaffDirectory() {
               <option value="Inactive">Inactive</option>
             </select>
             <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
-              value={buFilter} onChange={e => { setBuFilter(e.target.value); setTeamFilter(""); }}>
+              value={buFilter} onChange={e => handleBuChange(e.target.value)}>
               <option value="">全部 BU</option>
               {buList.map(b => <option key={b.id} value={b.id}>{b.display}</option>)}
             </select>
-            <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none flex-1"
-              value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-              <option value="">全部 Team</option>
-              {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.display}</option>)}
-            </select>
-            {(search || buFilter || teamFilter || statusFilter) && (
-              <button onClick={() => { setSearch(""); setBuFilter(""); setTeamFilter(""); setStatusFilter("Active"); }}
+            <MultiTeamSelect
+              teams={filteredTeams.map(t => ({ id: t.id, label: t.display }))}
+              selected={teamFilter}
+              onChange={setTeamFilter}
+            />
+            {(search || buFilter || teamFilter.length > 0 || statusFilter) && (
+              <button onClick={() => { setSearch(""); setBuFilter(""); setTeamFilter([]); setStatusFilter("Active"); }}
                 className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-1">
                 <X size={12} /> 清除
               </button>

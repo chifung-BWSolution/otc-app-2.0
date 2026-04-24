@@ -207,10 +207,53 @@
     "login_password": {
       "type": "string",
       "title": "\u767b\u5165\u5bc6\u78bc (Login Password)"
+    },
+    "staff_region": {
+      "type": "string",
+      "title": "\u6240\u5c6c\u5730\u5340",
+      "description": "\u54e1\u5de5\u6240\u5c6c\u8fa6\u516c\u5ba4\u5730\u5340\u4ee3\u78bc\uff0c\u4f8b\u5982 CFA(\u9999\u6e2f)\u3001CFB(\u6df1\u5733)"
+    },
+    "base_location": {
+      "type": "string",
+      "title": "Base Location"
     }
   },
   "required": [
     "display_name",
     "o_status"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.linked_user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

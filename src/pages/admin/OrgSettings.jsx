@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import WorkScheduleSettings from "@/components/settings/WorkScheduleSettings";
 
 const TABS = [
   { key: "bu", label: "BU", entity: "NOSBU" },
   { key: "team", label: "Team", entity: "NOSTeam" },
   { key: "role", label: "Team Role", entity: "NOSTeamRole" },
+  { key: "schedule", label: "⏰ 上班時間", entity: null },
 ];
 
 function ItemRow({ item, onSave, onDelete, buList }) {
@@ -206,39 +208,46 @@ export default function OrgSettings() {
             className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === t.key ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
           >
             {t.label}
-            <span className="ml-1.5 text-xs opacity-60">({data[t.entity]?.length || 0})</span>
+            {t.entity && <span className="ml-1.5 text-xs opacity-60">({data[t.entity]?.length || 0})</span>}
           </button>
         ))}
       </div>
 
-      {/* List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-1">名稱</span>
-          {tab === 'team' && <span className="text-xs font-bold text-gray-500 uppercase tracking-wider w-24">BU</span>}
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-1">描述</span>
-        </div>
-        {loading ? (
-          <div className="text-center py-8 text-gray-400 text-sm">載入中...</div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">尚無資料，請新增或從 Bubble 同步</div>
-        ) : (
-          items.map(item => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              buList={buList}
-            />
-          ))
-        )}
-        <AddRow onAdd={handleAdd} buList={buList} />
-      </div>
+      {/* Schedule settings tab */}
+      {tab === "schedule" ? (
+        <WorkScheduleSettings />
+      ) : (
+        <>
+          {/* List */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-1">名稱</span>
+              {tab === 'team' && <span className="text-xs font-bold text-gray-500 uppercase tracking-wider w-24">BU</span>}
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-1">描述</span>
+            </div>
+            {loading ? (
+              <div className="text-center py-8 text-gray-400 text-sm">載入中...</div>
+            ) : items.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm">尚無資料，請新增或從 Bubble 同步</div>
+            ) : (
+              items.map(item => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  onSave={handleSave}
+                  onDelete={handleDelete}
+                  buList={buList}
+                />
+              ))
+            )}
+            <AddRow onAdd={handleAdd} buList={buList} />
+          </div>
 
-      <p className="text-xs text-gray-400">
-        💡 由 Bubble 同步嚟嘅資料會有 "Bubble" 標記。手動新增嘅資料只喺本系統生效。
-      </p>
+          <p className="text-xs text-gray-400">
+            💡 由 Bubble 同步嚟嘅資料會有 "Bubble" 標記。手動新增嘅資料只喺本系統生效。
+          </p>
+        </>
+      )}
     </div>
   );
 }

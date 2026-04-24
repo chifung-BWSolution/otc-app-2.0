@@ -81,11 +81,12 @@ export default function AnnualReviewDetail({ review, onBack }) {
     setLoading(true);
     const staffId = r.staff_id;
 
-    // Load staff list to map staff_name → bubble_id (clockin records often have null staff_id)
-    const [staffList, clockinList, leaveList] = await Promise.all([
+    // Load staff list, clockins, leaves, and region settings
+    const [staffList, clockinList, leaveList, regionList] = await Promise.all([
       base44.entities.Staff.list("display_name", 2000),
       loadAll(base44.entities.BubbleClockin, "id"),
       loadAll(base44.entities.BubbleLeave, "id"),
+      base44.entities.Region.filter({ is_active: true }, "sort_order", 50),
     ]);
 
     // Also load man hour dates + tasks for project summary
@@ -104,6 +105,23 @@ export default function AnnualReviewDetail({ review, onBack }) {
       }
     }
     const staffName = staffBubbleIdToName[staffId] || r.staff_name;
+
+    // Resolve region for this staff to get work schedule
+    const staffRec = staffList.find(s => s.bubble_id === staffId);
+    const staffRegion = regionList.find(reg => {
+      if (staffRec?.staff_region) return reg.code === staffRec.staff_region;
+      const loc = (staffRec?.o_base_location || staffRec?.base_location || "").toLowerCase();
+      return (reg.base_locations || []).some(v => v && loc.includes(v.toLowerCase()));
+    }) || regionList[0];
+
+    // Parse HH:MM to total minutes
+    const parseTime = (t, fallback) => {
+      if (!t) return fallback;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + (m || 0);
+    };
+    const weekdayEndMin = parseTime(staffRegion?.work_end, 18 * 60 + 30);
+    const satEndMin = parseTime(staffRegion?.sat_training_end, 13 * 60 + 30);
 
     // === Work days (clockin) vs Report days ===
     // Match clockins by staff_id OR staff_name
@@ -131,7 +149,7 @@ export default function AnnualReviewDetail({ review, onBack }) {
         totalLateMinutes += c.late_minutes;
       }
 
-      // Voluntary OT: weekdays clock out after 18:30, Saturday after 13:30
+      // Voluntary OT: weekdays clock out after work_end, Saturday after sat_training_end
       // Then subtract approved OT minutes
       if (c.clock_out_time) {
         const outDate = parseToDate(c.clock_out_time);
@@ -145,14 +163,13 @@ export default function AnnualReviewDetail({ review, onBack }) {
 
             let threshold = null;
             if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-              threshold = 18 * 60 + 30; // 18:30
+              threshold = weekdayEndMin;
             } else if (dayOfWeek === 6) {
-              threshold = 13 * 60 + 30; // 13:30
+              threshold = satEndMin;
             }
 
             if (threshold !== null && outTotalMin > threshold) {
               let extraMin = outTotalMin - threshold;
-              // Subtract approved OT minutes
               const approvedOT = c.ot_minutes || 0;
               extraMin = Math.max(0, extraMin - approvedOT);
               voluntaryOTMinutes += extraMin;
