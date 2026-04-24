@@ -185,26 +185,46 @@ export default function AnnualReviewDetail({ review, onBack }) {
       .sort((a, b) => b.hours - a.hours);
     setAllProjectSummary(allProjs);
 
-    // === No-pay leave (UL) ===
-    // Match by staff_id, and check if display_name contains UL-related keywords
+    // === No-pay leave ===
+    // Match by staff_id, filter by FY date, only approved leaves
     const myLeaves = leaveList.filter(l => {
       if (l.staff_id !== staffId) return false;
-      // Check if this is UL leave via display_name (e.g. "Mandy Mau - 無薪事假 (上午)")
-      const dn = (l.display_name || "").toLowerCase();
-      const isUL = dn.includes("無薪") || dn.includes("unpaid") || dn.includes("no pay") || dn.includes(" ul ");
-      if (!isUL) return false;
+      if (l.approved !== true) return false;
+      const dn = (l.display_name || "");
+      const isUnpaid = dn.includes("無薪") || dn.toLowerCase().includes("unpaid") || dn.toLowerCase().includes("no pay");
+      if (!isUnpaid) return false;
       const sd = toLocalDate(l.start_date_time || l.end_date_time);
       return sd && sd >= fy.start && sd <= fy.end;
     });
-    const ulDays = myLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0);
+
+    // Separate 無薪事假 vs 無薪病假
+    const ulPersonalLeaves = myLeaves.filter(l => {
+      const dn = (l.display_name || "");
+      return dn.includes("無薪事假") || dn.includes("突發無薪事假");
+    });
+    const ulSickLeaves = myLeaves.filter(l => {
+      const dn = (l.display_name || "");
+      return dn.includes("無薪病假") || dn.includes("無薪假期");
+    });
+
+    const ulPersonalDays = ulPersonalLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0);
+    const ulSickDays = ulSickLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0);
+    const ulTotalDays = myLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0);
 
     setAttendanceStats({
       workDays: clockinDates.size,
       reportDays: reportDates.size,
       totalLateMinutes,
       voluntaryOTMinutes,
-      ulDays,
+      ulDays: ulTotalDays,
+      ulPersonalDays,
+      ulSickDays,
       ulCount: myLeaves.length,
+      ulLeaves: myLeaves.map(l => ({
+        display_name: l.display_name,
+        quota: l.quota,
+        start: toLocalDate(l.start_date_time),
+      })),
     });
     setLoading(false);
   };
@@ -339,9 +359,9 @@ export default function AnnualReviewDetail({ review, onBack }) {
               />
               <AttendanceStat
                 icon={<Coffee size={16} className="text-red-500" />}
-                label="無薪假 (UL)"
+                label="無薪假（合計）"
                 value={`${attendanceStats.ulDays} 日`}
-                sub={`${attendanceStats.ulCount} 次申請`}
+                sub={`事假 ${attendanceStats.ulPersonalDays}日 · 病假 ${attendanceStats.ulSickDays}日`}
                 warn={attendanceStats.ulDays > 0}
               />
               <AttendanceStat
@@ -356,6 +376,26 @@ export default function AnnualReviewDetail({ review, onBack }) {
             </div>
           ) : (
             <div className="text-center py-4 text-gray-400 text-sm">無法載入考勤數據</div>
+          )}
+          {/* UL detail breakdown */}
+          {attendanceStats?.ulLeaves?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="text-xs font-bold text-gray-500 mb-1.5">📋 無薪假明細</div>
+              <div className="space-y-1">
+                {attendanceStats.ulLeaves
+                  .sort((a, b) => (a.start || "").localeCompare(b.start || ""))
+                  .map((l, i) => {
+                    const label = (l.display_name || "").split(" - ").slice(1).join(" - ") || l.display_name;
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-400 w-20 shrink-0">{l.start}</span>
+                        <span className="flex-1 text-gray-600">{label}</span>
+                        <span className="font-semibold text-orange-600 shrink-0">{l.quota}日</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
           )}
         </div>
       </div>
