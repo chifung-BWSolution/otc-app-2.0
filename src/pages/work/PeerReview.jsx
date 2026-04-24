@@ -26,8 +26,13 @@ export default function PeerReview() {
     const me = await base44.auth.me();
     const staffList = await base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 1000);
 
-    // Find current user's staff record
-    const myRec = staffList.find(s => s.work_email === me.email || s.linked_user_email === me.email);
+    // Find current user's staff record — match by linked_staff_id (on User), linked_user_email, or work_email
+    const linkedStaffId = me.linked_staff_id;
+    const myRec = staffList.find(s =>
+      (linkedStaffId && s.bubble_id === linkedStaffId) ||
+      s.linked_user_email === me.email ||
+      s.work_email === me.email
+    );
     setMyStaff(myRec || null);
 
     if (myRec?.team_group) {
