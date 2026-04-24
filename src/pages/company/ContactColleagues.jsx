@@ -62,7 +62,7 @@ export default function ContactColleagues() {
         (s.position || "").toLowerCase().includes(q) ||
         (s.team_name || "").toLowerCase().includes(q) ||
         (s.work_email || "").toLowerCase().includes(q);
-      const region = getRegionByLocation(s.base_location);
+      const region = getRegionByLocation(s.o_base_location);
       const matchRegion = regionFilter === "all" || region?.code === regionFilter;
       const matchBu = buFilter === "all" || s.bu_name === buFilter;
       const matchTeam = teamFilter.length === 0 || teamFilter.includes(s.team_name);
@@ -98,7 +98,7 @@ export default function ContactColleagues() {
               🌏 全部地區 ({staff.length})
             </button>
             {regions.map(r => {
-              const count = staff.filter(s => getRegionByLocation(s.base_location)?.code === r.code).length;
+              const count = staff.filter(s => getRegionByLocation(s.o_base_location)?.code === r.code).length;
               const active = regionFilter === r.code;
               return (
                 <button key={r.code} onClick={() => setRegionFilter(r.code)}
@@ -158,7 +158,7 @@ export default function ContactColleagues() {
               </thead>
               <tbody>
                 {filtered.map(s => {
-                  const region = getRegionByLocation(s.base_location);
+                  const region = getRegionByLocation(s.o_base_location);
                   const wa = whatsAppURL(s.work_phone || s.direct_phone || s.private_phone);
                   const staffRegionLabel = (s.bu_name || "").includes("深圳") ? "深圳" : "香港";
                   const absence = absenceMap[s.work_email];
@@ -246,7 +246,7 @@ export default function ContactColleagues() {
       {selected && (
         <ContactProfilePanel
           person={selected}
-          region={getRegionByLocation(selected.base_location)}
+          region={getRegionByLocation(selected.o_base_location)}
           absence={absenceMap[selected.work_email]}
           colleagues={staff}
           onClose={() => setSelected(null)}

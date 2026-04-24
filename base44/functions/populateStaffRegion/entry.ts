@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   // Build matching function: try base_locations array first, then code/name
   function matchRegion(staffRec) {
-    const loc = (staffRec.o_base_location || staffRec.base_location || '').toLowerCase();
+    const loc = (staffRec.o_base_location || '').toLowerCase();
     if (!loc) return null;
 
     // 1. Match by base_locations array

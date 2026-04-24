@@ -110,7 +110,7 @@ export default function AnnualReviewDetail({ review, onBack }) {
     const staffRec = staffList.find(s => s.bubble_id === staffId);
     const staffRegion = regionList.find(reg => {
       if (staffRec?.staff_region) return reg.code === staffRec.staff_region;
-      const loc = (staffRec?.o_base_location || staffRec?.base_location || "").toLowerCase();
+      const loc = (staffRec?.o_base_location || "").toLowerCase();
       return (reg.base_locations || []).some(v => v && loc.includes(v.toLowerCase()));
     }) || regionList[0];
 

@@ -42,7 +42,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     team_leader_name: staff?.team_leader_name || "",
     entry_date: staff?.entry_date || "",
     probation_end_date: staff?.probation_end_date || "",
-    base_location: staff?.base_location || "",
+    o_base_location: staff?.o_base_location || "",
     o_status: staff?.o_status || "Active",
     termination_date: staff?.termination_date || "",
     bank_name: staff?.bank_name || "",
@@ -166,7 +166,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
               {renderInput("Team", "team_name")}
               {renderInput("Team Role", "team_role_name")}
               {renderInput("直屬上司", "team_leader_name")}
-              {renderInput("辦公室地點", "base_location")}
+              {renderInput("辦公室地點", "o_base_location")}
               {renderInput("入職日期", "entry_date", "date")}
               {renderInput("試用期完結", "probation_end_date", "date")}
               {renderInput("工作電郵", "work_email", "email")}

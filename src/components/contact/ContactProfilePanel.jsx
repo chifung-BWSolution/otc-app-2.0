@@ -163,7 +163,7 @@ export default function ContactProfilePanel({ person, region, absence, colleague
 
       <div className="px-4 pb-4 mt-1">
         <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">詳細資料</div>
-        <Row label="辦公室" value={person.base_location} icon={<Building2 size={14} />} />
+        <Row label="辦公室" value={person.o_base_location} icon={<Building2 size={14} />} />
         <Row label="BU" value={person.bu_name} icon={<Briefcase size={14} />} />
         <Row label="Team" value={person.team_name} icon={<Users size={14} />} />
         <Row label="Team Role" value={person.team_role_name} icon={<Briefcase size={14} />} />

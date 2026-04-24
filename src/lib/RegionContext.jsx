@@ -27,7 +27,7 @@ export function RegionProvider({ children }) {
       let baseLocation = "";
       if (me?.email) {
         const staffList = await base44.entities.Staff.filter({ work_email: me.email }, "-created_date", 1);
-        baseLocation = staffList[0]?.base_location || "";
+        baseLocation = staffList[0]?.o_base_location || "";
       }
       setUserBaseLocation(baseLocation);
 
