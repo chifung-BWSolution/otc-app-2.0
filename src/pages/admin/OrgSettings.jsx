@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import WorkScheduleSettings from "@/components/settings/WorkScheduleSettings";
+import TeamGroupSettings from "@/components/settings/TeamGroupSettings";
 
 const TABS = [
   { key: "bu", label: "BU", entity: "NOSBU" },
   { key: "team", label: "Team", entity: "NOSTeam" },
   { key: "role", label: "Team Role", entity: "NOSTeamRole" },
   { key: "schedule", label: "⏰ 上班時間", entity: null },
+  { key: "teamgroup", label: "👥 Team 分組", entity: null },
 ];
 
 function ItemRow({ item, onSave, onDelete, buList }) {
@@ -213,9 +215,11 @@ export default function OrgSettings() {
         ))}
       </div>
 
-      {/* Schedule settings tab */}
+      {/* Special tabs */}
       {tab === "schedule" ? (
         <WorkScheduleSettings />
+      ) : tab === "teamgroup" ? (
+        <TeamGroupSettings />
       ) : (
         <>
           {/* List */}

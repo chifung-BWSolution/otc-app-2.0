@@ -26,6 +26,11 @@
       "type": "boolean",
       "title": "\u555f\u7528",
       "default": true
+    },
+    "team_group": {
+      "type": "string",
+      "title": "Team \u5206\u7d44",
+      "description": "\u4f8b\u5982 Front / Back / Support \u7b49"
     }
   },
   "required": [

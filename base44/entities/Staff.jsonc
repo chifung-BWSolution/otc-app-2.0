@@ -212,6 +212,11 @@
       "type": "string",
       "title": "\u6240\u5c6c\u5730\u5340",
       "description": "\u54e1\u5de5\u6240\u5c6c\u8fa6\u516c\u5ba4\u5730\u5340\u4ee3\u78bc\uff0c\u4f8b\u5982 CFA(\u9999\u6e2f)\u3001CFB(\u6df1\u5733)"
+    },
+    "team_group": {
+      "type": "string",
+      "title": "Team \u5206\u7d44",
+      "description": "\u54e1\u5de5\u6240\u5c6c\u7684 Team \u5206\u7d44\uff0c\u4f8b\u5982 Front / Back / Support"
     }
   },
   "required": [
