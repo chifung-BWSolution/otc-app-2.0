@@ -21,8 +21,8 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         properties: { report_markdown: { type: "string" } },
         required: ["report_markdown"]
       },
-      model: "claude_sonnet_4_6"
     });
+    const content = res.report_markdown || res.report || (typeof res === "string" ? res : JSON.stringify(res));
     const newReport = await base44.entities.AppraisalReport.create({
       annual_review_id: r.annual_review_id,
       staff_id: r.staff_id,
@@ -31,7 +31,7 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
       staff_bu: r.staff_bu,
       staff_position: r.staff_position,
       fiscal_year: r.fiscal_year,
-      report_content: res.report_markdown,
+      report_content: content,
       version: (r.version || 1) + 1,
       is_final: false,
       boss_feedback: chatMsg,
