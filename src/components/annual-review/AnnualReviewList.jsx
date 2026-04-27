@@ -1,6 +1,7 @@
-import { FileText, CheckCircle, Clock, Plus, Eye, Pencil, Users } from "lucide-react";
+import { FileText, Plus, Eye, Pencil, Users } from "lucide-react";
+import ReviewStatusBadge, { getStatusInfo } from "./ReviewStatusBadge";
 
-export default function AnnualReviewList({ reviews, staffRec, user, onCreateNew, onOpen, onPeerReview }) {
+export default function AnnualReviewList({ reviews, staffRec, user, leaderName, onCreateNew, onOpen, onPeerReview }) {
   const name = staffRec?.display_name || user?.full_name || "";
 
   return (
@@ -35,37 +36,31 @@ export default function AnnualReviewList({ reviews, staffRec, user, onCreateNew,
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-gray-600 px-1">已有的評估表（{reviews.length}）</h3>
           {reviews.map(r => {
-            const isSubmitted = r.status === "submitted";
+            const isDraft = r.status === "draft";
+            const statusInfo = getStatusInfo(r.status, leaderName);
+            const StatusIcon = statusInfo.icon;
+            const canEdit = isDraft;
+            const showPeerReview = r.status === "submitted"; // only show when waiting for peer review
+
             return (
-              <div
-                key={r.id}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-              >
+              <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 p-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSubmitted ? "bg-green-100" : "bg-orange-100"}`}>
-                    {isSubmitted ? <CheckCircle size={18} className="text-green-600" /> : <Clock size={18} className="text-orange-600" />}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusInfo.circleBg}`}>
+                    <StatusIcon size={18} className={statusInfo.iconColor} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-gray-900">{r.fiscal_year}</span>
-                      {isSubmitted ? (
-                        <span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已提交</span>
-                      ) : (
-                        <span className="text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">草稿</span>
-                      )}
+                      <ReviewStatusBadge status={r.status} leaderName={leaderName} />
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">
                       {r.project_contributions?.length || 0} 個項目
-                      {isSubmitted && r.submitted_at && (
-                        <span> · 提交於 {new Date(r.submitted_at).toLocaleDateString("zh-HK")}</span>
-                      )}
-                      {!isSubmitted && (
-                        <span> · 上次更新 {new Date(r.updated_date || r.created_date).toLocaleDateString("zh-HK")}</span>
-                      )}
+                      {r.submitted_at && <span> · 提交於 {new Date(r.submitted_at).toLocaleDateString("zh-HK")}</span>}
+                      {isDraft && <span> · 上次更新 {new Date(r.updated_date || r.created_date).toLocaleDateString("zh-HK")}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {isSubmitted && onPeerReview && (
+                    {showPeerReview && onPeerReview && (
                       <button
                         onClick={() => onPeerReview()}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
@@ -76,12 +71,12 @@ export default function AnnualReviewList({ reviews, staffRec, user, onCreateNew,
                     <button
                       onClick={() => onOpen(r)}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                        isSubmitted
-                          ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          : "bg-indigo-600 text-white hover:bg-indigo-700"
+                        canEdit
+                          ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      {isSubmitted ? <><Eye size={13} /> 查看</> : <><Pencil size={13} /> 編輯</>}
+                      {canEdit ? <><Pencil size={13} /> 編輯</> : <><Eye size={13} /> 查看</>}
                     </button>
                   </div>
                 </div>

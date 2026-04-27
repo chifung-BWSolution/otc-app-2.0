@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Search, Users, CheckCircle2, XCircle, Ban, ChevronDown, ChevronUp, Eye } from "lucide-react";
-import { QUESTIONS } from "@/components/peer-review/PeerReviewQuestions";
+import { DIMENSIONS } from "@/components/peer-review/PeerReviewQuestions";
 import PeerReviewDetailModal from "@/components/peer-review/PeerReviewDetailModal";
 
 function getCurrentFY() {
@@ -242,9 +242,14 @@ export default function PeerReviewAdmin() {
                         )}
                         <span className="text-gray-400 flex-1">{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString("zh-HK") : ""}</span>
                         {r.status === "submitted" && (
-                          <button onClick={() => setDetailReview(r)} className="flex items-center gap-1 text-indigo-500 hover:text-indigo-700">
-                            <Eye size={12} /> 查看
-                          </button>
+                          <>
+                            <span className="text-gray-500">
+                              平均 {Math.round(DIMENSIONS.reduce((s, d) => s + (r[d.key] || 0), 0) / DIMENSIONS.filter(d => r[d.key] > 0).length * 10) / 10 || "—"} 分
+                            </span>
+                            <button onClick={() => setDetailReview(r)} className="flex items-center gap-1 text-indigo-500 hover:text-indigo-700">
+                              <Eye size={12} /> 查看
+                            </button>
+                          </>
                         )}
                         {r.status === "no_collaboration" && r.no_collab_approved === "pending" && (
                           <div className="flex gap-1">

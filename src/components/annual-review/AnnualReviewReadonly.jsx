@@ -112,8 +112,30 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
           </div>
         </div>
       </div>
-      <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
-      <SectionCard color="green" icon="💪" title="為完成目標願意做的事" content={r.commitment} />
+      {/* Goals + Commitment */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-green-50 px-4 py-3 border-b border-green-100">
+          <h3 className="font-bold text-sm text-green-800">🎯 未來一年目標及為完成目標願意做的事</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">未來一年目標</div>
+            {r.next_year_goals ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.next_year_goals}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">為完成目標願意做的事</div>
+            {r.commitment ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.commitment}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+        </div>
+      </div>
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {r.submitted_at && (

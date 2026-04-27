@@ -58,12 +58,12 @@ export default function PeerReview() {
     return reviews.find(r => r.reviewee_staff_id === colleagueStaffId) || null;
   };
 
-  const handleSave = async (answers, submit) => {
+  const handleSave = async (formData, submit) => {
     if (!myStaff || !selectedColleague) return;
     setSaving(true);
     const existing = existingReviewFor(selectedColleague.bubble_id);
     const data = {
-      ...answers,
+      ...formData,
       reviewer_staff_id: myStaff.bubble_id,
       reviewer_name: myStaff.display_name,
       reviewer_team_group: myStaff.team_group,

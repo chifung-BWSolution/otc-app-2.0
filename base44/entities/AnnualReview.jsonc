@@ -58,10 +58,6 @@
         }
       }
     },
-    "other_contributions": {
-      "type": "string",
-      "title": "\u5176\u4ed6\u8ca2\u737b/\u6210\u5c31/\u5275\u65b0/\u54c1\u724c\u5347\u7d1a"
-    },
     "challenges": {
       "type": "string",
       "title": "\u5e74\u5ea6\u9047\u5230\u7684\u56f0\u96e3"
@@ -87,7 +83,10 @@
       "title": "\u72c0\u614b",
       "enum": [
         "draft",
-        "submitted"
+        "submitted",
+        "peer_review_pending",
+        "pending_leader",
+        "pending_boss"
       ],
       "default": "draft"
     },

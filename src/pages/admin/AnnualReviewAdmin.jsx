@@ -115,8 +115,11 @@ export default function AnnualReviewAdmin() {
           onChange={e => setStatusFilter(e.target.value)}
         >
           <option value="all">全部狀態</option>
-          <option value="submitted">已提交</option>
           <option value="draft">草稿</option>
+          <option value="submitted">已提交待互評</option>
+          <option value="peer_review_done">已完成互評</option>
+          <option value="pending_leader">待Leader評分</option>
+          <option value="pending_boss">待老闆面談</option>
         </select>
         <MultiSelectDropdown label="BU" options={buList} selected={buFilter} onChange={setBuFilter} />
         <MultiSelectDropdown label="Team" options={teamList} selected={teamFilter} onChange={setTeamFilter} />
@@ -155,11 +158,17 @@ export default function AnnualReviewAdmin() {
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-600">{r.fiscal_year}</td>
                 <td className="px-4 py-3 text-center">
-                  {r.status === "submitted" ? (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已提交</span>
-                  ) : (
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">草稿</span>
-                  )}
+                  {(() => {
+                    const sm = {
+                      draft: { bg: "bg-orange-100", text: "text-orange-700", label: "草稿" },
+                      submitted: { bg: "bg-amber-100", text: "text-amber-700", label: "待互評" },
+                      peer_review_done: { bg: "bg-blue-100", text: "text-blue-700", label: "已完成互評" },
+                      pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
+                      pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待老闆面談" },
+                    };
+                    const s = sm[r.status] || sm.draft;
+                    return <span className={`text-xs ${s.bg} ${s.text} px-2 py-0.5 rounded-full font-medium`}>{s.label}</span>;
+                  })()}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500">
                   {r.submitted_at ? new Date(r.submitted_at).toLocaleString("zh-HK") : "—"}

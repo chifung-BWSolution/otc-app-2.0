@@ -1,19 +1,13 @@
 import { X } from "lucide-react";
-import { QUESTIONS, SECTION_COLORS } from "./PeerReviewQuestions";
+import { DIMENSIONS, DIMENSION_COLORS } from "./PeerReviewQuestions";
 
 export default function PeerReviewDetailModal({ review, staffMap, onClose }) {
   const r = review;
 
-  // Group questions by section
-  const sections = [];
-  let lastSection = null;
-  for (const q of QUESTIONS) {
-    if (q.section !== lastSection) {
-      sections.push({ section: q.section, label: q.sectionLabel, color: q.sectionColor, questions: [] });
-      lastSection = q.section;
-    }
-    sections[sections.length - 1].questions.push(q);
-  }
+  const totalScore = DIMENSIONS.reduce((s, d) => s + (r[d.key] || 0), 0);
+  const avgScore = DIMENSIONS.filter(d => r[d.key] > 0).length > 0
+    ? Math.round((totalScore / DIMENSIONS.filter(d => r[d.key] > 0).length) * 10) / 10
+    : 0;
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -21,33 +15,39 @@ export default function PeerReviewDetailModal({ review, staffMap, onClose }) {
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between z-10">
           <div>
             <h3 className="font-bold text-gray-900">{r.reviewer_name} → {r.reviewee_name}</h3>
-            <p className="text-xs text-gray-400">{r.fiscal_year} · {r.reviewer_team_group}</p>
+            <p className="text-xs text-gray-400">{r.fiscal_year} · {r.reviewer_team_group} · 平均 {avgScore} 分</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={16} /></button>
         </div>
-        <div className="p-5 space-y-4">
-          {sections.map(sec => {
-            const colors = SECTION_COLORS[sec.color];
+        <div className="p-5 space-y-3">
+          {DIMENSIONS.map(dim => {
+            const score = r[dim.key] || 0;
+            const colors = DIMENSION_COLORS[dim.color];
+            const scoreColors = {
+              5: "bg-emerald-500", 4: "bg-blue-500", 3: "bg-amber-500", 2: "bg-orange-500", 1: "bg-red-500",
+            };
             return (
-              <div key={sec.section}>
-                <h4 className={`font-bold text-xs mb-2 ${colors.text}`}>{sec.label}</h4>
-                {sec.questions.map(q => {
-                  const answer = r[q.key];
-                  const opt = q.options.find(o => o.value === answer);
-                  return (
-                    <div key={q.key} className="mb-2">
-                      <div className="text-xs text-gray-500">{q.label}</div>
-                      <div className={`text-sm font-semibold mt-0.5 ${answer ? "text-gray-800" : "text-gray-300 italic"}`}>
-                        {opt ? `${opt.value}. ${opt.label}` : "（未作答）"}
-                      </div>
+              <div key={dim.key} className="flex items-center gap-3 py-2">
+                <span className="text-base">{dim.icon}</span>
+                <span className={`text-sm font-medium flex-1 ${colors.text}`}>{dim.label}</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <div
+                      key={s}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                        s <= score ? `${scoreColors[s] || "bg-gray-400"} text-white` : "bg-gray-100 text-gray-300"
+                      }`}
+                    >
+                      {s}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <span className="text-sm font-black text-gray-800 w-8 text-right">{score || "—"}</span>
               </div>
             );
           })}
           {r.comment && (
-            <div>
+            <div className="pt-3 border-t border-gray-100">
               <div className="text-xs text-gray-500 font-bold">💬 額外補充</div>
               <p className="text-sm text-gray-700 mt-1">{r.comment}</p>
             </div>

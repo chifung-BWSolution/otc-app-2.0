@@ -321,18 +321,17 @@ ${attText}
       }
     }
 
-    // Build ALL project summary (>= 40h) from tasks, exclude "未指定項目"
+    // Build ALL project summary from tasks, exclude "未指定項目"
     const projAgg = {};
     for (const t of myTasks) {
       const projName = t.project_name;
-      if (!projName) continue; // skip tasks without a project name
+      if (!projName) continue;
       if (!projAgg[projName]) projAgg[projName] = { project_name: projName, hours: 0, tasks: 0 };
       projAgg[projName].hours += t.work_hour || 0;
       projAgg[projName].tasks += 1;
     }
     const allProjs = Object.values(projAgg)
       .map(p => ({ ...p, hours: Math.round(p.hours * 10) / 10 }))
-      .filter(p => p.hours >= 40)
       .sort((a, b) => b.hours - a.hours);
     setAllProjectSummary(allProjs);
 
@@ -380,9 +379,9 @@ ${attText}
     setLoading(false);
   };
 
-  // Projects ≥40h where staff didn't write contribution notes (from review data directly)
+  // Projects where staff didn't write contribution notes (from review data directly)
   const otherProjects = useMemo(() => {
-    return allProjects.filter(p => (p.hours || 0) >= 40 && !hasContribution(p));
+    return allProjects.filter(p => !hasContribution(p));
   }, [allProjects]);
 
   return (
@@ -396,11 +395,19 @@ ${attText}
           <h2 className="font-bold text-gray-900">{r.staff_name} 的年度評估表</h2>
           <p className="text-xs text-gray-400">{r.staff_position} · {r.staff_team} · {r.staff_bu} · {r.fiscal_year}</p>
         </div>
-        {r.status === "submitted" ? (
-          <span className="ml-auto text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">已提交</span>
-        ) : (
-          <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-medium">草稿</span>
-        )}
+        <span className="ml-auto">
+          {(() => {
+            const statusMap = {
+              draft: { bg: "bg-orange-100", text: "text-orange-700", label: "草稿" },
+              submitted: { bg: "bg-amber-100", text: "text-amber-700", label: "已提交，待互評" },
+              peer_review_done: { bg: "bg-blue-100", text: "text-blue-700", label: "已完成互評" },
+              pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
+              pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待老闆面談" },
+            };
+            const s = statusMap[r.status] || statusMap.draft;
+            return <span className={`text-xs ${s.bg} ${s.text} px-3 py-1 rounded-full font-medium`}>{s.label}</span>;
+          })()}
+        </span>
       </div>
 
       {/* Section 1: Projects with contributions */}
@@ -427,10 +434,10 @@ ${attText}
             <div className="text-center py-4 text-gray-400 text-xs">無項目記錄</div>
           )}
 
-          {/* Other projects >= 40h without contributions */}
+          {/* Other projects without contributions */}
           {otherProjects.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-xs font-bold text-gray-500 mb-2">📁 其他 ≥40h 項目（員工未撰寫貢獻重點）</div>
+              <div className="text-xs font-bold text-gray-500 mb-2">📁 其他項目（員工未撰寫貢獻重點）</div>
               <div className="space-y-1.5">
                 {otherProjects.map((p, i) => (
                   <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
@@ -470,11 +477,30 @@ ${attText}
         </div>
       </div>
 
-      {/* Section 4: Goals */}
-      <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
-
-      {/* Section 5: Commitment */}
-      <SectionCard color="green" icon="💪" title="為完成目標願意做的事" content={r.commitment} />
+      {/* Section 4: Goals + Commitment */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-green-50 px-4 py-3 border-b border-green-100">
+          <h3 className="font-bold text-sm text-green-800">🎯 未來一年目標及為完成目標願意做的事</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">未來一年目標</div>
+            {r.next_year_goals ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.next_year_goals}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">為完成目標願意做的事</div>
+            {r.commitment ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.commitment}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Section 6: Company Feedback */}
       <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />

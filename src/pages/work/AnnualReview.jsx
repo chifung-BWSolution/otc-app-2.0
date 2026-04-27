@@ -63,6 +63,7 @@ export default function AnnualReview() {
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("mine"); // mine | subordinates
   const [isLeader, setIsLeader] = useState(false);
+  const [leaderName, setLeaderName] = useState("");
 
   // Phase 2: Form / readonly / peer-review view
   const [view, setView] = useState("list"); // list | form | readonly | peer-review
@@ -100,17 +101,22 @@ export default function AnnualReview() {
       const hasSubs = allStaff.some(s => s.bubble_id !== myId && (s.team_leader === myId || (isLdr && myTeamId && s.n_team === myTeamId)));
       setIsLeader(hasSubs);
     }
+
+    // Find this staff's team leader name
+    if (myStaff?.team_leader) {
+      const leader = allStaff.find(s => s.bubble_id === myStaff.team_leader);
+      if (leader) setLeaderName(leader.display_name);
+    }
     setLoading(false);
   };
 
-  // Open submitted review as readonly
+  // Open review — draft → edit, anything else → readonly
   const handleOpenReview = (review) => {
-    if (review.status === "submitted") {
+    if (review.status === "draft") {
+      loadFormData(review);
+    } else {
       setActiveReview(review);
       setView("readonly");
-    } else {
-      // Draft → open form for editing
-      loadFormData(review);
     }
   };
 
@@ -120,8 +126,8 @@ export default function AnnualReview() {
     // Check if already exists for this FY
     const existing = reviews.find(r => r.fiscal_year === fy.label);
     if (existing) {
-      if (existing.status === "submitted") {
-        // Already submitted for this FY, show readonly
+      if (existing.status !== "draft") {
+        // Non-draft → show readonly
         setActiveReview(existing);
         setView("readonly");
         return;
@@ -385,6 +391,7 @@ export default function AnnualReview() {
           reviews={reviews}
           staffRec={staffRec}
           user={user}
+          leaderName={leaderName}
           onCreateNew={handleCreateNew}
           onOpen={handleOpenReview}
           onPeerReview={() => setView("peer-review")}

@@ -38,12 +38,12 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
 
   const existingReviewFor = (id) => reviews.find(r => r.reviewee_staff_id === id) || null;
 
-  const handleSave = async (answers, submit) => {
+  const handleSave = async (formData, submit) => {
     if (!staffRec || !selectedColleague) return;
     setSaving(true);
     const existing = existingReviewFor(selectedColleague.bubble_id);
     const data = {
-      ...answers,
+      ...formData,
       reviewer_staff_id: staffRec.bubble_id,
       reviewer_name: staffRec.display_name,
       reviewer_team_group: staffRec.team_group,

@@ -1,31 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Send, Loader2, ArrowLeft, Ban } from "lucide-react";
-import { QUESTIONS, SECTION_COLORS } from "./PeerReviewQuestions";
+import { base44 } from "@/api/base44Client";
+import { DIMENSIONS, DIMENSION_COLORS } from "./PeerReviewQuestions";
 
 export default function PeerReviewForm({ reviewee, existingReview, saving, onSave, onNoCollab, onBack }) {
-  const [answers, setAnswers] = useState(() => {
+  const [scores, setScores] = useState(() => {
     const init = {};
-    for (const q of QUESTIONS) {
-      init[q.key] = existingReview?.[q.key] || "";
+    for (const d of DIMENSIONS) {
+      init[d.key] = existingReview?.[d.key] || 0;
     }
-    init.comment = existingReview?.comment || "";
     return init;
   });
+  const [comment, setComment] = useState(existingReview?.comment || "");
+  const [scoreLevels, setScoreLevels] = useState([]);
 
-  const set = (key, val) => setAnswers(prev => ({ ...prev, [key]: val }));
+  useEffect(() => {
+    base44.entities.ScoreLevel.filter({ is_active: true }, "-score", 100).then(setScoreLevels);
+  }, []);
 
-  const isComplete = QUESTIONS.every(q => answers[q.key]);
+  const setScore = (key, val) => setScores(prev => ({ ...prev, [key]: val }));
+  const isComplete = DIMENSIONS.every(d => scores[d.key] > 0);
+  const isSubmitted = existingReview?.status === "submitted";
+  const isNoCollab = existingReview?.status === "no_collaboration";
 
-  // Group questions by section
-  const sections = [];
-  let lastSection = null;
-  for (const q of QUESTIONS) {
-    if (q.section !== lastSection) {
-      sections.push({ section: q.section, label: q.sectionLabel, color: q.sectionColor, questions: [] });
-      lastSection = q.section;
-    }
-    sections[sections.length - 1].questions.push(q);
-  }
+  const handleSave = (submit) => {
+    onSave({ ...scores, comment }, submit);
+  };
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -47,18 +47,18 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
             <p className="text-xs text-gray-400">{reviewee.team_name} · {reviewee.position}</p>
           </div>
         </div>
-        {existingReview?.status === "submitted" && (
+        {isSubmitted && (
           <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">已提交</span>
         )}
-        {existingReview?.status === "no_collaboration" && (
+        {isNoCollab && (
           <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
             無合作過 {existingReview.no_collab_approved === "approved" ? "✅" : existingReview.no_collab_approved === "rejected" ? "❌ 已拒絕" : "⏳ 待審批"}
           </span>
         )}
       </div>
 
-      {/* No collaboration - at top */}
-      {existingReview?.status !== "submitted" && existingReview?.status !== "no_collaboration" && (
+      {/* No collaboration option */}
+      {!isSubmitted && !isNoCollab && (
         <button
           onClick={() => {
             if (window.confirm(`確認你同 ${reviewee.display_name} 無合作過？管理員會審核此申請。`)) {
@@ -73,40 +73,53 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
         </button>
       )}
 
-      {/* Question sections */}
-      {sections.map(sec => {
-        const colors = SECTION_COLORS[sec.color];
+      {/* Score dimensions */}
+      {DIMENSIONS.map(dim => {
+        const colors = DIMENSION_COLORS[dim.color];
+        const currentScore = scores[dim.key];
+        const level = scoreLevels.find(sl => sl.score === currentScore);
         return (
-          <div key={sec.section} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div key={dim.key} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className={`${colors.bg} px-4 py-3 border-b ${colors.border}`}>
-              <h4 className={`font-bold text-sm ${colors.text}`}>{sec.label}</h4>
+              <h4 className={`font-bold text-sm ${colors.text}`}>{dim.icon} {dim.label}</h4>
+              <p className="text-xs text-gray-500 mt-0.5">{dim.description}</p>
             </div>
-            <div className="p-4 space-y-5">
-              {sec.questions.map(q => (
-                <div key={q.key}>
-                  <div className="text-sm font-semibold text-gray-800 mb-2.5">{q.label}</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {q.options.map(opt => {
-                      const isSelected = answers[q.key] === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => !existingReview?.status?.includes("submitted") && set(q.key, opt.value)}
-                          disabled={existingReview?.status === "submitted"}
-                          className={`text-left px-3 py-2.5 rounded-lg border-2 text-sm transition-all ${
-                            isSelected
-                              ? colors.optionActive + " border-2 font-semibold"
-                              : "border-gray-100 text-gray-600 " + colors.optionHover
-                          } ${existingReview?.status === "submitted" ? "cursor-default" : "cursor-pointer"}`}
-                        >
-                          <span className="font-bold mr-1.5">{opt.value}.</span>
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="p-4">
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map(score => {
+                  const sl = scoreLevels.find(s => s.score === score);
+                  const isSelected = currentScore === score;
+                  const scoreColors = {
+                    5: { bg: "bg-emerald-50", border: "border-emerald-300", text: "text-emerald-700", activeBg: "bg-emerald-500" },
+                    4: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", activeBg: "bg-blue-500" },
+                    3: { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", activeBg: "bg-amber-500" },
+                    2: { bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-700", activeBg: "bg-orange-500" },
+                    1: { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", activeBg: "bg-red-500" },
+                  };
+                  const sc = scoreColors[score];
+                  return (
+                    <button
+                      key={score}
+                      onClick={() => !isSubmitted && setScore(dim.key, score)}
+                      disabled={isSubmitted}
+                      title={sl ? `${sl.label}：${sl.description}` : `${score} 分`}
+                      className={`flex-1 py-3 rounded-xl text-center transition-all border-2 ${
+                        isSelected
+                          ? `${sc.activeBg} text-white border-transparent shadow-md scale-105`
+                          : `${sc.bg} ${sc.border} ${sc.text} hover:scale-102`
+                      } ${isSubmitted ? "cursor-default" : "cursor-pointer"}`}
+                    >
+                      <div className="text-lg font-black">{score}</div>
+                      {sl && <div className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+              {level && (
+                <div className="mt-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                  <span className="font-semibold">{level.label}</span>：{level.description}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         );
@@ -119,18 +132,18 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
           rows={3}
           placeholder="有任何其他想對這位同事說的話..."
-          value={answers.comment}
-          onChange={e => set("comment", e.target.value)}
-          disabled={existingReview?.status === "submitted"}
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          disabled={isSubmitted}
         />
       </div>
 
       {/* Actions */}
-      {existingReview?.status !== "submitted" && existingReview?.status !== "no_collaboration" && (
+      {!isSubmitted && !isNoCollab && (
         <div className="space-y-3 pb-6">
           <div className="flex gap-3">
             <button
-              onClick={() => onSave(answers, false)}
+              onClick={() => handleSave(false)}
               disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
@@ -140,11 +153,11 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
             <button
               onClick={() => {
                 if (!isComplete) {
-                  alert("請先完成所有問題再提交");
+                  alert("請先為所有範疇評分再提交");
                   return;
                 }
                 if (window.confirm("確認提交互評？提交後將無法修改。")) {
-                  onSave(answers, true);
+                  handleSave(true);
                 }
               }}
               disabled={saving}
