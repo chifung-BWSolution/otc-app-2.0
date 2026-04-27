@@ -110,10 +110,13 @@ export default function AnnualReview() {
     setLoading(false);
   };
 
-  // Open review — draft → edit, anything else → readonly
+  // Open review — draft → edit, peer_review_pending → peer review, anything else → readonly
   const handleOpenReview = (review) => {
     if (review.status === "draft") {
       loadFormData(review);
+    } else if (review.status === "peer_review_pending") {
+      // Go directly to peer review flow
+      setView("peer-review");
     } else {
       setActiveReview(review);
       setView("readonly");
@@ -257,7 +260,7 @@ export default function AnnualReview() {
       next_year_goals: formData.next_year_goals,
       commitment: formData.commitment,
       company_feedback: formData.company_feedback,
-      status: isSubmit ? "submitted" : "draft",
+      status: isSubmit ? "peer_review_pending" : "draft",
       ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
@@ -314,12 +317,12 @@ export default function AnnualReview() {
     );
   }
 
-  // Peer review view (after submitting annual review)
+  // Peer review view (after submitting annual review or clicking peer review button)
   if (view === "peer-review") {
     return <PostSubmitPeerReview staffRec={staffRec} onBack={handleBack} />;
   }
 
-  // Readonly view for submitted reviews
+  // Readonly view for non-draft reviews
   if (view === "readonly" && activeReview) {
     return <AnnualReviewReadonly review={activeReview} staffRec={staffRec} user={user} onBack={handleBack} />;
   }

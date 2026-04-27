@@ -105,6 +105,22 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
   const submitted = reviews.filter(r => r.status === "submitted" || r.status === "no_collaboration");
   const allDone = eligible.length > 0 && submitted.length >= eligible.length;
 
+  // Auto-transition annual review status when all peer reviews are done
+  useEffect(() => {
+    if (!allDone || !staffRec?.bubble_id) return;
+    (async () => {
+      const myReviews = await base44.entities.AnnualReview.filter(
+        { staff_id: staffRec.bubble_id, status: "peer_review_pending" }, "-created_date", 1
+      );
+      if (myReviews.length === 0) return;
+      const ar = myReviews[0];
+      // Check if staff has a team leader
+      const hasLeader = !!staffRec.team_leader;
+      const newStatus = hasLeader ? "pending_leader" : "pending_boss";
+      await base44.entities.AnnualReview.update(ar.id, { status: newStatus });
+    })();
+  }, [allDone]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-gray-400"><div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" /></div>;
   }

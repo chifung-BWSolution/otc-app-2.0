@@ -40,7 +40,7 @@ export default function AnnualReviewList({ reviews, staffRec, user, leaderName, 
             const statusInfo = getStatusInfo(r.status, leaderName);
             const StatusIcon = statusInfo.icon;
             const canEdit = isDraft;
-            const showPeerReview = r.status === "submitted"; // only show when waiting for peer review
+            const showPeerReview = r.status === "peer_review_pending"; // only show when waiting for peer review
 
             return (
               <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -60,24 +60,26 @@ export default function AnnualReviewList({ reviews, staffRec, user, leaderName, 
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {showPeerReview && onPeerReview && (
+                    {showPeerReview && (
                       <button
-                        onClick={() => onPeerReview()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
+                        onClick={() => onOpen(r)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                       >
-                        <Users size={13} /> 同事互評
+                        <Users size={13} /> 進行互評
                       </button>
                     )}
-                    <button
-                      onClick={() => onOpen(r)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                        canEdit
-                          ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {canEdit ? <><Pencil size={13} /> 編輯</> : <><Eye size={13} /> 查看</>}
-                    </button>
+                    {!showPeerReview && (
+                      <button
+                        onClick={() => onOpen(r)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                          canEdit
+                            ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {canEdit ? <><Pencil size={13} /> 編輯</> : <><Eye size={13} /> 查看</>}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
