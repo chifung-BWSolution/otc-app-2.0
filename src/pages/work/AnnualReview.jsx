@@ -232,6 +232,7 @@ export default function AnnualReview() {
       challenges: formData.challenges,
       challenges_solution: formData.challenges_solution,
       next_year_goals: formData.next_year_goals,
+      commitment: formData.commitment,
       company_feedback: formData.company_feedback,
       status: isSubmit ? "submitted" : "draft",
       ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),

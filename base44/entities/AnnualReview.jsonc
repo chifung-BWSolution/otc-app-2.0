@@ -68,11 +68,15 @@
     },
     "challenges_solution": {
       "type": "string",
-      "title": "\u5982\u4f55\u89e3\u6c7a\u56f0\u96e3"
+      "title": "\u9700\u8981\u516c\u53f8\u5354\u52a9\u7684\u5730\u65b9"
     },
     "next_year_goals": {
       "type": "string",
       "title": "\u672a\u4f86\u4e00\u5e74\u76ee\u6a19"
+    },
+    "commitment": {
+      "type": "string",
+      "title": "\u70ba\u5b8c\u6210\u76ee\u6a19\u9858\u610f\u505a\u7684\u4e8b"
     },
     "company_feedback": {
       "type": "string",

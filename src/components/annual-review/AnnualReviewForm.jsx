@@ -34,6 +34,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [challenges, setChallenges] = useState("");
   const [challengesSolution, setChallengesSolution] = useState("");
   const [goals, setGoals] = useState("");
+  const [commitment, setCommitment] = useState("");
   const [feedback, setFeedback] = useState("");
   const [otherContributions, setOtherContributions] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
@@ -66,6 +67,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       setChallenges(existingReview.challenges || "");
       setChallengesSolution(existingReview.challenges_solution || "");
       setGoals(existingReview.next_year_goals || "");
+      setCommitment(existingReview.commitment || "");
       setFeedback(existingReview.company_feedback || "");
       setOtherContributions(existingReview.other_contributions || "");
     }
@@ -143,7 +145,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     challenges,
     challenges_solution: challengesSolution,
     next_year_goals: goals,
-    company_feedback: feedback, // now used for "commitment"
+    commitment,
+    company_feedback: feedback,
   });
 
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
@@ -330,14 +333,26 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1.5">為完成目標願意做的事</label>
-            <PresetPicker category="commitment" value={feedback} onChange={setFeedback} />
+            <PresetPicker category="commitment" value={commitment} onChange={setCommitment} />
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
-              placeholder="可點選上方選項，或自行輸入..." value={feedback} onChange={e => setFeedback(e.target.value)} />
+              placeholder="可點選上方選項，或自行輸入..." value={commitment} onChange={e => setCommitment(e.target.value)} />
           </div>
         </div>
       </div>
 
 
+
+      {/* Section 5: Company Feedback */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
+          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
+          <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
+        </div>
+        <div className="p-5">
+          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" rows={5}
+            placeholder="例如：對內部流程的改善建議、對培訓制度的看法、對工作環境的意見等..." value={feedback} onChange={e => setFeedback(e.target.value)} />
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex gap-3 pb-8">

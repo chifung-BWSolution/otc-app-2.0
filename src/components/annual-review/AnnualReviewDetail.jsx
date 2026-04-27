@@ -481,7 +481,10 @@ ${attText}
       <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
 
       {/* Section 5: Commitment */}
-      <SectionCard color="purple" icon="💪" title="為完成目標願意做的事" content={r.company_feedback} />
+      <SectionCard color="green" icon="💪" title="為完成目標願意做的事" content={r.commitment} />
+
+      {/* Section 6: Company Feedback */}
+      <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {/* Section 6: Peer Review Results */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

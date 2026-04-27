@@ -115,7 +115,8 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
         </div>
       </div>
       <SectionCard color="green" icon="🎯" title="未來一年目標" content={r.next_year_goals} />
-      <SectionCard color="purple" icon="💪" title="為完成目標願意做的事" content={r.company_feedback} />
+      <SectionCard color="green" icon="💪" title="為完成目標願意做的事" content={r.commitment} />
+      <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {r.submitted_at && (
         <div className="text-xs text-gray-400 text-right pb-4">
