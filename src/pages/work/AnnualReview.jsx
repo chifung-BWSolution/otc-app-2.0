@@ -237,16 +237,27 @@ export default function AnnualReview() {
       ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
+    let savedReview;
     if (activeReview) {
       await base44.entities.AnnualReview.update(activeReview.id, payload);
-      setActiveReview({ ...activeReview, ...payload });
+      savedReview = { ...activeReview, ...payload };
     } else {
-      const created = await base44.entities.AnnualReview.create(payload);
-      setActiveReview(created);
+      savedReview = await base44.entities.AnnualReview.create(payload);
     }
+
+    // Update projectSummary with saved contribution data so form stays in sync
+    const savedMap = {};
+    for (const s of (payload.project_contributions || [])) { savedMap[s.project_name] = s; }
+    const updatedSummary = projectSummary.map(p => {
+      const s = savedMap[p.project_name];
+      if (s) return { ...p, sales_amount: s.sales_amount || 0, contribution_note: s.contribution_note || "", self_score: s.self_score || null };
+      return p;
+    });
+    setProjectSummary(updatedSummary);
+    setActiveReview(savedReview);
     setSaving(false);
 
-    // Refresh list and go back
+    // Refresh list
     const allReviews = await base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50);
     setReviews(allReviews);
 
