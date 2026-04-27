@@ -22,27 +22,13 @@ export default function SubordinateReviews({ staffRec, user }) {
 
   const loadData = async () => {
     setLoading(true);
-    // Find team members where this user is team_leader or where n_team matches
     const allStaff = await base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000);
     const myId = staffRec?.bubble_id;
-    const myTeamId = staffRec?.n_team;
 
-    // Subordinates: same team AND current user is their team_leader
-    // OR same team AND current user's team_role is leader/assistant leader level
-    const isLeader = staffRec?.team_role_name?.includes("Leader") ||
-      staffRec?.team_role_name?.includes("leader") ||
-      staffRec?.team_role_name?.includes("Assistant") ||
-      staffRec?.team_role_name?.includes("assistant") ||
-      staffRec?.position?.includes("Leader") ||
-      staffRec?.position?.includes("leader");
-
+    // Only show staff whose team_leader field directly matches this user's bubble_id
     const subs = allStaff.filter(s => {
-      if (s.bubble_id === myId) return false; // exclude self
-      // Direct report: team_leader matches
-      if (s.team_leader === myId) return true;
-      // Same team and user is a leader
-      if (isLeader && myTeamId && s.n_team === myTeamId) return true;
-      return false;
+      if (s.bubble_id === myId) return false;
+      return s.team_leader === myId;
     });
 
     setSubordinates(subs);
