@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Pencil, Save, X, Mail, Phone, MapPin, Calendar,
   Building2, User, CreditCard, BookOpen, Briefcase, Star, Plus, Trash2, Loader2
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import LeaderSelect from "@/components/staff/LeaderSelect";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -92,31 +93,20 @@ export default function StaffProfilePage() {
     setEditMode(false);
   };
 
-  // --- View helpers ---
-  const InfoRow = ({ label, value }) => value ? (
-    <div className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
-      <span className="text-gray-400 text-sm w-28 shrink-0">{label}</span>
-      <span className="text-gray-800 text-sm font-medium break-all">{value}</span>
-    </div>
-  ) : null;
+  const [leaderOptions, setLeaderOptions] = useState([]);
 
-  // Edit field renderers
-  const EditInput = ({ label, field, type = "text", placeholder = "" }) => (
-    <div className="py-1.5 border-b border-blue-50 last:border-0">
-      <span className="text-gray-400 text-xs block mb-0.5">{label}</span>
-      <input type={type} className={inputCls} value={form[field] || ""} onChange={e => set(field, e.target.value)} placeholder={placeholder} />
-    </div>
-  );
-
-  const EditSelect = ({ label, field, options }) => (
-    <div className="py-1.5 border-b border-blue-50 last:border-0">
-      <span className="text-gray-400 text-xs block mb-0.5">{label}</span>
-      <select className={selectCls} value={form[field] || ""} onChange={e => set(field, e.target.value)}>
-        <option value="">請選擇</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  useEffect(() => {
+    base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000).then(list => {
+      const leaders = list.filter(s => {
+        const teamName = (s.team_name || "").toLowerCase();
+        const roleName = (s.team_role_name || "").toLowerCase();
+        if (teamName.includes("mgt")) return true;
+        if (roleName.includes("team leader") || roleName.includes("assistant team leader")) return true;
+        return false;
+      });
+      setLeaderOptions(leaders);
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -129,6 +119,43 @@ export default function StaffProfilePage() {
   if (!profile) {
     return <div className="text-center py-20 text-gray-400">找不到員工資料</div>;
   }
+
+  // Render helpers as plain functions (not components) to avoid remount/focus issues
+  const renderInfoRow = (label, value) => value ? (
+    <div className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+      <span className="text-gray-400 text-sm w-28 shrink-0">{label}</span>
+      <span className="text-gray-800 text-sm font-medium break-all">{String(value)}</span>
+    </div>
+  ) : null;
+
+  const renderEditInput = (label, field, type = "text", placeholder = "") => (
+    <div key={field} className="py-1.5 border-b border-blue-50 last:border-0">
+      <span className="text-gray-400 text-xs block mb-0.5">{label}</span>
+      <input type={type} className={inputCls} value={form[field] ?? ""} onChange={e => set(field, e.target.value)} placeholder={placeholder} />
+    </div>
+  );
+
+  const renderEditSelect = (label, field, options) => (
+    <div key={field} className="py-1.5 border-b border-blue-50 last:border-0">
+      <span className="text-gray-400 text-xs block mb-0.5">{label}</span>
+      <select className={selectCls} value={form[field] ?? ""} onChange={e => set(field, e.target.value)}>
+        <option value="">請選擇</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+
+  const renderLeaderSelect = () => (
+    <div key="team_leader" className="py-1.5 border-b border-blue-50 last:border-0">
+      <LeaderSelect
+        label="直屬上司"
+        value={form.team_leader_name || ""}
+        staffId={form.team_leader || ""}
+        options={leaderOptions}
+        onChange={(name, id) => { set("team_leader_name", name); set("team_leader", id); }}
+      />
+    </div>
+  );
 
   return (
     <div className="w-full space-y-0">
@@ -247,23 +274,23 @@ export default function StaffProfilePage() {
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">職位資訊</h3>
                 {editMode && isPrivileged ? (
                   <>
-                    <EditInput label="BU" field="bu_name" />
-                    <EditInput label="Team" field="team_name" />
-                    <EditInput label="Team Role" field="team_role_name" />
-                    <EditInput label="直屬上司" field="team_leader_name" />
-                    <EditInput label="入職日期" field="entry_date" type="date" />
-                    <EditInput label="辦公室" field="base_location" />
-                    <EditInput label="職位" field="position" />
-                    <EditSelect label="在職狀態" field="o_status" options={["Active","Inactive"]} />
+                    {renderEditInput("BU", "bu_name")}
+                    {renderEditInput("Team", "team_name")}
+                    {renderEditInput("Team Role", "team_role_name")}
+                    {renderLeaderSelect()}
+                    {renderEditInput("入職日期", "entry_date", "date")}
+                    {renderEditInput("辦公室", "base_location")}
+                    {renderEditInput("職位", "position")}
+                    {renderEditSelect("在職狀態", "o_status", ["Active","Inactive"])}
                   </>
                 ) : (
                   <>
-                    <InfoRow label="BU" value={profile.bu_name} />
-                    <InfoRow label="Team" value={profile.team_name} />
-                    <InfoRow label="Team Role" value={profile.team_role_name} />
-                    <InfoRow label="直屬上司" value={profile.team_leader_name} />
-                    <InfoRow label="入職日期" value={profile.entry_date} />
-                    <InfoRow label="辦公室" value={profile.base_location} />
+                    {renderInfoRow("BU", profile.bu_name)}
+                    {renderInfoRow("Team", profile.team_name)}
+                    {renderInfoRow("Team Role", profile.team_role_name)}
+                    {renderInfoRow("直屬上司", profile.team_leader_name)}
+                    {renderInfoRow("入職日期", profile.entry_date)}
+                    {renderInfoRow("辦公室", profile.base_location)}
                   </>
                 )}
               </div>
@@ -271,21 +298,21 @@ export default function StaffProfilePage() {
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡資料</h3>
                 {editMode && isPrivileged ? (
                   <>
-                    <EditInput label="工作電郵" field="work_email" type="email" />
-                    <EditInput label="直線電話" field="direct_phone" />
-                    <EditInput label="工作手機" field="work_phone" />
-                    <EditInput label="個人手機" field="mobile" type="tel" />
-                    <EditInput label="個人電郵" field="personal_email" type="email" />
+                    {renderEditInput("工作電郵", "work_email", "email")}
+                    {renderEditInput("直線電話", "direct_phone")}
+                    {renderEditInput("工作手機", "work_phone")}
+                    {renderEditInput("個人手機", "mobile", "tel")}
+                    {renderEditInput("個人電郵", "personal_email", "email")}
                   </>
                 ) : (
                   <>
-                    <InfoRow label="工作電郵" value={profile.work_email} />
-                    <InfoRow label="直線電話" value={profile.direct_phone} />
-                    <InfoRow label="工作手機" value={profile.work_phone} />
+                    {renderInfoRow("工作電郵", profile.work_email)}
+                    {renderInfoRow("直線電話", profile.direct_phone)}
+                    {renderInfoRow("工作手機", profile.work_phone)}
                     {isPrivileged && (
                       <>
-                        <InfoRow label="個人手機" value={profile.mobile} />
-                        <InfoRow label="個人電郵" value={profile.personal_email} />
+                        {renderInfoRow("個人手機", profile.mobile)}
+                        {renderInfoRow("個人電郵", profile.personal_email)}
                       </>
                     )}
                   </>
@@ -306,19 +333,19 @@ export default function StaffProfilePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">基本資料</h3>
-                    <EditInput label="顯示名稱" field="display_name" />
-                    <EditInput label="中文姓名" field="chinese_name" />
-                    <EditInput label="英文姓名" field="full_name" />
-                    <EditSelect label="性別" field="gender" options={["Male","Female","Other"]} />
-                    <EditInput label="出生日期" field="date_of_birth" type="date" />
-                    <EditInput label="國籍" field="nationality" placeholder="Hong Kong" />
-                    <EditSelect label="婚姻狀況" field="marital_status" options={["Single","Married","Divorced","Widowed"]} />
+                    {renderEditInput("顯示名稱", "display_name")}
+                    {renderEditInput("中文姓名", "chinese_name")}
+                    {renderEditInput("英文姓名", "full_name")}
+                    {renderEditSelect("性別", "gender", ["Male","Female","Other"])}
+                    {renderEditInput("出生日期", "date_of_birth", "date")}
+                    {renderEditInput("國籍", "nationality", "text", "Hong Kong")}
+                    {renderEditSelect("婚姻狀況", "marital_status", ["Single","Married","Divorced","Widowed"])}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡及其他</h3>
-                    <EditInput label="身份證" field="hkid" placeholder="A123456(7)" />
-                    <EditInput label="手機" field="mobile" type="tel" />
-                    <EditInput label="個人電郵" field="personal_email" type="email" />
+                    {renderEditInput("身份證", "hkid", "text", "A123456(7)")}
+                    {renderEditInput("手機", "mobile", "tel")}
+                    {renderEditInput("個人電郵", "personal_email", "email")}
                     <div className="py-1.5">
                       <span className="text-gray-400 text-xs block mb-0.5">住址</span>
                       <textarea className={inputCls + " resize-none"} rows={2} value={form.address || ""} onChange={e => set("address", e.target.value)} />
@@ -329,19 +356,19 @@ export default function StaffProfilePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">基本資料</h3>
-                    <InfoRow label="中文姓名" value={profile.chinese_name} />
-                    <InfoRow label="英文姓名" value={profile.full_name} />
-                    <InfoRow label="性別" value={profile.gender} />
-                    <InfoRow label="出生日期" value={profile.date_of_birth} />
-                    <InfoRow label="國籍" value={profile.nationality} />
-                    <InfoRow label="婚姻狀況" value={profile.marital_status} />
+                    {renderInfoRow("中文姓名", profile.chinese_name)}
+                     {renderInfoRow("英文姓名", profile.full_name)}
+                     {renderInfoRow("性別", profile.gender)}
+                     {renderInfoRow("出生日期", profile.date_of_birth)}
+                     {renderInfoRow("國籍", profile.nationality)}
+                     {renderInfoRow("婚姻狀況", profile.marital_status)}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡及其他</h3>
-                    <InfoRow label="身份證" value={isPrivileged ? profile.hkid : (profile.hkid ? '••••••••' : null)} />
-                    <InfoRow label="手機" value={profile.mobile} />
-                    <InfoRow label="個人電郵" value={profile.personal_email} />
-                    <InfoRow label="住址" value={profile.address} />
+                    {renderInfoRow("身份證", isPrivileged ? profile.hkid : (profile.hkid ? '••••••••' : null))}
+                    {renderInfoRow("手機", profile.mobile)}
+                    {renderInfoRow("個人電郵", profile.personal_email)}
+                    {renderInfoRow("住址", profile.address)}
                   </div>
                 </div>
               )}
@@ -359,16 +386,16 @@ export default function StaffProfilePage() {
               ) : editMode ? (
                 <div className="max-w-lg">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
-                  <EditInput label="銀行名稱" field="bank_name" placeholder="例：滙豐銀行" />
-                  <EditInput label="帳戶號碼" field="bank_account_number" />
-                  <EditInput label="帳戶名稱" field="bank_account_holder" />
+                  {renderEditInput("銀行名稱", "bank_name", "text", "例：滙豐銀行")}
+                  {renderEditInput("帳戶號碼", "bank_account_number")}
+                  {renderEditInput("帳戶名稱", "bank_account_holder")}
                 </div>
               ) : (
                 <div className="max-w-lg">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
-                  <InfoRow label="銀行名稱" value={profile.bank_name} />
-                  <InfoRow label="帳戶號碼" value={isPrivileged ? profile.bank_account_number : (profile.bank_account_number ? '•••• ' + profile.bank_account_number.slice(-4) : null)} />
-                  <InfoRow label="帳戶名稱" value={profile.bank_account_holder} />
+                  {renderInfoRow("銀行名稱", profile.bank_name)}
+                   {renderInfoRow("帳戶號碼", isPrivileged ? profile.bank_account_number : (profile.bank_account_number ? '•••• ' + profile.bank_account_number.slice(-4) : null))}
+                   {renderInfoRow("帳戶名稱", profile.bank_account_holder)}
                 </div>
               )}
             </div>
@@ -385,16 +412,16 @@ export default function StaffProfilePage() {
               ) : editMode ? (
                 <div className="max-w-lg">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">緊急聯絡人</h3>
-                  <EditInput label="姓名" field="emergency_contact_name" />
-                  <EditInput label="關係" field="emergency_contact_relation" placeholder="例：父親" />
-                  <EditInput label="電話" field="emergency_contact_phone" type="tel" />
+                  {renderEditInput("姓名", "emergency_contact_name")}
+                  {renderEditInput("關係", "emergency_contact_relation", "text", "例：父親")}
+                  {renderEditInput("電話", "emergency_contact_phone", "tel")}
                 </div>
               ) : (
                 <div className="max-w-lg">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">緊急聯絡人</h3>
-                  <InfoRow label="姓名" value={profile.emergency_contact_name} />
-                  <InfoRow label="關係" value={profile.emergency_contact_relation} />
-                  <InfoRow label="電話" value={profile.emergency_contact_phone} />
+                  {renderInfoRow("姓名", profile.emergency_contact_name)}
+                  {renderInfoRow("關係", profile.emergency_contact_relation)}
+                  {renderInfoRow("電話", profile.emergency_contact_phone)}
                 </div>
               )}
             </div>
