@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Loader2, CheckCircle2, Sparkles, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -9,37 +9,52 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [chatMsg, setChatMsg] = useState("");
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [annualReview, setAnnualReview] = useState(null);
+
+  // Fetch the original AnnualReview data for regeneration context
+  useEffect(() => {
+    if (report.annual_review_id) {
+      base44.entities.AnnualReview.filter({ id: report.annual_review_id }, "id", 1)
+        .then(res => { if (res.length > 0) setAnnualReview(res[0]); })
+        .catch(() => {});
+    }
+  }, [report.annual_review_id]);
 
   const handleRegenerate = async () => {
-    if (!chatMsg.trim()) return;
+    if (!chatMsg.trim() || generating) return;
     setGenerating(true);
-    // Create new version with boss feedback
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: buildRegeneratePrompt(r, chatMsg),
-      response_json_schema: {
-        type: "object",
-        properties: { report_markdown: { type: "string" } },
-        required: ["report_markdown"]
-      },
-    });
-    const content = res.report_markdown || res.report || (typeof res === "string" ? res : JSON.stringify(res));
-    const newReport = await base44.entities.AppraisalReport.create({
-      annual_review_id: r.annual_review_id,
-      staff_id: r.staff_id,
-      staff_name: r.staff_name,
-      staff_team: r.staff_team,
-      staff_bu: r.staff_bu,
-      staff_position: r.staff_position,
-      fiscal_year: r.fiscal_year,
-      report_content: content,
-      version: (r.version || 1) + 1,
-      is_final: false,
-      boss_feedback: chatMsg,
-    });
-    setR(newReport);
-    onUpdated(newReport);
-    setChatMsg("");
-    setGenerating(false);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: buildRegeneratePrompt(r, chatMsg, annualReview),
+        response_json_schema: {
+          type: "object",
+          properties: { report_markdown: { type: "string" } },
+          required: ["report_markdown"]
+        },
+      });
+      const content = res.report_markdown || res.report || (typeof res === "string" ? res : JSON.stringify(res));
+      const newReport = await base44.entities.AppraisalReport.create({
+        annual_review_id: r.annual_review_id,
+        staff_id: r.staff_id,
+        staff_name: r.staff_name,
+        staff_team: r.staff_team,
+        staff_bu: r.staff_bu,
+        staff_position: r.staff_position,
+        fiscal_year: r.fiscal_year,
+        report_content: content,
+        version: (r.version || 1) + 1,
+        is_final: false,
+        boss_feedback: chatMsg,
+      });
+      setR(newReport);
+      onUpdated(newReport);
+      setChatMsg("");
+    } catch (err) {
+      console.error("Regeneration failed:", err);
+      alert("重新生成失敗：" + (err.message || "未知錯誤"));
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -151,17 +166,47 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   );
 }
 
-function buildRegeneratePrompt(report, feedback) {
+function buildRegeneratePrompt(report, feedback, annualReview) {
+  // Build original employee data section if available
+  let originalDataSection = "";
+  if (annualReview) {
+    const ar = annualReview;
+    const projects = (ar.project_contributions || []).filter(p => p.project_name && p.project_name !== "未指定項目");
+    const projectsText = projects.map(p => {
+      let line = `- ${p.project_name}: ${p.hours}h, ${p.tasks}個任務`;
+      if (p.sales_amount > 0) line += `, 銷售額 $${p.sales_amount.toLocaleString()}`;
+      if (p.contribution_note) {
+        try { const arr = JSON.parse(p.contribution_note); if (Array.isArray(arr)) line += `\n  員工自述重點：${arr.join("；")}`; }
+        catch { line += `\n  員工自述重點：${p.contribution_note}`; }
+      }
+      return line;
+    }).join("\n") || "（無項目記錄）";
+
+    originalDataSection = `
+
+=== 員工年度評估原始資料（請參考） ===
+📊 項目詳情：
+${projectsText}
+
+🏆 員工自述其他貢獻：${ar.other_contributions || "（未填寫）"}
+⚡ 員工自述困難：${ar.challenges || "（未填寫）"}
+⚡ 員工自述解決方法：${ar.challenges_solution || "（未填寫）"}
+🎯 員工自述未來目標：${ar.next_year_goals || "（未填寫）"}
+💬 員工對公司意見：${ar.company_feedback || "（未填寫）"}
+`;
+  }
+
   return `你是一位專業的人力資源顧問。以下是一份員工年度表現報告的現有版本：
 
 ---
 ${report.report_content}
 ---
-
+${originalDataSection}
 老闆對此報告有以下修改意見：
 「${feedback}」
 
 請根據老闆的修改意見，重新生成一份完整的員工年度表現報告。
+重要：必須引用員工自述的具體項目貢獻重點和原文內容，不要只用籠統描述。
 保持專業語調，結構清晰，使用 Markdown 格式。
 必須包含以下所有部分：
 1. 📊 項目工作貢獻分析
