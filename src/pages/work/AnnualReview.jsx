@@ -90,15 +90,10 @@ export default function AnnualReview() {
     setStaffRec(myStaff);
     setReviews(allReviews);
 
-    // Check if user is a leader (has subordinates)
+    // Check if user has direct reports (staff whose team_leader is this user)
     if (myStaff) {
       const myId = myStaff.bubble_id;
-      const myTeamId = myStaff.n_team;
-      const leaderRole = myStaff.team_role_name?.toLowerCase() || "";
-      const leaderPos = myStaff.position?.toLowerCase() || "";
-      const isLdr = leaderRole.includes("leader") || leaderRole.includes("assistant") ||
-        leaderPos.includes("leader") || leaderPos.includes("assistant");
-      const hasSubs = allStaff.some(s => s.bubble_id !== myId && (s.team_leader === myId || (isLdr && myTeamId && s.n_team === myTeamId)));
+      const hasSubs = allStaff.some(s => s.bubble_id !== myId && s.team_leader === myId);
       setIsLeader(hasSubs);
     }
 

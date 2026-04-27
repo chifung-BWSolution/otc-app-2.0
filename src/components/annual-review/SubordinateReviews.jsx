@@ -89,8 +89,8 @@ export default function SubordinateReviews({ staffRec, user }) {
     return (
       <div className="text-center py-16 text-gray-400">
         <Users size={36} className="mx-auto mb-3 opacity-40" />
-        <p className="text-sm">你目前沒有下屬需要查看評估表。</p>
-        <p className="text-xs mt-1 text-gray-300">只有 Team Leader / Assistant Team Leader 可查看下屬的已提交評估表。</p>
+        <p className="text-sm">你目前沒有直屬下屬需要查看評估表。</p>
+        <p className="text-xs mt-1 text-gray-300">只有在員工記錄中被設為 Team Leader 的人才能查看其下屬的評估表。</p>
       </div>
     );
   }
@@ -132,7 +132,15 @@ export default function SubordinateReviews({ staffRec, user }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-gray-900">{r.staff_name}</span>
-                    <span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已提交</span>
+                    {(() => {
+                      const m = {
+                        peer_review_pending: { label: "待完成同事互評", color: "bg-amber-100 text-amber-700" },
+                        pending_leader: { label: "待Leader評分", color: "bg-blue-100 text-blue-700" },
+                        pending_boss: { label: "待老闆面談", color: "bg-purple-100 text-purple-700" },
+                      };
+                      const st = m[r.status] || { label: r.status, color: "bg-gray-100 text-gray-700" };
+                      return <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>;
+                    })()}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {r.staff_position} · {r.fiscal_year}

@@ -4,16 +4,12 @@ export function getStatusInfo(status, leaderName) {
   switch (status) {
     case "draft":
       return { label: "草稿", bg: "bg-orange-100", text: "text-orange-700", icon: Clock, iconColor: "text-orange-600", circleBg: "bg-orange-100" };
-    case "submitted":
-      return { label: "已提交，待同事互評", bg: "bg-amber-100", text: "text-amber-700", icon: Users, iconColor: "text-amber-600", circleBg: "bg-amber-100" };
-    case "peer_review_done":
-      return leaderName
-        ? { label: `已提交，待${leaderName}評分`, bg: "bg-blue-100", text: "text-blue-700", icon: Star, iconColor: "text-blue-600", circleBg: "bg-blue-100" }
-        : { label: "已提交，待老闆面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
+    case "peer_review_pending":
+      return { label: "待完成同事互評", bg: "bg-amber-100", text: "text-amber-700", icon: Users, iconColor: "text-amber-600", circleBg: "bg-amber-100" };
     case "pending_leader":
       return { label: `待${leaderName || "Leader"}評分`, bg: "bg-blue-100", text: "text-blue-700", icon: Star, iconColor: "text-blue-600", circleBg: "bg-blue-100" };
     case "pending_boss":
-      return { label: "已提交，待老闆面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
+      return { label: "待老闆面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
     default:
       return { label: status, bg: "bg-gray-100", text: "text-gray-600", icon: Clock, iconColor: "text-gray-500", circleBg: "bg-gray-100" };
   }

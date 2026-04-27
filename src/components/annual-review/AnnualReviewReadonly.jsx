@@ -17,9 +17,20 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
           <h2 className="font-bold text-gray-900">{r.fiscal_year} 年度工作表現評估表</h2>
           <p className="text-xs text-gray-400">{staffRec?.display_name || user?.full_name} · {r.staff_team} · {r.staff_position}</p>
         </div>
-        <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
-          <CheckCircle size={12} /> 已提交
-        </span>
+        {(() => {
+          const statusMap = {
+            draft: { label: "草稿", color: "bg-orange-100 text-orange-700" },
+            peer_review_pending: { label: "待完成同事互評", color: "bg-amber-100 text-amber-700" },
+            pending_leader: { label: "待Leader評分", color: "bg-blue-100 text-blue-700" },
+            pending_boss: { label: "待老闆面談", color: "bg-purple-100 text-purple-700" },
+          };
+          const st = statusMap[r.status] || { label: r.status, color: "bg-gray-100 text-gray-700" };
+          return (
+            <span className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1 ${st.color}`}>
+              <CheckCircle size={12} /> {st.label}
+            </span>
+          );
+        })()}
       </div>
 
       {/* Project summary */}

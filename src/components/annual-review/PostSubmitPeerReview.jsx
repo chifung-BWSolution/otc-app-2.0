@@ -114,9 +114,16 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
       );
       if (myReviews.length === 0) return;
       const ar = myReviews[0];
-      // Check if staff has a team leader
-      const hasLeader = !!staffRec.team_leader;
-      const newStatus = hasLeader ? "pending_leader" : "pending_boss";
+      // Check if staff has a team leader AND the leader is NOT from MGT Team
+      let needsLeader = false;
+      if (staffRec.team_leader) {
+        const allStaff = await base44.entities.Staff.filter({ bubble_id: staffRec.team_leader }, "id", 1);
+        const leader = allStaff[0];
+        // If leader's team is MGT Team, skip leader evaluation
+        const leaderTeam = (leader?.team_name || "").toLowerCase();
+        needsLeader = leader && !leaderTeam.includes("mgt");
+      }
+      const newStatus = needsLeader ? "pending_leader" : "pending_boss";
       await base44.entities.AnnualReview.update(ar.id, { status: newStatus });
     })();
   }, [allDone]);

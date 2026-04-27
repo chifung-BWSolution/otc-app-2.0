@@ -161,8 +161,7 @@ export default function AnnualReviewAdmin() {
                   {(() => {
                     const sm = {
                       draft: { bg: "bg-orange-100", text: "text-orange-700", label: "草稿" },
-                      submitted: { bg: "bg-amber-100", text: "text-amber-700", label: "待互評" },
-                      peer_review_done: { bg: "bg-blue-100", text: "text-blue-700", label: "已完成互評" },
+                      peer_review_pending: { bg: "bg-amber-100", text: "text-amber-700", label: "待完成同事互評" },
                       pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
                       pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待老闆面談" },
                     };
