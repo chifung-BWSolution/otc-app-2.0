@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Eye, EyeOff, Loader2, Plus, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import LeaderSelect from "./LeaderSelect";
 
 const SECTIONS = [
   { key: "basic", label: "基本資料" },
@@ -56,9 +57,26 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     skills: staff?.skills || [],
     interests: staff?.interests || [],
     languages: staff?.languages || [],
+    team_leader: staff?.team_leader || "",
     login_mobile: staff?.login_mobile || "",
     login_password: staff?.login_password || "",
   });
+
+  const [leaderOptions, setLeaderOptions] = useState([]);
+
+  // Load leader candidates: MGT team members + team leaders + assistant team leaders
+  useEffect(() => {
+    base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000).then(list => {
+      const leaders = list.filter(s => {
+        const teamName = (s.team_name || "").toLowerCase();
+        const roleName = (s.team_role_name || "").toLowerCase();
+        if (teamName.includes("mgt")) return true;
+        if (roleName.includes("team leader") || roleName.includes("assistant team leader")) return true;
+        return false;
+      });
+      setLeaderOptions(leaders);
+    });
+  }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const addArr = (field, item) => setForm(f => ({ ...f, [field]: [...(f[field] || []), item] }));
@@ -103,7 +121,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
     <div className={className}>
       <label className="text-xs font-semibold text-gray-600 block mb-1">{label}</label>
       <input type={type} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        value={form[field]} onChange={e => set(field, e.target.value)} placeholder={placeholder} />
+        value={form[field] ?? ""} onChange={e => set(field, e.target.value)} placeholder={placeholder} />
     </div>
   );
 
@@ -119,7 +137,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
@@ -165,7 +183,13 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
               {renderInput("BU", "bu_name")}
               {renderInput("Team", "team_name")}
               {renderInput("Team Role", "team_role_name")}
-              {renderInput("直屬上司", "team_leader_name")}
+              <LeaderSelect
+                label="直屬上司"
+                value={form.team_leader_name}
+                staffId={form.team_leader}
+                options={leaderOptions}
+                onChange={(name, id) => { set("team_leader_name", name); set("team_leader", id); }}
+              />
               {renderInput("辦公室地點", "o_base_location")}
               {renderInput("入職日期", "entry_date", "date")}
               {renderInput("試用期完結", "probation_end_date", "date")}
