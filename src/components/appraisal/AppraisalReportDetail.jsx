@@ -188,7 +188,6 @@ function buildRegeneratePrompt(report, feedback, annualReview) {
 📊 項目詳情：
 ${projectsText}
 
-🏆 員工自述其他貢獻：${ar.other_contributions || "（未填寫）"}
 ⚡ 員工自述困難：${ar.challenges || "（未填寫）"}
 ⚡ 員工自述解決方法：${ar.challenges_solution || "（未填寫）"}
 🎯 員工自述未來目標：${ar.next_year_goals || "（未填寫）"}
@@ -210,12 +209,11 @@ ${originalDataSection}
 保持專業語調，結構清晰，使用 Markdown 格式。
 必須包含以下所有部分：
 1. 📊 項目工作貢獻分析
-2. 🏆 其他貢獻 / 成就 / 創新 / 品牌升級
-3. ⚡ 年度困難及解決方法評估
-4. 🎯 未來一年目標評估
-5. 👥 同事互評結果分析
-6. 📋 考勤紀錄分析
-7. 📝 整體評價及建議
+2. ⚡ 年度困難及解決方法評估
+3. 🎯 未來一年目標評估
+4. 👥 同事互評結果分析
+5. 📋 考勤紀錄分析
+6. 📝 整體評價及建議
 
 用繁體中文撰寫。`;
 }

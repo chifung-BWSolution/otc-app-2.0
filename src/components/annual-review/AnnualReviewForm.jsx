@@ -36,7 +36,6 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [goals, setGoals] = useState("");
   const [commitment, setCommitment] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [otherContributions, setOtherContributions] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
   const [showAll, setShowAll] = useState(false);
@@ -69,7 +68,6 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       setGoals(existingReview.next_year_goals || "");
       setCommitment(existingReview.commitment || "");
       setFeedback(existingReview.company_feedback || "");
-      setOtherContributions(existingReview.other_contributions || "");
     }
     const pm = {};
     const sm = {};
@@ -141,7 +139,6 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       contribution_note: p.contribution_note,
       self_score: p.self_score,
     })),
-    other_contributions: otherContributions,
     challenges,
     challenges_solution: challengesSolution,
     next_year_goals: goals,

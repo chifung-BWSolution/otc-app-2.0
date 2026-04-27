@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, AlertCircle, ArrowLeft, FileText } from "lucide-react";
+import { Loader2, AlertCircle, ArrowLeft, FileText, Users } from "lucide-react";
 import AnnualReviewForm from "@/components/annual-review/AnnualReviewForm";
 import AnnualReviewList from "@/components/annual-review/AnnualReviewList";
 import AnnualReviewReadonly from "@/components/annual-review/AnnualReviewReadonly";
+import PostSubmitPeerReview from "@/components/annual-review/PostSubmitPeerReview";
+import SubordinateReviews from "@/components/annual-review/SubordinateReviews";
 
 // Fiscal year: April 1 - March 31
 // When creating new, fill the LAST (previous) fiscal year
@@ -59,9 +61,11 @@ export default function AnnualReview() {
   const [user, setUser] = useState(null);
   const [staffRec, setStaffRec] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [tab, setTab] = useState("mine"); // mine | subordinates
+  const [isLeader, setIsLeader] = useState(false);
 
-  // Phase 2: Form / readonly view
-  const [view, setView] = useState("list"); // list | form | readonly
+  // Phase 2: Form / readonly / peer-review view
+  const [view, setView] = useState("list"); // list | form | readonly | peer-review
   const [activeReview, setActiveReview] = useState(null); // existing review being edited
   const [projectSummary, setProjectSummary] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
@@ -76,12 +80,26 @@ export default function AnnualReview() {
     setUser(me);
     if (!me.linked_staff_id) { setLoading(false); return; }
 
-    const [staffList, allReviews] = await Promise.all([
+    const [staffList, allReviews, allStaff] = await Promise.all([
       base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1),
       base44.entities.AnnualReview.filter({ staff_id: me.linked_staff_id }, "-created_date", 50),
+      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
     ]);
-    setStaffRec(staffList[0] || null);
+    const myStaff = staffList[0] || null;
+    setStaffRec(myStaff);
     setReviews(allReviews);
+
+    // Check if user is a leader (has subordinates)
+    if (myStaff) {
+      const myId = myStaff.bubble_id;
+      const myTeamId = myStaff.n_team;
+      const leaderRole = myStaff.team_role_name?.toLowerCase() || "";
+      const leaderPos = myStaff.position?.toLowerCase() || "";
+      const isLdr = leaderRole.includes("leader") || leaderRole.includes("assistant") ||
+        leaderPos.includes("leader") || leaderPos.includes("assistant");
+      const hasSubs = allStaff.some(s => s.bubble_id !== myId && (s.team_leader === myId || (isLdr && myTeamId && s.n_team === myTeamId)));
+      setIsLeader(hasSubs);
+    }
     setLoading(false);
   };
 
@@ -228,7 +246,6 @@ export default function AnnualReview() {
       staff_position: staffRec?.position || "",
       fiscal_year: fy.label,
       project_contributions: formData.project_contributions,
-      other_contributions: formData.other_contributions,
       challenges: formData.challenges,
       challenges_solution: formData.challenges_solution,
       next_year_goals: formData.next_year_goals,
@@ -263,7 +280,7 @@ export default function AnnualReview() {
     setReviews(allReviews);
 
     if (isSubmit) {
-      setView("list");
+      setView("peer-review");
     }
   };
 
@@ -289,6 +306,11 @@ export default function AnnualReview() {
         <p className="text-sm">未找到關聯員工資料，請聯絡管理員。</p>
       </div>
     );
+  }
+
+  // Peer review view (after submitting annual review)
+  if (view === "peer-review") {
+    return <PostSubmitPeerReview staffRec={staffRec} onBack={handleBack} />;
   }
 
   // Readonly view for submitted reviews
@@ -333,15 +355,44 @@ export default function AnnualReview() {
     );
   }
 
-  // Default: list view
+  // Default: list view with tabs
   return (
-    <AnnualReviewList
-      reviews={reviews}
-      staffRec={staffRec}
-      user={user}
-      onCreateNew={handleCreateNew}
-      onOpen={handleOpenReview}
-    />
+    <div className="space-y-4">
+      {/* Tabs — only show if user has subordinates */}
+      {isLeader && (
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl max-w-md">
+          <button
+            onClick={() => setTab("mine")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              tab === "mine" ? "bg-white shadow text-indigo-600" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FileText size={14} /> 我的評估表
+          </button>
+          <button
+            onClick={() => setTab("subordinates")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              tab === "subordinates" ? "bg-white shadow text-indigo-600" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Users size={14} /> 下屬評估表
+          </button>
+        </div>
+      )}
+
+      {tab === "mine" ? (
+        <AnnualReviewList
+          reviews={reviews}
+          staffRec={staffRec}
+          user={user}
+          onCreateNew={handleCreateNew}
+          onOpen={handleOpenReview}
+          onPeerReview={() => setView("peer-review")}
+        />
+      ) : (
+        <SubordinateReviews staffRec={staffRec} user={user} />
+      )}
+    </div>
   );
 }
 

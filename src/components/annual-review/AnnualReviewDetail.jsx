@@ -141,9 +141,6 @@ ${totalSales > 0 ? `總銷售額：$${totalSales.toLocaleString()}` : ""}
 項目詳情：
 ${projectsText}
 
-=== 🏆 其他貢獻 / 成就 / 創新 / 品牌升級 ===
-${r.other_contributions || "（未填寫）"}
-
 === ⚡ 年度遇到的困難 ===
 困難：${r.challenges || "（未填寫）"}
 解決方法：${r.challenges_solution || "（未填寫）"}
@@ -162,12 +159,11 @@ ${attText}
 
 請按以下結構生成報告（使用 Markdown 格式，繁體中文）：
 1. ## 📊 項目工作貢獻分析 — 分析項目貢獻的深度和廣度，突出亮點
-2. ## 🏆 其他貢獻 / 成就 / 創新 / 品牌升級 — 評價非項目的額外貢獻
-3. ## ⚡ 年度困難及解決方法評估 — 評價面對挑戰的態度和解決能力
-4. ## 🎯 未來一年目標評估 — 評價目標設定的合理性和進取性
-5. ## 👥 同事互評結果分析 — 綜合同事的評價，提煉關鍵訊息
-6. ## 📋 考勤紀錄分析 — 分析出勤表現
-7. ## 📝 整體評價及建議 — 給出綜合評價和發展建議
+2. ## ⚡ 年度困難及解決方法評估 — 評價面對挑戰的態度和解決能力
+3. ## 🎯 未來一年目標評估 — 評價目標設定的合理性和進取性
+4. ## 👥 同事互評結果分析 — 綜合同事的評價，提煉關鍵訊息
+5. ## 📋 考勤紀錄分析 — 分析出勤表現
+6. ## 📝 整體評價及建議 — 給出綜合評價和發展建議
 
 每個部分要具體分析，不要空泛。語氣專業但有建設性。
 重要：在項目工作貢獻分析中，必須引用員工自己填寫的「重點」內容（即 contribution_note），逐個項目具體描述員工的貢獻，不要只用籠統語句概括。`;
@@ -449,10 +445,7 @@ ${attText}
         </div>
       </div>
 
-      {/* Section 2: Other Contributions */}
-      <SectionCard color="teal" icon="🏆" title="其他貢獻 / 成就 / 創新 / 品牌升級" content={r.other_contributions} />
-
-      {/* Section 3: Challenges + Solution */}
+      {/* Section 2: Challenges + Solution */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
           <h3 className="font-bold text-sm text-orange-800">⚡ 年度遇到的困難及解決方法</h3>

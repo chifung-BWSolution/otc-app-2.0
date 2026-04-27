@@ -88,8 +88,6 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
         </div>
       </div>
 
-      <SectionCard color="teal" icon="🏆" title="其他貢獻 / 成就 / 創新 / 品牌升級" content={r.other_contributions} />
-
       {/* Challenges + Solution */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
