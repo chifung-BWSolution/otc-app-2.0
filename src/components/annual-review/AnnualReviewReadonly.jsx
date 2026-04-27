@@ -57,6 +57,11 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
                   <span className="text-xs text-gray-400">{p.tasks}個任務</span>
                   {p.sales_amount > 0 && <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>}
                 </div>
+                {p.self_score > 0 && (
+                  <div className="mt-1.5">
+                    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評：{p.self_score} 分</span>
+                  </div>
+                )}
                 {p.contribution_note && (
                   <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
                     {(() => {
@@ -64,7 +69,12 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
                         const arr = JSON.parse(p.contribution_note);
                         if (Array.isArray(arr)) return (
                           <ul className="list-disc list-inside space-y-0.5">
-                            {arr.map((pt, pi) => <li key={pi}>{pt}</li>)}
+                            {arr.map((pt, pi) => {
+                              if (typeof pt === "object" && pt.type) {
+                                return <li key={pi}><span className="font-semibold text-gray-600">[{pt.type}]</span> {pt.text}</li>;
+                              }
+                              return <li key={pi}>{typeof pt === "string" ? pt : pt.text || ""}</li>;
+                            })}
                           </ul>
                         );
                       } catch {}

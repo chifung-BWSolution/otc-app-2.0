@@ -71,7 +71,13 @@ export default function AnnualReviewDetail({ review, onBack }) {
   const hasContribution = (p) => {
     if (p.sales_amount > 0) return true;
     if (!p.contribution_note) return false;
-    try { const arr = JSON.parse(p.contribution_note); return Array.isArray(arr) && arr.some(s => s.trim()); } catch {}
+    try {
+      const arr = JSON.parse(p.contribution_note);
+      return Array.isArray(arr) && arr.some(s => {
+        if (typeof s === "object") return s.text?.trim();
+        return typeof s === "string" && s.trim();
+      });
+    } catch {}
     return p.contribution_note.trim().length > 0;
   };
   const contributedProjects = useMemo(() => allProjects.filter(hasContribution), [allProjects]);
@@ -89,9 +95,18 @@ export default function AnnualReviewDetail({ review, onBack }) {
     const projectsText = allProjects.map(p => {
       let line = `- ${p.project_name}: ${p.hours}h, ${p.tasks}個任務`;
       if (p.sales_amount > 0) line += `, 銷售額 $${p.sales_amount.toLocaleString()}`;
+      if (p.self_score > 0) line += `, 自評分數：${p.self_score}/5`;
       if (p.contribution_note) {
-        try { const arr = JSON.parse(p.contribution_note); if (Array.isArray(arr)) line += `\n  重點：${arr.join("；")}`; }
-        catch { line += `\n  重點：${p.contribution_note}`; }
+        try {
+          const arr = JSON.parse(p.contribution_note);
+          if (Array.isArray(arr)) {
+            const formatted = arr.map(pt => {
+              if (typeof pt === "object" && pt.type) return `[${pt.type}] ${pt.text}`;
+              return typeof pt === "string" ? pt : pt.text || "";
+            }).filter(s => s.trim());
+            if (formatted.length > 0) line += `\n  員工自述貢獻重點：${formatted.join("；")}`;
+          }
+        } catch { line += `\n  員工自述貢獻重點：${p.contribution_note}`; }
       }
       return line;
     }).join("\n") || "（無項目記錄）";
@@ -600,6 +615,9 @@ function ProjectCard({ project }) {
         {p.sales_amount > 0 && (
           <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
         )}
+        {p.self_score > 0 && (
+          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評 {p.self_score}分</span>
+        )}
       </div>
       {p.contribution_note && (
         <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
@@ -608,7 +626,12 @@ function ProjectCard({ project }) {
               const arr = JSON.parse(p.contribution_note);
               if (Array.isArray(arr)) return (
                 <ul className="list-disc list-inside space-y-0.5">
-                  {arr.map((pt, pi) => <li key={pi}>{pt}</li>)}
+                  {arr.map((pt, pi) => {
+                    if (typeof pt === "object" && pt.type) {
+                      return <li key={pi}><span className="font-semibold text-gray-600">[{pt.type}]</span> {pt.text}</li>;
+                    }
+                    return <li key={pi}>{typeof pt === "string" ? pt : pt.text || ""}</li>;
+                  })}
                 </ul>
               );
             } catch {}

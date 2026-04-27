@@ -208,6 +208,7 @@ export default function AnnualReview() {
         if (s) {
           p.sales_amount = s.sales_amount || 0;
           p.contribution_note = s.contribution_note || "";
+          p.self_score = s.self_score || null;
         }
       }
     }

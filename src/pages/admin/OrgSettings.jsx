@@ -3,6 +3,8 @@ import { Plus, Edit2, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import WorkScheduleSettings from "@/components/settings/WorkScheduleSettings";
 import TeamGroupSettings from "@/components/settings/TeamGroupSettings";
+import ContributionTypeSettings from "@/components/settings/ContributionTypeSettings";
+import ScoreLevelSettings from "@/components/settings/ScoreLevelSettings";
 
 const TABS = [
   { key: "bu", label: "BU", entity: "NOSBU" },
@@ -10,6 +12,8 @@ const TABS = [
   { key: "role", label: "Team Role", entity: "NOSTeamRole" },
   { key: "schedule", label: "⏰ 上班時間", entity: null },
   { key: "teamgroup", label: "👥 Team 分組", entity: null },
+  { key: "contribution", label: "📝 貢獻類型", entity: null },
+  { key: "scorelevel", label: "⭐ 自評分數", entity: null },
 ];
 
 function ItemRow({ item, onSave, onDelete, buList }) {
@@ -220,6 +224,10 @@ export default function OrgSettings() {
         <WorkScheduleSettings />
       ) : tab === "teamgroup" ? (
         <TeamGroupSettings />
+      ) : tab === "contribution" ? (
+        <ContributionTypeSettings />
+      ) : tab === "scorelevel" ? (
+        <ScoreLevelSettings />
       ) : (
         <>
           {/* List */}
