@@ -164,7 +164,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         <div className="bg-blue-50 px-5 py-4 border-b border-blue-100">
           <h3 className="font-bold text-base text-blue-800">📊 第一部分：年度項目工作摘要</h3>
           <p className="text-sm text-blue-600 mt-1">
-            每個項目需完成 3 步：① 填寫銷售額 → ② 選擇貢獻類型及描述 → ③ 自評分數
+            可為每個項目填寫銷售額、貢獻重點及自評分數（非必填，按需填寫即可）
           </p>
           <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 40 小時或以上的項目。</p>
         </div>
