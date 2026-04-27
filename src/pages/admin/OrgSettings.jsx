@@ -5,6 +5,7 @@ import WorkScheduleSettings from "@/components/settings/WorkScheduleSettings";
 import TeamGroupSettings from "@/components/settings/TeamGroupSettings";
 import ContributionTypeSettings from "@/components/settings/ContributionTypeSettings";
 import ScoreLevelSettings from "@/components/settings/ScoreLevelSettings";
+import ReviewPresetSettings from "@/components/settings/ReviewPresetSettings";
 
 const TABS = [
   { key: "bu", label: "BU", entity: "NOSBU" },
@@ -14,6 +15,7 @@ const TABS = [
   { key: "teamgroup", label: "👥 Team 分組", entity: null },
   { key: "contribution", label: "📝 貢獻類型", entity: null },
   { key: "scorelevel", label: "⭐ 自評分數", entity: null },
+  { key: "reviewpreset", label: "📋 評估選項", entity: null },
 ];
 
 function ItemRow({ item, onSave, onDelete, buList }) {
@@ -228,6 +230,8 @@ export default function OrgSettings() {
         <ContributionTypeSettings />
       ) : tab === "scorelevel" ? (
         <ScoreLevelSettings />
+      ) : tab === "reviewpreset" ? (
+        <ReviewPresetSettings />
       ) : (
         <>
           {/* List */}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Save, Send, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle } from "lucide-react";
 import ProjectDetailPanel from "./ProjectDetailPanel";
+import PresetPicker from "./PresetPicker";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 const INITIAL_SHOW = 10;
@@ -142,7 +143,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     challenges,
     challenges_solution: challengesSolution,
     next_year_goals: goals,
-    company_feedback: feedback,
+    company_feedback: feedback, // now used for "commitment"
   });
 
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
@@ -301,13 +302,15 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         <div className="p-5 space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1.5">遇到的困難</label>
+            <PresetPicker category="difficulty" value={challenges} onChange={setChallenges} />
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
-              placeholder="例如：跨部門溝通困難、工具不足、時間管理挑戰、技能缺口等..." value={challenges} onChange={e => setChallenges(e.target.value)} />
+              placeholder="可點選上方選項，或自行輸入..." value={challenges} onChange={e => setChallenges(e.target.value)} />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1.5">需要公司協助的地方</label>
+            <PresetPicker category="company_support" value={challengesSolution} onChange={setChallengesSolution} />
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
-              placeholder="例如：需要更多培訓資源、增加人手支援、改善工具或系統、跨部門協調支持等..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
+              placeholder="可點選上方選項，或自行輸入..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
           </div>
         </div>
       </div>
@@ -318,23 +321,23 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <h3 className="font-bold text-base text-green-800">🎯 第三部分：未來一年目標及為完成目標願意做的事</h3>
           <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標，以及你願意付出什麼努力去達成。</p>
         </div>
-        <div className="p-5">
-          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={5}
-            placeholder="例如：目標是提升銷售額20%，願意主動開拓新客戶及參加專業培訓；目標是考取專業認證，願意每週額外投入時間學習..." value={goals} onChange={e => setGoals(e.target.value)} />
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">未來一年目標</label>
+            <PresetPicker category="goal" value={goals} onChange={setGoals} />
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
+              placeholder="可點選上方選項，或自行輸入..." value={goals} onChange={e => setGoals(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">為完成目標願意做的事</label>
+            <PresetPicker category="commitment" value={feedback} onChange={setFeedback} />
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
+              placeholder="可點選上方選項，或自行輸入..." value={feedback} onChange={e => setFeedback(e.target.value)} />
+          </div>
         </div>
       </div>
 
-      {/* Section 5: Company Feedback */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
-          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
-          <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
-        </div>
-        <div className="p-5">
-          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" rows={5}
-            placeholder="例如：對內部流程的改善建議、對培訓制度的看法、對工作環境的意見等..." value={feedback} onChange={e => setFeedback(e.target.value)} />
-        </div>
-      </div>
+
 
       {/* Actions */}
       <div className="flex gap-3 pb-8">
