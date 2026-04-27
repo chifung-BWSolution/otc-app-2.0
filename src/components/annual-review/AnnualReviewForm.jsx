@@ -292,24 +292,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
-      {/* Section 2: Other Contributions */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-teal-50 px-5 py-4 border-b border-teal-100">
-          <h3 className="font-bold text-base text-teal-800">🏆 第二部分：其他對公司的貢獻 / 成就 / 創新 / 品牌升級</h3>
-          <p className="text-sm text-teal-600 mt-0.5">請列出不在上述項目中的其他重要貢獻、成就、創新舉措或品牌提升事項。</p>
-        </div>
-        <div className="p-5">
-          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 resize-none" rows={5}
-            placeholder="例如：推動了新的工作流程、獲得客戶特別表揚、完成品牌升級項目、引入創新技術方案等..."
-            value={otherContributions} onChange={e => setOtherContributions(e.target.value)} />
-        </div>
-      </div>
-
-      {/* Section 3: Challenges */}
+      {/* Section 2: Challenges */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
-          <h3 className="font-bold text-base text-orange-800">⚡ 第三部分：年度遇到的困難及解決方法</h3>
-          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰，以及你如何解決。</p>
+          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的困難及需要公司協助的地方</h3>
+          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰，以及需要公司提供什麼支援。</p>
         </div>
         <div className="p-5 space-y-4">
           <div>
@@ -318,9 +305,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
               placeholder="例如：跨部門溝通困難、工具不足、時間管理挑戰、技能缺口等..." value={challenges} onChange={e => setChallenges(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">如何解決</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">需要公司協助的地方</label>
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
-              placeholder="例如：主動協調各方會議、引入新工具提升效率、調整工作優先順序等..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
+              placeholder="例如：需要更多培訓資源、增加人手支援、改善工具或系統、跨部門協調支持等..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
           </div>
         </div>
       </div>
@@ -328,19 +315,19 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 4: Goals */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-green-50 px-5 py-4 border-b border-green-100">
-          <h3 className="font-bold text-base text-green-800">🎯 第四部分：未來一年目標</h3>
-          <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標和個人發展計劃。</p>
+          <h3 className="font-bold text-base text-green-800">🎯 第三部分：未來一年目標及為完成目標願意做的事</h3>
+          <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標，以及你願意付出什麼努力去達成。</p>
         </div>
         <div className="p-5">
           <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={5}
-            placeholder="例如：提升某項技能、完成某個項目、達成某個KPI指標、考取證書等..." value={goals} onChange={e => setGoals(e.target.value)} />
+            placeholder="例如：目標是提升銷售額20%，願意主動開拓新客戶及參加專業培訓；目標是考取專業認證，願意每週額外投入時間學習..." value={goals} onChange={e => setGoals(e.target.value)} />
         </div>
       </div>
 
       {/* Section 5: Company Feedback */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
-          <h3 className="font-bold text-base text-purple-800">💬 第五部分：對公司的意見</h3>
+          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
           <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
         </div>
         <div className="p-5">

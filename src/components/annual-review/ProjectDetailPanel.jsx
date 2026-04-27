@@ -86,46 +86,52 @@ export default function ProjectDetailPanel({
 
         <div className="border-t border-gray-100" />
 
-        {/* Step 3: Self Score */}
+        {/* Step 3: Self Score — only enabled if has sales or contribution text */}
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-xs font-bold flex items-center justify-center">3</span>
             <label className="text-sm font-semibold text-gray-700">⭐ 自評分數</label>
           </div>
 
-          <div className="flex gap-1.5">
-            {scoreLevels.map(sl => {
-              const isSelected = score === sl.score;
-              const colors = SCORE_COLORS[sl.score] || SCORE_COLORS[3];
-              return (
-                <button
-                  key={sl.id}
-                  onClick={() => onUpdateScore(sl.score)}
-                  title={`${sl.score} 分 — ${sl.label}：${sl.description}`}
-                  className={`flex-1 py-2.5 rounded-xl text-center transition-all border-2 ${
-                    isSelected
-                      ? `${colors.activeBg} text-white border-transparent shadow-md scale-105`
-                      : `${colors.bg} ${colors.border} ${colors.text} hover:scale-102`
-                  }`}
-                >
-                  <div className="text-lg font-black">{sl.score}</div>
-                  <div className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Show selected score description */}
-          {score > 0 && (() => {
-            const sl = scoreLevels.find(s => s.score === score);
-            if (!sl) return null;
-            const colors = SCORE_COLORS[score] || SCORE_COLORS[3];
-            return (
-              <div className={`mt-2 text-xs ${colors.text} ${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
-                <span className="font-semibold">{sl.label}</span>：{sl.description}
+          {!(project.sales_amount > 0 || points.some(p => p.text?.trim())) ? (
+            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-3 text-center border border-dashed border-gray-200">
+              請先填寫銷售額或貢獻重點後才可自評分數
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-1.5">
+                {scoreLevels.map(sl => {
+                  const isSelected = score === sl.score;
+                  const colors = SCORE_COLORS[sl.score] || SCORE_COLORS[3];
+                  return (
+                    <button
+                      key={sl.id}
+                      onClick={() => onUpdateScore(sl.score)}
+                      title={`${sl.score} 分 — ${sl.label}：${sl.description}`}
+                      className={`flex-1 py-2.5 rounded-xl text-center transition-all border-2 ${
+                        isSelected
+                          ? `${colors.activeBg} text-white border-transparent shadow-md scale-105`
+                          : `${colors.bg} ${colors.border} ${colors.text} hover:scale-102`
+                      }`}
+                    >
+                      <div className="text-lg font-black">{sl.score}</div>
+                      <div className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })()}
+              {score > 0 && (() => {
+                const sl = scoreLevels.find(s => s.score === score);
+                if (!sl) return null;
+                const colors = SCORE_COLORS[score] || SCORE_COLORS[3];
+                return (
+                  <div className={`mt-2 text-xs ${colors.text} ${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
+                    <span className="font-semibold">{sl.label}</span>：{sl.description}
+                  </div>
+                );
+              })()}
+            </>
+          )}
         </div>
       </div>
     </>
