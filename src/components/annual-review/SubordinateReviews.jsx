@@ -37,7 +37,7 @@ export default function SubordinateReviews({ staffRec, user }) {
       const subIds = subs.map(s => s.bubble_id).filter(Boolean);
       // Load all annual reviews for these staff (we can't filter by array of staff_id easily, so load all and filter)
       const allReviews = await base44.entities.AnnualReview.filter({}, "-created_date", 2000);
-      const subReviews = allReviews.filter(r => subIds.includes(r.staff_id) && r.fiscal_year === fy.label);
+      const subReviews = allReviews.filter(r => subIds.includes(r.staff_id) && r.fiscal_year === fy);
       setReviews(subReviews);
     }
 
