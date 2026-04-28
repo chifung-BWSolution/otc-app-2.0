@@ -58,6 +58,10 @@
           "self_score": {
             "type": "number",
             "description": "\u54e1\u5de5\u81ea\u8a55\u5206\u6578 (1-5)"
+          },
+          "leader_score": {
+            "type": "number",
+            "description": "\u4e0a\u53f8\u8a55\u5206 (1-5)"
           }
         }
       }
@@ -75,9 +79,22 @@
           "self_score": {
             "type": "number",
             "title": "\u81ea\u8a55\u5206\u6578 (1-5)"
+          },
+          "leader_score": {
+            "type": "number",
+            "title": "\u4e0a\u53f8\u8a55\u5206 (1-5)"
           }
         }
       }
+    },
+    "leader_comment": {
+      "type": "string",
+      "title": "\u4e0a\u53f8\u8a55\u8a9e"
+    },
+    "leader_scored_at": {
+      "type": "string",
+      "title": "\u4e0a\u53f8\u8a55\u5206\u6642\u9593",
+      "format": "date-time"
     },
     "challenges": {
       "type": "string",
@@ -149,6 +166,9 @@
         {
           "data.staff_id": "{{user.linked_staff_id}}",
           "data.status": "draft"
+        },
+        {
+          "data.leader_staff_id": "{{user.linked_staff_id}}"
         },
         {
           "user_condition": {

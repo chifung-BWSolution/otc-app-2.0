@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Eye, CheckCircle, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Users, Eye, CheckCircle, Clock, ChevronDown, ChevronUp, Star } from "lucide-react";
 import AnnualReviewReadonly from "./AnnualReviewReadonly";
+import LeaderScoringForm from "./LeaderScoringForm";
 
 function getLastFY() {
   const now = new Date();
@@ -15,6 +16,7 @@ export default function SubordinateReviews({ staffRec, user }) {
   const [subordinates, setSubordinates] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [selectedReview, setSelectedReview] = useState(null);
+  const [scoringReview, setScoringReview] = useState(null);
 
   const fy = getLastFY();
 
@@ -57,6 +59,16 @@ export default function SubordinateReviews({ staffRec, user }) {
         <Loader2 className="animate-spin text-gray-400" size={24} />
         <span className="ml-2 text-sm text-gray-400">載入下屬評估表...</span>
       </div>
+    );
+  }
+
+  if (scoringReview) {
+    return (
+      <LeaderScoringForm
+        review={scoringReview}
+        onBack={() => setScoringReview(null)}
+        onSubmitted={() => { setScoringReview(null); loadData(); }}
+      />
     );
   }
 
@@ -133,12 +145,21 @@ export default function SubordinateReviews({ staffRec, user }) {
                     {r.submitted_at && <span> · {new Date(r.submitted_at).toLocaleDateString("zh-HK")}</span>}
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedReview(r)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
-                >
-                  <Eye size={13} /> 查看
-                </button>
+                {r.status === "pending_leader" ? (
+                  <button
+                    onClick={() => setScoringReview(r)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <Star size={13} /> 評分
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setSelectedReview(r)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
+                  >
+                    <Eye size={13} /> 查看
+                  </button>
+                )}
               </div>
             </div>
           ))}
