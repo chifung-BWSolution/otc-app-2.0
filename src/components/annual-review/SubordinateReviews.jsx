@@ -44,7 +44,7 @@ export default function SubordinateReviews({ staffRec, user }) {
     setLoading(false);
   };
 
-  const submittedReviews = useMemo(() => reviews.filter(r => r.status === "submitted"), [reviews]);
+  const submittedReviews = useMemo(() => reviews.filter(r => r.status !== "draft"), [reviews]);
   const draftReviews = useMemo(() => reviews.filter(r => r.status === "draft"), [reviews]);
   const notStarted = useMemo(() => {
     const reviewedIds = new Set(reviews.map(r => r.staff_id));
