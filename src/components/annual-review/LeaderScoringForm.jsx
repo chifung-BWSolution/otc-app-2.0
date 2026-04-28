@@ -85,7 +85,7 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold shrink-0">員工自評：{selfScore} 分</span>
+          <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold shrink-0">員工自評：{selfScore} 分</span>
         </div>
         <div className="flex gap-1.5">
           {[1, 2, 3, 4, 5].map(score => {
@@ -103,14 +103,14 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
                     : `${sc.bg} ${sc.border} ${sc.text} hover:scale-102`
                 }`}
               >
-                <div className="text-sm font-black">{score}</div>
-                {sl && <div className={`text-[9px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
+                <div className="text-lg font-black">{score}</div>
+                {sl && <div className={`text-xs font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
               </button>
             );
           })}
         </div>
         {level && (
-          <div className="text-xs text-gray-500 bg-white rounded-lg px-3 py-1.5 border border-gray-100">
+          <div className="text-sm text-gray-500 bg-white rounded-lg px-3 py-2 border border-gray-100">
             <span className="font-semibold">{level.label}</span>：{level.description}
           </div>
         )}
@@ -132,25 +132,25 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
         <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">待Leader評分</span>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-base text-blue-700">
         以下只列出員工已自評的項目，請為每個項目評分。
       </div>
 
       {/* Project items with self_score */}
       {scoredProjects.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-blue-800 px-1">📊 項目工作（{scoredProjects.length} 項需評分）</h3>
+          <h3 className="text-base font-bold text-blue-800 px-1">📊 項目工作（{scoredProjects.length} 項需評分）</h3>
           {scoredProjects.map(p => (
             <div key={p._idx} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
               <div>
-                <div className="font-semibold text-sm text-gray-900">{p.project_name}</div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                <div className="font-semibold text-base text-gray-900">{p.project_name}</div>
+                <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                   <span className="text-blue-600 font-bold">{p.hours}h</span>
                   <span>{p.tasks} 個任務</span>
                   {p.sales_amount > 0 && <span className="text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>}
                 </div>
                 {p.contribution_note && (
-                  <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
+                  <div className="text-sm text-gray-600 mt-2 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
                     {parseContribution(p.contribution_note)}
                   </div>
                 )}
@@ -169,10 +169,10 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
       {/* Extra contribution items with self_score */}
       {scoredExtras.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-teal-800 px-1">🌟 額外貢獻（{scoredExtras.length} 項需評分）</h3>
+          <h3 className="text-base font-bold text-teal-800 px-1">🌟 額外貢獻（{scoredExtras.length} 項需評分）</h3>
           {scoredExtras.map(e => (
             <div key={e._idx} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
-              <p className="text-sm text-gray-700 leading-relaxed">{e.description}</p>
+              <p className="text-base text-gray-700 leading-relaxed">{e.description}</p>
               {renderScoreRow(
                 e.description,
                 e.self_score,
