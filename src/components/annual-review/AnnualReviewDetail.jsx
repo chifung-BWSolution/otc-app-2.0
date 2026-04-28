@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
+import BossScoringSection from "./BossScoringSection";
 
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
@@ -54,10 +55,15 @@ function parseToDate(val) {
   return new Date(val);
 }
 
-export default function AnnualReviewDetail({ review, onBack }) {
+export default function AnnualReviewDetail({ review: initialReview, onBack }) {
+  const [review, setReview] = useState(initialReview);
   const navigate = useNavigate();
   const r = review;
   const [loading, setLoading] = useState(true);
+  const refreshReview = async () => {
+    const updated = await base44.entities.AnnualReview.filter({ id: r.id }, "id", 1);
+    if (updated.length > 0) setReview(updated[0]);
+  };
   const [generatingAI, setGeneratingAI] = useState(false);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
@@ -467,6 +473,12 @@ ${attText}
                 {ec.self_score > 0 && (
                   <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold shrink-0">自評：{ec.self_score} 分</span>
                 )}
+                {ec.leader_score > 0 && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold shrink-0">上司：{ec.leader_score} 分</span>
+                )}
+                {ec.boss_score > 0 && (
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold shrink-0">老闆：{ec.boss_score} 分</span>
+                )}
               </div>
             ))}
           </div>
@@ -610,6 +622,9 @@ ${attText}
         </div>
       </div>
 
+      {/* Boss Scoring */}
+      <BossScoringSection review={r} onUpdated={refreshReview} />
+
       {/* AI Appraisal Button */}
       <div className="flex justify-center pt-2 pb-2">
         <button
@@ -660,6 +675,12 @@ function ProjectCard({ project }) {
         )}
         {p.self_score > 0 && (
           <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評 {p.self_score}分</span>
+        )}
+        {p.leader_score > 0 && (
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">上司 {p.leader_score}分</span>
+        )}
+        {p.boss_score > 0 && (
+          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆 {p.boss_score}分</span>
         )}
       </div>
       {p.contribution_note && (

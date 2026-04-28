@@ -62,6 +62,10 @@
           "leader_score": {
             "type": "number",
             "description": "\u4e0a\u53f8\u8a55\u5206 (1-5)"
+          },
+          "boss_score": {
+            "type": "number",
+            "description": "\u8001\u95c6\u8a55\u5206 (1-5)"
           }
         }
       }
@@ -83,6 +87,10 @@
           "leader_score": {
             "type": "number",
             "title": "\u4e0a\u53f8\u8a55\u5206 (1-5)"
+          },
+          "boss_score": {
+            "type": "number",
+            "title": "\u8001\u95c6\u8a55\u5206 (1-5)"
           }
         }
       }
