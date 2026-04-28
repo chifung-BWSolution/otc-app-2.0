@@ -22,6 +22,10 @@
       "type": "string",
       "title": "\u8077\u4f4d"
     },
+    "leader_staff_id": {
+      "type": "string",
+      "title": "\u76f4\u5c6c\u4e0a\u53f8 Staff Bubble ID"
+    },
     "fiscal_year": {
       "type": "string",
       "title": "\u8ca1\u653f\u5e74\u5ea6",
@@ -107,6 +111,9 @@
       "$or": [
         {
           "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "data.leader_staff_id": "{{user.linked_staff_id}}"
         },
         {
           "user_condition": {

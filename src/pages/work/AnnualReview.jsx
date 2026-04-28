@@ -248,6 +248,7 @@ export default function AnnualReview() {
       staff_team: staffRec?.team_name || "",
       staff_bu: staffRec?.bu_name || "",
       staff_position: staffRec?.position || "",
+      leader_staff_id: staffRec?.team_leader || "",
       fiscal_year: fy.label,
       project_contributions: formData.project_contributions,
       challenges: formData.challenges,
