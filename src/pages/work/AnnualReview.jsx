@@ -251,6 +251,7 @@ export default function AnnualReview() {
       leader_staff_id: staffRec?.team_leader || "",
       fiscal_year: fy.label,
       project_contributions: formData.project_contributions,
+      extra_contributions: formData.extra_contributions,
       challenges: formData.challenges,
       challenges_solution: formData.challenges_solution,
       next_year_goals: formData.next_year_goals,

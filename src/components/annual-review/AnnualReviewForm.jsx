@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Save, Send, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle } from "lucide-react";
 import ProjectDetailPanel from "./ProjectDetailPanel";
 import PresetPicker from "./PresetPicker";
+import ExtraContributionSection from "./ExtraContributionSection";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 const INITIAL_SHOW = 10;
@@ -36,6 +37,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [goals, setGoals] = useState("");
   const [commitment, setCommitment] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [extraContributions, setExtraContributions] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
   const [showAll, setShowAll] = useState(false);
@@ -68,6 +70,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       setGoals(existingReview.next_year_goals || "");
       setCommitment(existingReview.commitment || "");
       setFeedback(existingReview.company_feedback || "");
+      setExtraContributions(existingReview.extra_contributions || []);
     }
     const pm = {};
     const sm = {};
@@ -139,6 +142,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       contribution_note: p.contribution_note,
       self_score: p.self_score,
     })),
+    extra_contributions: extraContributions.filter(e => e.description?.trim()),
     challenges,
     challenges_solution: challengesSolution,
     next_year_goals: goals,
@@ -290,6 +294,17 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Section: Extra Contributions */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-teal-50 px-5 py-4 border-b border-teal-100">
+          <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻</h3>
+          <p className="text-sm text-teal-600 mt-0.5">記錄項目工作以外的額外貢獻，例如：協助培訓、流程優化、跨部門支援等。每項需附自評分數。</p>
+        </div>
+        <div className="p-5">
+          <ExtraContributionSection items={extraContributions} onChange={setExtraContributions} />
         </div>
       </div>
 

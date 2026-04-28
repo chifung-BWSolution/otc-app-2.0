@@ -99,6 +99,28 @@ export default function AnnualReviewReadonly({ review, staffRec, user, onBack })
         </div>
       </div>
 
+      {/* Extra Contributions */}
+      {r.extra_contributions?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-teal-50 px-4 py-3 border-b border-teal-100">
+            <h3 className="font-bold text-sm text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
+          </div>
+          <div className="p-4 space-y-2">
+            {r.extra_contributions.map((ec, i) => (
+              <div key={i} className="flex items-start gap-2 border border-gray-100 rounded-lg px-3 py-2.5">
+                <span className="text-sm font-bold text-teal-600 shrink-0">{i + 1}.</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 leading-relaxed">{ec.description}</p>
+                </div>
+                {ec.self_score > 0 && (
+                  <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold shrink-0">自評：{ec.self_score} 分</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Challenges + Solution */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">

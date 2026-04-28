@@ -62,6 +62,23 @@
         }
       }
     },
+    "extra_contributions": {
+      "type": "array",
+      "title": "\u984d\u5916\u8ca2\u737b",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "\u8ca2\u737b\u63cf\u8ff0"
+          },
+          "self_score": {
+            "type": "number",
+            "title": "\u81ea\u8a55\u5206\u6578 (1-5)"
+          }
+        }
+      }
+    },
     "challenges": {
       "type": "string",
       "title": "\u5e74\u5ea6\u9047\u5230\u7684\u56f0\u96e3"
