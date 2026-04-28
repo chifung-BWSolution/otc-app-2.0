@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Users, Eye, CheckCircle, Clock, ChevronDown, ChevronUp, Star } from "lucide-react";
-import AnnualReviewReadonly from "./AnnualReviewReadonly";
+import SubordinateReviewReadonly from "./SubordinateReviewReadonly";
 import LeaderScoringForm from "./LeaderScoringForm";
 
 function getLastFY() {
@@ -74,10 +74,8 @@ export default function SubordinateReviews({ staffRec, user }) {
 
   if (selectedReview) {
     return (
-      <AnnualReviewReadonly
+      <SubordinateReviewReadonly
         review={selectedReview}
-        staffRec={null}
-        user={null}
         onBack={() => setSelectedReview(null)}
       />
     );
