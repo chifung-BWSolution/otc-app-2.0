@@ -97,8 +97,8 @@ export default function ProjectDetailPanel({
                           : `${colors.bg} ${colors.border} ${colors.text} hover:scale-102`
                       }`}
                     >
-                      <div className="text-lg font-black">{sl.score}</div>
-                      <div className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>
+                      <div className="text-xl font-black">{sl.score}</div>
+                      <div className={`text-xs font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>
                     </button>
                   );
                 })}

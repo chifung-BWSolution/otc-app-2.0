@@ -73,8 +73,8 @@ export default function ExtraContributionSection({ items, onChange }) {
                             : `${sc.bg} ${sc.border} ${sc.text} hover:scale-102`
                         }`}
                       >
-                        <div className="text-lg font-black">{score}</div>
-                        {sl && <div className={`text-[9px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
+                        <div className="text-xl font-black">{score}</div>
+                        {sl && <div className={`text-xs font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
                       </button>
                     );
                   })}
