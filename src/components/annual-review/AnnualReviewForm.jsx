@@ -290,13 +290,20 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                       </button>
 
                       {expandedTask === projIdx && p.tasksByType?.length > 0 && (
-                        <div className="px-3 pb-2 ml-7 space-y-1 border-l-2 border-indigo-100">
+                        <div className="px-3 pb-2 ml-7 space-y-1.5 border-l-2 border-indigo-100">
                           {p.tasksByType.map((tt, j) => (
-                            <div key={j} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
-                              <span className="flex-1 truncate">{tt.name}</span>
-                              <span className="text-blue-500 shrink-0">{tt.hours}h</span>
-                              <span className="text-gray-400 shrink-0">{tt.tasks.length}個</span>
+                            <div key={j}>
+                              <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[j % COLORS.length] }} />
+                                <span className="flex-1 truncate">{tt.name}</span>
+                                <span className="text-blue-500 shrink-0">{tt.hours}h</span>
+                              </div>
+                              {tt.tasks.map((task, k) => (
+                                <div key={k} className="flex items-center gap-1.5 text-[11px] text-gray-400 leading-relaxed ml-4">
+                                  <span className="flex-1 truncate">{task.name}{task.count > 1 ? ` ×${task.count}` : ""}</span>
+                                  <span className="text-gray-500 shrink-0">{task.hours}h</span>
+                                </div>
+                              ))}
                             </div>
                           ))}
                         </div>
