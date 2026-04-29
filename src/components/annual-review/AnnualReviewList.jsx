@@ -43,7 +43,7 @@ export default function AnnualReviewList({ reviews, staffRec, user, leaderName, 
             const showPeerReview = r.status === "peer_review_pending"; // only show when waiting for peer review
 
             return (
-              <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => onOpen(r)}>
                 <div className="flex items-center gap-3 p-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusInfo.circleBg}`}>
                     <StatusIcon size={18} className={statusInfo.iconColor} />
@@ -61,24 +61,18 @@ export default function AnnualReviewList({ reviews, staffRec, user, leaderName, 
                   </div>
                   <div className="flex items-center gap-2">
                     {showPeerReview && (
-                      <button
-                        onClick={() => onOpen(r)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-                      >
+                      <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white">
                         <Users size={13} /> 進行互評
-                      </button>
+                      </span>
                     )}
                     {!showPeerReview && (
-                      <button
-                        onClick={() => onOpen(r)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                          canEdit
-                            ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
+                      <span className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ${
+                        canEdit
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
                         {canEdit ? <><Pencil size={13} /> 編輯</> : <><Eye size={13} /> 查看</>}
-                      </button>
+                      </span>
                     )}
                   </div>
                 </div>

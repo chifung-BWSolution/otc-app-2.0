@@ -80,6 +80,7 @@ export default function AnnualReview() {
   const [formLoading, setFormLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeFY, setActiveFY] = useState(null);
+  const [formError, setFormError] = useState(null);
 
   useEffect(() => { initList(); }, []);
 
@@ -149,6 +150,7 @@ export default function AnnualReview() {
   // Load heavy data for the form
   const loadFormData = async (existingReview) => {
     setFormLoading(true);
+    setFormError(null);
     setView("form");
     setActiveReview(existingReview);
 
@@ -157,6 +159,7 @@ export default function AnnualReview() {
       : getLastFY();
     setActiveFY(fy);
 
+    try {
     // Load all lookup data + staff's own dates in parallel
     const [taskTypeList, nosTaskList, projectList, myAllDates] = await Promise.all([
       base44.entities.NOSTaskType.filter({}, "display", 200),
@@ -244,6 +247,10 @@ export default function AnnualReview() {
     }
 
     setProjectSummary(summary);
+    } catch (err) {
+      console.error("loadFormData error:", err);
+      setFormError(err.message || "載入數據時發生錯誤");
+    }
     setFormLoading(false);
   };
 
@@ -339,6 +346,18 @@ export default function AnnualReview() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={32} />
           <span className="ml-2 text-sm text-gray-400">載入工時數據中...</span>
+        </div>
+      );
+    }
+    if (formError) {
+      return (
+        <div className="text-center py-20 space-y-3">
+          <AlertCircle size={32} className="mx-auto text-red-400" />
+          <p className="text-sm text-red-600">載入數據時發生錯誤：{formError}</p>
+          <div className="flex gap-2 justify-center">
+            <button onClick={handleBack} className="px-4 py-2 bg-gray-100 rounded-lg text-sm text-gray-600 hover:bg-gray-200">返回</button>
+            <button onClick={() => loadFormData(activeReview)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">重試</button>
+          </div>
         </div>
       );
     }
