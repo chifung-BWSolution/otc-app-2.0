@@ -1,0 +1,86 @@
+{
+  "name": "BubbleMeritsDemerits",
+  "type": "object",
+  "properties": {
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID"
+    },
+    "staff_id": {
+      "type": "string",
+      "title": "Staff (Bubble ID)"
+    },
+    "staff_name": {
+      "type": "string",
+      "title": "Staff Name"
+    },
+    "type": {
+      "type": "string",
+      "title": "\u985e\u578b",
+      "description": "\u529f\u904e\u985e\u578b\uff0c\u4f8b\u5982\uff1a\u512a\u9ede\u3001\u7f3a\u9ede"
+    },
+    "brief_description": {
+      "type": "string",
+      "title": "\u7c21\u8ff0"
+    },
+    "detailed_description": {
+      "type": "string",
+      "title": "\u8a73\u7d30\u63cf\u8ff0"
+    },
+    "event_date": {
+      "type": "string",
+      "title": "\u4e8b\u4ef6\u65e5\u671f",
+      "format": "date-time"
+    },
+    "event_view_role": {
+      "type": "string",
+      "title": "\u53ef\u67e5\u770b\u89d2\u8272"
+    },
+    "bubble_created_by": {
+      "type": "string",
+      "title": "Bubble \u5efa\u7acb\u8005 ID"
+    },
+    "bubble_created_date": {
+      "type": "string",
+      "title": "Bubble \u5efa\u7acb\u65e5\u671f",
+      "format": "date-time"
+    },
+    "bubble_modified_date": {
+      "type": "string",
+      "title": "Bubble \u4fee\u6539\u65e5\u671f",
+      "format": "date-time"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
