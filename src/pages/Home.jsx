@@ -124,9 +124,7 @@ export default function Home() {
 
   useEffect(() => {
     base44.auth.me().then(u => {
-      if (u?.role === 'admin') {
-        setIsMGT(true);
-      } else if (u?.linked_staff_id) {
+      if (u?.linked_staff_id) {
         base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)
           .then(list => {
             if (list[0]) {
@@ -136,6 +134,7 @@ export default function Home() {
           }).catch(() => {});
       }
     }).catch(() => {});
+
   }, []);
 
   const visibleModules = modules.filter(mod => mod.label !== "管理員" || isMGT);
