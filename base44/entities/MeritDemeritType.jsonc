@@ -1,0 +1,56 @@
+{
+  "name": "MeritDemeritType",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "\u985e\u578b\u540d\u7a31"
+    },
+    "category": {
+      "type": "string",
+      "title": "\u5206\u985e",
+      "enum": [
+        "merit",
+        "demerit"
+      ],
+      "description": "merit=\u529f, demerit=\u904e"
+    },
+    "score_adjustment": {
+      "type": "number",
+      "title": "\u5206\u6578\u8abf\u6574"
+    },
+    "sort_order": {
+      "type": "number",
+      "title": "\u6392\u5e8f",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "score_adjustment"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

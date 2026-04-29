@@ -6,6 +6,7 @@ import TeamGroupSettings from "@/components/settings/TeamGroupSettings";
 import ContributionTypeSettings from "@/components/settings/ContributionTypeSettings";
 import ScoreLevelSettings from "@/components/settings/ScoreLevelSettings";
 import ReviewPresetSettings from "@/components/settings/ReviewPresetSettings";
+import MeritDemeritTypeSettings from "@/components/settings/MeritDemeritTypeSettings";
 
 const TABS = [
   { key: "bu", label: "BU", entity: "NOSBU" },
@@ -16,6 +17,7 @@ const TABS = [
   { key: "contribution", label: "📝 貢獻類型", entity: null },
   { key: "scorelevel", label: "⭐ 自評分數", entity: null },
   { key: "reviewpreset", label: "📋 評估選項", entity: null },
+  { key: "meritdemerit", label: "⚖️ 功過類型", entity: null },
 ];
 
 function ItemRow({ item, onSave, onDelete, buList }) {
@@ -232,6 +234,8 @@ export default function OrgSettings() {
         <ScoreLevelSettings />
       ) : tab === "reviewpreset" ? (
         <ReviewPresetSettings />
+      ) : tab === "meritdemerit" ? (
+        <MeritDemeritTypeSettings />
       ) : (
         <>
           {/* List */}
