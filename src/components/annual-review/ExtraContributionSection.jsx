@@ -39,7 +39,7 @@ export default function ExtraContributionSection({ items, onChange }) {
             <div className="flex items-start gap-2">
               <span className="text-sm font-bold text-teal-600 mt-1 shrink-0">{idx + 1}.</span>
               <textarea
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-teal-300 resize-none bg-white"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 resize-none bg-white"
                 rows={2}
                 placeholder="描述你的額外貢獻，例如：協助新同事培訓、主動優化工作流程..."
                 value={item.description}
@@ -56,7 +56,7 @@ export default function ExtraContributionSection({ items, onChange }) {
             {/* Self score - only show when description has content */}
             {item.description?.trim() && (
               <div>
-                <div className="text-base font-bold text-gray-700 mb-1.5">自評分數</div>
+                <div className="text-sm font-bold text-gray-700 mb-1.5">自評分數</div>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map(score => {
                     const sl = scoreLevels.find(s => s.score === score);
@@ -80,7 +80,7 @@ export default function ExtraContributionSection({ items, onChange }) {
                   })}
                 </div>
                 {level && (
-                  <div className="mt-1.5 text-sm text-gray-500 bg-white rounded-lg px-3 py-1.5 border border-gray-100">
+                  <div className="mt-1.5 text-xs text-gray-500 bg-white rounded-lg px-3 py-1.5 border border-gray-100">
                     <span className="font-semibold">{level.label}</span>：{level.description}
                   </div>
                 )}
@@ -92,7 +92,7 @@ export default function ExtraContributionSection({ items, onChange }) {
 
       <button
         onClick={addItem}
-        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-teal-300 rounded-xl text-base font-semibold text-teal-600 hover:bg-teal-50 hover:border-teal-400 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-teal-300 rounded-xl text-sm font-semibold text-teal-600 hover:bg-teal-50 hover:border-teal-400 transition-colors"
       >
         <Plus size={16} /> 新增額外貢獻
       </button>
