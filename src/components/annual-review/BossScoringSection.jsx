@@ -140,7 +140,7 @@ export default function BossScoringSection({ review, onUpdated }) {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{p.self_score} 分</span>
                   {p.leader_score > 0 && (
-                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">上司評分：{p.leader_score} 分</span>
+                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{p.leader_score} 分</span>
                   )}
                 </div>
                 <div>
@@ -165,7 +165,7 @@ export default function BossScoringSection({ review, onUpdated }) {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{e.self_score} 分</span>
                   {e.leader_score > 0 && (
-                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">上司評分：{e.leader_score} 分</span>
+                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{e.leader_score} 分</span>
                   )}
                 </div>
                 <div>

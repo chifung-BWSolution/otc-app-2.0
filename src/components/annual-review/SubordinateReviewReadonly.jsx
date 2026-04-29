@@ -61,7 +61,7 @@ export default function SubordinateReviewReadonly({ review, onBack }) {
               <div className="flex items-center gap-3">
                 <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{p.self_score} 分</span>
                 {p.leader_score > 0 && (
-                  <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">上司評分：{p.leader_score} 分</span>
+                  <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{p.leader_score} 分</span>
                 )}
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function SubordinateReviewReadonly({ review, onBack }) {
               <div className="flex items-center gap-3">
                 <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{e.self_score} 分</span>
                 {e.leader_score > 0 && (
-                  <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">上司評分：{e.leader_score} 分</span>
+                  <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{e.leader_score} 分</span>
                 )}
               </div>
             </div>
@@ -90,7 +90,7 @@ export default function SubordinateReviewReadonly({ review, onBack }) {
       {/* Leader comment if exists */}
       {r.leader_comment && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div className="text-sm font-semibold text-gray-700 mb-1">💬 上司評語</div>
+          <div className="text-sm font-semibold text-gray-700 mb-1">💬 Team Leader評語</div>
           <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
         </div>
       )}

@@ -154,7 +154,7 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
         <div>
           <div className="text-sm font-bold text-amber-800">重要提示</div>
           <div className="text-sm text-amber-700 mt-0.5">
-            你已成功提交年度工作評估表。請繼續完成同事互評，<span className="font-bold">完成所有同事互評後將交由直屬上司評分，再安排年度面談。</span>
+            你已成功提交年度工作評估表。請繼續完成同事互評，<span className="font-bold">完成所有同事互評後將交由直屬Team Leader評分，再安排年度面談。</span>
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
           <CheckCircle2 size={20} className="text-green-600 shrink-0" />
           <div>
             <div className="text-sm font-bold text-green-800">已完成所有同事互評 ✅</div>
-            <div className="text-xs text-green-600 mt-0.5">你的評估表將交由直屬上司評分，完成後再安排年度面談，請耐心等候。</div>
+            <div className="text-xs text-green-600 mt-0.5">你的評估表將交由直屬Team Leader評分，完成後再安排年度面談，請耐心等候。</div>
           </div>
         </div>
       )}

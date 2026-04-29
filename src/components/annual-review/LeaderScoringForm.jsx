@@ -186,7 +186,7 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
 
       {/* Leader comment */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 上司評語</label>
+        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 Team Leader評語</label>
         <textarea
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
           rows={4}

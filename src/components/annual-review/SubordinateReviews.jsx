@@ -57,7 +57,7 @@ export default function SubordinateReviews({ staffRec, user }) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="animate-spin text-gray-400" size={24} />
-        <span className="ml-2 text-sm text-gray-400">載入下屬評估表...</span>
+        <span className="ml-2 text-sm text-gray-400">載入Team Member評估表...</span>
       </div>
     );
   }
@@ -85,8 +85,8 @@ export default function SubordinateReviews({ staffRec, user }) {
     return (
       <div className="text-center py-16 text-gray-400">
         <Users size={36} className="mx-auto mb-3 opacity-40" />
-        <p className="text-sm">你目前沒有直屬下屬需要查看評估表。</p>
-        <p className="text-xs mt-1 text-gray-300">只有在員工記錄中被設為 Team Leader 的人才能查看其下屬的評估表。</p>
+        <p className="text-sm">你目前沒有直屬Team Member需要查看評估表。</p>
+        <p className="text-xs mt-1 text-gray-300">只有在員工記錄中被設為 Team Leader 的人才能查看其Team Member的評估表。</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function SubordinateReviews({ staffRec, user }) {
       <div className="flex gap-3">
         <div className="bg-blue-50 rounded-lg px-4 py-3 text-center flex-1 border border-blue-100">
           <div className="text-2xl font-bold text-blue-600">{subordinates.length}</div>
-          <div className="text-xs text-gray-500">下屬人數</div>
+          <div className="text-xs text-gray-500">Team Member人數</div>
         </div>
         <div className="bg-green-50 rounded-lg px-4 py-3 text-center flex-1 border border-green-100">
           <div className="text-2xl font-bold text-green-600">{submittedReviews.length}</div>
