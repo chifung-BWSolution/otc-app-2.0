@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Home } from "lucide-react";
 import { menuGroups, findGroupByPath } from "./menuConfig";
 
-export default function TopNavBar({ activeKey, setActiveKey }) {
+export default function TopNavBar({ activeKey, setActiveKey, isMGT }) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentGroup = findGroupByPath(location.pathname);
@@ -32,7 +32,7 @@ export default function TopNavBar({ activeKey, setActiveKey }) {
 
         <div className="w-px h-6 bg-gray-200 mx-1" />
 
-        {menuGroups.map((g) => {
+        {menuGroups.filter(g => g.key !== "superadmin" || isMGT).map((g) => {
           const active = isActive(g.key);
           return (
             <button

@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
 import BirthdayWidget from "../components/BirthdayWidget";
 
 const modules = [
@@ -118,11 +120,30 @@ const modules = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const [isMGT, setIsMGT] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(u => {
+      if (u?.role === 'admin') {
+        setIsMGT(true);
+      } else if (u?.linked_staff_id) {
+        base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)
+          .then(list => {
+            if (list[0]) {
+              const teamName = (list[0].team_name || "").toUpperCase();
+              setIsMGT(teamName.includes("MGT"));
+            }
+          }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
+
+  const visibleModules = modules.filter(mod => mod.label !== "管理員" || isMGT);
 
   return (
     <div className="space-y-3 pb-6">
       <BirthdayWidget />
-      {modules.map((mod) => (
+      {visibleModules.map((mod) => (
         <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 pt-4 pb-2">
           <h3 className="text-sm font-bold text-gray-700 mb-3">{mod.icon} {mod.label}</h3>
           <div className="grid grid-cols-4 gap-y-4 gap-x-2">

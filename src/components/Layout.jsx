@@ -65,8 +65,24 @@ export default function Layout() {
   const location = useLocation();
   const title = pageTitles[location.pathname] || "企業管理系統";
 
+  const [isMGT, setIsMGT] = useState(false);
+
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
+    base44.auth.me().then(u => {
+      setCurrentUser(u);
+      // Check if user belongs to MGT team
+      if (u?.role === 'admin') {
+        setIsMGT(true);
+      } else if (u?.linked_staff_id) {
+        base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)
+          .then(list => {
+            if (list[0]) {
+              const teamName = (list[0].team_name || "").toUpperCase();
+              setIsMGT(teamName.includes("MGT"));
+            }
+          }).catch(() => {});
+      }
+    }).catch(() => {});
   }, []);
 
   // Sync activeKey with current route whenever location changes
@@ -113,7 +129,7 @@ export default function Layout() {
 
       {/* Top Navigation (horizontal main categories) */}
       <div className="sticky top-[49px] z-30">
-        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} />
+        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} isMGT={isMGT} />
       </div>
 
       {/* Body: sub sidebar + content */}
