@@ -174,13 +174,13 @@ export default function AnnualReview() {
       }));
       setProjectSummary(summary);
     } else {
-      // New form: load data from ManHourDate/Task
-      const [taskTypeList, nosTaskList, projectList, myAllDates] = await Promise.all([
-        base44.entities.NOSTaskType.filter({}, "display", 200),
-        loadAll(base44.entities.NOSTask, "display"),
-        loadAll(base44.entities.BubbleProject, "display_name"),
-        loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: user.linked_staff_id }),
-      ]);
+      // New form: load data via backend function (service role bypasses RLS)
+      const res = await base44.functions.invoke('loadStaffManHourTasks', {
+        staff_id: user.linked_staff_id,
+        fy_start: fy.start,
+        fy_end: fy.end,
+      });
+      const { tasks: myTasks, taskTypes: taskTypeList, nosTasks: nosTaskList, projects: projectList } = res.data;
 
       const projectMap = {};
       for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
@@ -188,15 +188,6 @@ export default function AnnualReview() {
       for (const t of taskTypeList) { if (t.bubble_id) taskTypeMap[t.bubble_id] = t; }
       const nosTaskMap = {};
       for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
-
-      const myDates = myAllDates.filter(d => {
-        const rd = toLocalDate(d.report_date);
-        return rd && rd >= fy.start && rd <= fy.end;
-      });
-      const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
-
-      // Load tasks for this staff's dates only
-      const myTasks = await loadTasksForDates(myDateIds);
 
       const resolveProjectName = (t) => {
         if (t.project_name) return t.project_name;
