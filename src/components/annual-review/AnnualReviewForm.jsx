@@ -261,8 +261,12 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                           isActive ? "bg-indigo-50 border-l-indigo-500" : "border-l-transparent hover:bg-gray-50"
                         }`}
                         onClick={() => {
-                          setSelectedProject(projIdx);
-                          setExpandedTask(expandedTask === projIdx ? null : projIdx);
+                          if (selectedProject === projIdx) {
+                            setExpandedTask(expandedTask === projIdx ? null : projIdx);
+                          } else {
+                            setSelectedProject(projIdx);
+                            setExpandedTask(projIdx);
+                          }
                         }}
                       >
                         {isComplete ? (
