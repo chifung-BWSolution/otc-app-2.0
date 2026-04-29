@@ -140,15 +140,32 @@ export default function BossScoringSection({ review, onUpdated }) {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{p.self_score} 分</span>
                   {p.leader_score > 0 && (
-                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{p.leader_score} 分</span>
+                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader：{p.leader_score} 分</span>
                   )}
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-purple-700 mb-1.5">老闆評分</div>
-                  {renderScoreButtons(
-                    projectScores[p._idx] || 0,
-                    (s) => setProjectScores(prev => ({ ...prev, [p._idx]: s }))
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-purple-700 shrink-0">老闆：</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(score => {
+                        const sl = scoreLevels.find(s => s.score === score);
+                        const isSelected = (projectScores[p._idx] || 0) === score;
+                        const sc = SCORE_COLORS[score];
+                        return (
+                          <button
+                            key={score}
+                            onClick={() => setProjectScores(prev => ({ ...prev, [p._idx]: score }))}
+                            title={sl ? `${sl.label}：${sl.description}` : `${score} 分`}
+                            className={`w-9 h-9 rounded-lg text-center transition-all border-2 ${
+                              isSelected
+                                ? `${sc.active} text-white border-transparent shadow-md scale-110`
+                                : `${sc.bg} ${sc.border} ${sc.text} hover:scale-105`
+                            }`}
+                          >
+                            <div className="text-sm font-black">{score}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -165,15 +182,32 @@ export default function BossScoringSection({ review, onUpdated }) {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">員工自評：{e.self_score} 分</span>
                   {e.leader_score > 0 && (
-                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader評分：{e.leader_score} 分</span>
+                    <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Team Leader：{e.leader_score} 分</span>
                   )}
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-purple-700 mb-1.5">老闆評分</div>
-                  {renderScoreButtons(
-                    extraScores[e._idx] || 0,
-                    (s) => setExtraScores(prev => ({ ...prev, [e._idx]: s }))
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-purple-700 shrink-0">老闆：</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(score => {
+                        const sl = scoreLevels.find(s => s.score === score);
+                        const isSelected = (extraScores[e._idx] || 0) === score;
+                        const sc = SCORE_COLORS[score];
+                        return (
+                          <button
+                            key={score}
+                            onClick={() => setExtraScores(prev => ({ ...prev, [e._idx]: score }))}
+                            title={sl ? `${sl.label}：${sl.description}` : `${score} 分`}
+                            className={`w-9 h-9 rounded-lg text-center transition-all border-2 ${
+                              isSelected
+                                ? `${sc.active} text-white border-transparent shadow-md scale-110`
+                                : `${sc.bg} ${sc.border} ${sc.text} hover:scale-105`
+                            }`}
+                          >
+                            <div className="text-sm font-black">{score}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
