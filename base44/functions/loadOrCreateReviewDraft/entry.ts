@@ -97,7 +97,7 @@ function buildTasksByType(myTasks, projectMap, taskTypeMap) {
 
     projTaskMap[projName][typeName].hours += t.work_hour || 0;
 
-    const taskName = t.task_name || t.task_description || "未命名任務";
+    const taskName = t.task_name || "未命名任務";
     if (!projTaskMap[projName][typeName].tasks[taskName]) {
       projTaskMap[projName][typeName].tasks[taskName] = { hours: 0, count: 0 };
     }
