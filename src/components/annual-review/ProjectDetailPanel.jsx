@@ -83,7 +83,7 @@ export default function ProjectDetailPanel({
           ) : (
             <>
               <div className="flex gap-1.5">
-                {scoreLevels.map(sl => {
+                {[...scoreLevels].sort((a, b) => a.score - b.score).map(sl => {
                   const isSelected = score === sl.score;
                   const colors = SCORE_COLORS[sl.score] || SCORE_COLORS[3];
                   return (
