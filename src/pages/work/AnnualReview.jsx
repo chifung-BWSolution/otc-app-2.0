@@ -16,14 +16,14 @@ function getLastFY() {
   return { label: `FY${year}/${year + 1}`, start: `${year}-04-01`, end: `${year + 1}-03-31` };
 }
 
-async function loadAll(entity, sort = "id", batchSize = 5000) {
+async function loadAll(entity, sort = "id", batchSize = 5000, filterQuery = {}) {
   const all = [];
   let offset = 0;
   while (true) {
     let batch;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        batch = await entity.filter({}, sort, batchSize, offset);
+        batch = await entity.filter(filterQuery, sort, batchSize, offset);
         break;
       } catch (err) {
         if (attempt === 2) throw err;
@@ -36,6 +36,14 @@ async function loadAll(entity, sort = "id", batchSize = 5000) {
     await new Promise(r => setTimeout(r, 500));
   }
   return all;
+}
+
+// Load tasks that belong to a set of man_hour_date_ids
+async function loadTasksForDates(dateIds) {
+  if (dateIds.size === 0) return [];
+  // RLS already scopes to user's own tasks; filter client-side by FY date ids
+  const allMyTasks = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
+  return allMyTasks.filter(t => dateIds.has(t.man_hour_date_id));
 }
 
 const toLocalDate = (val) => {
@@ -149,12 +157,13 @@ export default function AnnualReview() {
       : getLastFY();
     setActiveFY(fy);
 
-    const [taskTypeList, nosTaskList] = await Promise.all([
+    // Load all lookup data + staff's own dates in parallel
+    const [taskTypeList, nosTaskList, projectList, myAllDates] = await Promise.all([
       base44.entities.NOSTaskType.filter({}, "display", 200),
       loadAll(base44.entities.NOSTask, "display"),
+      loadAll(base44.entities.BubbleProject, "display_name"),
+      loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: user.linked_staff_id }),
     ]);
-    const projectList = await loadAll(base44.entities.BubbleProject, "display_name");
-    const allDates = await loadAll(base44.entities.BubbleManHourDate, "-report_date");
 
     const projectMap = {};
     for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
@@ -163,15 +172,14 @@ export default function AnnualReview() {
     const nosTaskMap = {};
     for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
 
-    const myDates = allDates.filter(d => {
-      if (d.staff_id !== user.linked_staff_id) return false;
+    const myDates = myAllDates.filter(d => {
       const rd = toLocalDate(d.report_date);
       return rd && rd >= fy.start && rd <= fy.end;
     });
     const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
 
-    const allTasks = await loadAll(base44.entities.BubbleManHourTask, "-created_date");
-    const myTasks = allTasks.filter(t => myDateIds.has(t.man_hour_date_id));
+    // Load tasks for this staff's dates only
+    const myTasks = await loadTasksForDates(myDateIds);
 
     const resolveProjectName = (t) => {
       if (t.project_name) return t.project_name;
