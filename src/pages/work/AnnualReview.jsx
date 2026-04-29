@@ -97,6 +97,7 @@ export default function AnnualReview() {
       });
 
       const review = res.data.review;
+      const tasksByTypeMap = res.data.tasksByTypeMap || {};
       setActiveReview(review);
 
       const summary = (review.project_contributions || []).map(p => ({
@@ -106,7 +107,7 @@ export default function AnnualReview() {
         sales_amount: p.sales_amount || 0,
         contribution_note: p.contribution_note || "",
         self_score: p.self_score || null,
-        tasksByType: [],
+        tasksByType: tasksByTypeMap[p.project_name] || [],
       }));
       setProjectSummary(summary);
 
