@@ -61,11 +61,22 @@ async function loadManHourData(sr, staffId, fyStart, fyEnd) {
 
   console.log(`Total tasks: ${allTasks.length}, matched: ${myTasks.length}`);
 
-  // Load lookups
+  // Load lookups — must load ALL records (NOSTask can exceed 500)
+  const loadAllSr = async (entity, sort, batchSize = 5000) => {
+    const all = [];
+    let off = 0;
+    while (true) {
+      const batch = await entity.filter({}, sort, batchSize, off);
+      all.push(...batch);
+      if (batch.length < batchSize) break;
+      off += batch.length;
+    }
+    return all;
+  };
   const [taskTypes, nosTasks, projects] = await Promise.all([
-    sr.entities.NOSTaskType.filter({}, "display", 500),
-    sr.entities.NOSTask.filter({}, "display", 500),
-    sr.entities.BubbleProject.filter({}, "display_name", 5000),
+    loadAllSr(sr.entities.NOSTaskType, "display"),
+    loadAllSr(sr.entities.NOSTask, "display"),
+    loadAllSr(sr.entities.BubbleProject, "display_name"),
   ]);
 
   const projectMap = {};
@@ -103,7 +114,7 @@ function buildTasksByType(myTasks, projectMap, taskTypeMap, nosTaskMap) {
 
     projTaskMap[projName][typeName].hours += t.work_hour || 0;
 
-    const taskName = (t.task_id && nosTaskMap[t.task_id]?.display) || t.task_name || t.keywords || "未命名任務";
+    const taskName = (t.task_id && nosTaskMap[t.task_id]?.display) || t.task_name || t.task_description || t.keywords || "未命名任務";
     if (!projTaskMap[projName][typeName].tasks[taskName]) {
       projTaskMap[projName][typeName].tasks[taskName] = { hours: 0, count: 0 };
     }
