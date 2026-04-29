@@ -58,7 +58,7 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
 
   const handleSubmit = async () => {
     if (!allScored) { alert("請先為所有項目評分"); return; }
-    if (!window.confirm("確認提交評分？提交後此員工評估表將進入「待老闆面談」階段。")) return;
+    if (!window.confirm("確認提交評分？提交後此員工評估表將進入「待預審」階段。")) return;
     setSaving(true);
 
     const updatedProjects = (review.project_contributions || []).map((p, i) => ({
@@ -77,7 +77,7 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
       leader_next_year_expectation: nextYearExpectation,
       leader_private_note: privateNote,
       leader_scored_at: new Date().toISOString(),
-      status: "pending_boss",
+      status: "pending_boss_review",
     });
 
     setSaving(false);

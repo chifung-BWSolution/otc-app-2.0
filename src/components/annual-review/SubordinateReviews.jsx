@@ -132,7 +132,8 @@ export default function SubordinateReviews({ staffRec, user }) {
                       const m = {
                         peer_review_pending: { label: "待完成同事互評", color: "bg-amber-100 text-amber-700" },
                         pending_leader: { label: "待Leader評分", color: "bg-blue-100 text-blue-700" },
-                        pending_boss: { label: "待老闆面談", color: "bg-purple-100 text-purple-700" },
+                        pending_boss_review: { label: "待預審", color: "bg-pink-100 text-pink-700" },
+                        pending_boss: { label: "待面談", color: "bg-purple-100 text-purple-700" },
                       };
                       const st = m[r.status] || { label: r.status, color: "bg-gray-100 text-gray-700" };
                       return <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>;

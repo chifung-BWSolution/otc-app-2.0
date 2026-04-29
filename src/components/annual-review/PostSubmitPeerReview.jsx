@@ -123,7 +123,7 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
         const leaderTeam = (leader?.team_name || "").toLowerCase();
         needsLeader = leader && !leaderTeam.includes("mgt");
       }
-      const newStatus = needsLeader ? "pending_leader" : "pending_boss";
+      const newStatus = needsLeader ? "pending_leader" : "pending_boss_review";
       await base44.entities.AnnualReview.update(ar.id, { status: newStatus });
     })();
   }, [allDone]);
@@ -165,7 +165,7 @@ export default function PostSubmitPeerReview({ staffRec, onBack }) {
           <CheckCircle2 size={20} className="text-green-600 shrink-0" />
           <div>
             <div className="text-sm font-bold text-green-800">已完成所有同事互評 ✅</div>
-            <div className="text-xs text-green-600 mt-0.5">你的評估表將交由直屬Team Leader評分，完成後再安排年度面談，請耐心等候。</div>
+            <div className="text-xs text-green-600 mt-0.5">你的評估表將交由直屬Team Leader評分，完成後進入預審階段，最後安排年度面談，請耐心等候。</div>
           </div>
         </div>
       )}

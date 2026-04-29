@@ -116,10 +116,10 @@ export default function AnnualReviewAdmin() {
         >
           <option value="all">全部狀態</option>
           <option value="draft">草稿</option>
-          <option value="submitted">已提交待互評</option>
-          <option value="peer_review_done">已完成互評</option>
+          <option value="peer_review_pending">待完成同事互評</option>
           <option value="pending_leader">待Leader評分</option>
-          <option value="pending_boss">待老闆面談</option>
+          <option value="pending_boss_review">待預審</option>
+          <option value="pending_boss">待面談</option>
         </select>
         <MultiSelectDropdown label="BU" options={buList} selected={buFilter} onChange={setBuFilter} />
         <MultiSelectDropdown label="Team" options={teamList} selected={teamFilter} onChange={setTeamFilter} />
@@ -163,7 +163,8 @@ export default function AnnualReviewAdmin() {
                       draft: { bg: "bg-orange-100", text: "text-orange-700", label: "草稿" },
                       peer_review_pending: { bg: "bg-amber-100", text: "text-amber-700", label: "待完成同事互評" },
                       pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
-                      pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待老闆面談" },
+                      pending_boss_review: { bg: "bg-pink-100", text: "text-pink-700", label: "待預審" },
+                      pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待面談" },
                     };
                     const s = sm[r.status] || sm.draft;
                     return <span className={`text-xs ${s.bg} ${s.text} px-2 py-0.5 rounded-full font-medium`}>{s.label}</span>;

@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Users, Star, MessageSquare } from "lucide-react";
+import { CheckCircle, Clock, Users, Star, MessageSquare, Eye } from "lucide-react";
 
 export function getStatusInfo(status, leaderName) {
   switch (status) {
@@ -8,8 +8,10 @@ export function getStatusInfo(status, leaderName) {
       return { label: "待完成同事互評", bg: "bg-amber-100", text: "text-amber-700", icon: Users, iconColor: "text-amber-600", circleBg: "bg-amber-100" };
     case "pending_leader":
       return { label: `待${leaderName || "Leader"}評分`, bg: "bg-blue-100", text: "text-blue-700", icon: Star, iconColor: "text-blue-600", circleBg: "bg-blue-100" };
+    case "pending_boss_review":
+      return { label: "待預審", bg: "bg-pink-100", text: "text-pink-700", icon: Eye, iconColor: "text-pink-600", circleBg: "bg-pink-100" };
     case "pending_boss":
-      return { label: "待老闆面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
+      return { label: "待面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
     default:
       return { label: status, bg: "bg-gray-100", text: "text-gray-600", icon: Clock, iconColor: "text-gray-500", circleBg: "bg-gray-100" };
   }

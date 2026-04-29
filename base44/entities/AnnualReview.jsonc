@@ -140,6 +140,7 @@
         "submitted",
         "peer_review_pending",
         "pending_leader",
+        "pending_boss_review",
         "pending_boss"
       ],
       "default": "draft"

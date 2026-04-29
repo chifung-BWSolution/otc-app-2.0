@@ -5,6 +5,14 @@ import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } 
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import BossScoringSection from "./BossScoringSection";
 
+const SCORE_COLORS = {
+  5: { bg: "bg-emerald-50", border: "border-emerald-300", text: "text-emerald-700", active: "bg-emerald-500" },
+  4: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", active: "bg-blue-500" },
+  3: { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", active: "bg-amber-500" },
+  2: { bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-700", active: "bg-orange-500" },
+  1: { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", active: "bg-red-500" },
+};
+
 async function loadAll(entity, sort = "id", batchSize = 5000) {
   const all = [];
   let offset = 0;
@@ -67,6 +75,39 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [generatingAI, setGeneratingAI] = useState(false);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
+  const [scoreLevels, setScoreLevels] = useState([]);
+  const [bossProjectScores, setBossProjectScores] = useState({});
+  const [bossExtraScores, setBossExtraScores] = useState({});
+  const [savingBoss, setSavingBoss] = useState(false);
+
+  // Init boss scores from review data
+  useEffect(() => {
+    base44.entities.ScoreLevel.filter({ is_active: true }, "-score", 100).then(setScoreLevels);
+    const ps = {};
+    (r.project_contributions || []).forEach((p, i) => { if (p.boss_score > 0) ps[i] = p.boss_score; });
+    setBossProjectScores(ps);
+    const es = {};
+    (r.extra_contributions || []).forEach((e, i) => { if (e.boss_score > 0) es[i] = e.boss_score; });
+    setBossExtraScores(es);
+  }, [r.id]);
+
+  const canBossScore = r.status === "pending_boss_review" || r.status === "pending_boss";
+
+  const handleSaveBossScores = async () => {
+    setSavingBoss(true);
+    const updatedProjects = (r.project_contributions || []).map((p, i) => ({
+      ...p, boss_score: bossProjectScores[i] || p.boss_score || null,
+    }));
+    const updatedExtras = (r.extra_contributions || []).map((e, i) => ({
+      ...e, boss_score: bossExtraScores[i] || e.boss_score || null,
+    }));
+    await base44.entities.AnnualReview.update(r.id, {
+      project_contributions: updatedProjects,
+      extra_contributions: updatedExtras,
+    });
+    setSavingBoss(false);
+    refreshReview();
+  };
 
   const allProjects = (r.project_contributions || []).filter(p => p.project_name && p.project_name !== "未指定項目");
   const totalHours = allProjects.reduce((s, p) => s + (p.hours || 0), 0);
@@ -198,6 +239,11 @@ ${attText}
       version: 1,
       is_final: false,
     });
+
+    // After generating report, move to pending_boss (待面談)
+    if (r.status === "pending_boss_review") {
+      await base44.entities.AnnualReview.update(r.id, { status: "pending_boss" });
+    }
 
     navigate(`/admin/appraisal-reports?reportId=${newReport.id}`);
     } catch (err) {
@@ -407,7 +453,8 @@ ${attText}
               draft: { bg: "bg-orange-100", text: "text-orange-700", label: "草稿" },
               peer_review_pending: { bg: "bg-amber-100", text: "text-amber-700", label: "待完成同事互評" },
               pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
-              pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待老闆面談" },
+              pending_boss_review: { bg: "bg-pink-100", text: "text-pink-700", label: "待預審" },
+              pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待面談" },
             };
             const s = statusMap[r.status] || statusMap.draft;
             return <span className={`text-xs ${s.bg} ${s.text} px-3 py-1 rounded-full font-medium`}>{s.label}</span>;
@@ -430,9 +477,19 @@ ${attText}
 
           {contributedProjects.length > 0 && (
             <div className="space-y-2">
-              {contributedProjects.map((p, i) => (
-                <ProjectCard key={i} project={p} />
-              ))}
+              {contributedProjects.map((p, i) => {
+                const origIdx = allProjects.indexOf(p);
+                return (
+                  <ProjectCard
+                    key={i}
+                    project={p}
+                    bossScore={bossProjectScores[origIdx] || 0}
+                    canBossScore={canBossScore}
+                    scoreLevels={scoreLevels}
+                    onBossScore={(s) => setBossProjectScores(prev => ({ ...prev, [origIdx]: s }))}
+                  />
+                );
+              })}
             </div>
           )}
           {contributedProjects.length === 0 && allProjects.length === 0 && (
@@ -465,19 +522,29 @@ ${attText}
           </div>
           <div className="p-4 space-y-2">
             {r.extra_contributions.map((ec, i) => (
-              <div key={i} className="flex items-start gap-2 border border-gray-100 rounded-lg px-3 py-2.5">
-                <span className="text-sm font-bold text-teal-600 shrink-0">{i + 1}.</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 leading-relaxed">{ec.description}</p>
+              <div key={i} className="border border-gray-100 rounded-lg px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm font-bold text-teal-600 shrink-0">{i + 1}.</span>
+                  <p className="text-sm text-gray-700 leading-relaxed flex-1">{ec.description}</p>
                 </div>
-                {ec.self_score > 0 && (
-                  <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold shrink-0">自評：{ec.self_score} 分</span>
-                )}
-                {ec.leader_score > 0 && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold shrink-0">Team Leader：{ec.leader_score} 分</span>
-                )}
-                {ec.boss_score > 0 && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold shrink-0">老闆：{ec.boss_score} 分</span>
+                {(ec.self_score > 0 || ec.leader_score > 0) && (
+                  <div className="flex items-center gap-2 mt-2 flex-wrap ml-5">
+                    {ec.self_score > 0 && (
+                      <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold">自評：{ec.self_score} 分</span>
+                    )}
+                    {ec.leader_score > 0 && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Team Leader：{ec.leader_score} 分</span>
+                    )}
+                    {canBossScore && ec.self_score > 0 ? (
+                      <InlineBossScoreButtons
+                        score={bossExtraScores[i] || 0}
+                        scoreLevels={scoreLevels}
+                        onScore={(s) => setBossExtraScores(prev => ({ ...prev, [i]: s }))}
+                      />
+                    ) : (ec.boss_score > 0 || bossExtraScores[i] > 0) ? (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆：{bossExtraScores[i] || ec.boss_score} 分</span>
+                    ) : null}
+                  </div>
                 )}
               </div>
             ))}
@@ -651,8 +718,19 @@ ${attText}
         </div>
       )}
 
-      {/* Boss Scoring */}
-      <BossScoringSection review={r} onUpdated={refreshReview} />
+      {/* Save boss scores button */}
+      {canBossScore && (
+        <div className="flex justify-center">
+          <button
+            onClick={handleSaveBossScores}
+            disabled={savingBoss}
+            className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-md disabled:opacity-50"
+          >
+            {savingBoss ? <Loader2 size={16} className="animate-spin" /> : null}
+            {savingBoss ? "儲存中..." : "💾 儲存老闆評分"}
+          </button>
+        </div>
+      )}
 
       {/* AI Appraisal Button */}
       <div className="flex justify-center pt-2 pb-2">
@@ -691,25 +769,16 @@ function StatBadge({ color, value, label }) {
   );
 }
 
-function ProjectCard({ project }) {
+function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScore }) {
   const p = project;
   return (
     <div className="border border-gray-100 rounded-lg px-3 py-2.5">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium text-gray-800 flex-1">{p.project_name}</span>
         <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
         <span className="text-xs text-gray-400">{p.tasks}個任務</span>
         {p.sales_amount > 0 && (
           <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
-        )}
-        {p.self_score > 0 && (
-          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評 {p.self_score}分</span>
-        )}
-        {p.leader_score > 0 && (
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Team Leader {p.leader_score}分</span>
-        )}
-        {p.boss_score > 0 && (
-          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆 {p.boss_score}分</span>
         )}
       </div>
       {p.contribution_note && (
@@ -732,6 +801,51 @@ function ProjectCard({ project }) {
           })()}
         </div>
       )}
+      {/* Scores row */}
+      {(p.self_score > 0 || p.leader_score > 0) && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {p.self_score > 0 && (
+            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評 {p.self_score}分</span>
+          )}
+          {p.leader_score > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Team Leader {p.leader_score}分</span>
+          )}
+          {canBossScore && p.self_score > 0 ? (
+            <InlineBossScoreButtons score={bossScore} scoreLevels={scoreLevels} onScore={onBossScore} />
+          ) : (p.boss_score > 0 || bossScore > 0) ? (
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆 {bossScore || p.boss_score}分</span>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineBossScoreButtons({ score, scoreLevels, onScore }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs font-semibold text-purple-700 shrink-0">老闆：</span>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(s => {
+          const sl = scoreLevels.find(l => l.score === s);
+          const isSelected = score === s;
+          const sc = SCORE_COLORS[s];
+          return (
+            <button
+              key={s}
+              onClick={() => onScore(s)}
+              title={sl ? `${sl.label}：${sl.description}` : `${s} 分`}
+              className={`w-8 h-8 rounded-lg text-center transition-all border-2 ${
+                isSelected
+                  ? `${sc.active} text-white border-transparent shadow-md scale-110`
+                  : `${sc.bg} ${sc.border} ${sc.text} hover:scale-105`
+              }`}
+            >
+              <div className="text-xs font-black">{s}</div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
