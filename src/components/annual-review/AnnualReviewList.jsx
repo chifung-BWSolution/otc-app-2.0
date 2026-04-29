@@ -54,7 +54,7 @@ export default function AnnualReviewList({ reviews, staffRec, user, leaderName, 
                       <ReviewStatusBadge status={r.status} leaderName={leaderName} />
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">
-                      {r.project_contributions?.length || 0} 個項目
+                      {r.project_count || r.project_contributions?.length || 0} 個項目
                       {r.submitted_at && <span> · 提交於 {new Date(r.submitted_at).toLocaleDateString("zh-HK")}</span>}
                       {isDraft && <span> · 上次更新 {new Date(r.updated_date || r.created_date).toLocaleDateString("zh-HK")}</span>}
                     </div>

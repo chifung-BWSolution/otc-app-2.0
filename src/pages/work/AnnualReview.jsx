@@ -40,11 +40,9 @@ export default function AnnualReview() {
 
   useEffect(() => { initList(); }, []);
 
-  const refreshReviews = async (staffId) => {
-    const id = staffId || user?.linked_staff_id;
-    if (!id) return;
-    const allReviews = await base44.entities.AnnualReview.filter({ staff_id: id }, "-created_date", 50);
-    setReviews(allReviews);
+  const refreshReviews = async () => {
+    const res = await base44.functions.invoke('listMyAnnualReviews', {});
+    setReviews(res.data.reviews || []);
   };
 
   const initList = async () => {
@@ -53,14 +51,14 @@ export default function AnnualReview() {
     setUser(me);
     if (!me.linked_staff_id) { setLoading(false); return; }
 
-    const [staffList, allReviews, allStaff] = await Promise.all([
+    const [staffList, reviewsRes, allStaff] = await Promise.all([
       base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1),
-      base44.entities.AnnualReview.filter({ staff_id: me.linked_staff_id }, "-created_date", 50),
+      base44.functions.invoke('listMyAnnualReviews', {}),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
     ]);
     const myStaff = staffList[0] || null;
     setStaffRec(myStaff);
-    setReviews(allReviews);
+    setReviews(reviewsRes.data.reviews || []);
 
     if (myStaff) {
       const myId = myStaff.bubble_id;
