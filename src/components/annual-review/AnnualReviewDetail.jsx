@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
-import BossScoringSection from "./BossScoringSection";
+
 
 const SCORE_COLORS = {
   5: { bg: "bg-emerald-50", border: "border-emerald-300", text: "text-emerald-700", active: "bg-emerald-500" },
@@ -462,10 +462,13 @@ ${attText}
         </span>
       </div>
 
+      {/* Score Legend — show when boss can score */}
+      {canBossScore && <ScoreLegend scoreLevels={scoreLevels} />}
+
       {/* Section 1: Projects with contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
-          <h3 className="font-bold text-sm text-blue-800">📊 項目工作摘要</h3>
+          <h3 className="font-bold text-base text-blue-800">📊 項目工作摘要</h3>
         </div>
         <div className="p-4">
           <div className="flex gap-3 mb-4">
@@ -518,22 +521,22 @@ ${attText}
       {r.extra_contributions?.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-teal-50 px-4 py-3 border-b border-teal-100">
-            <h3 className="font-bold text-sm text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
+            <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
           </div>
           <div className="p-4 space-y-2">
             {r.extra_contributions.map((ec, i) => (
               <div key={i} className="border border-gray-100 rounded-lg px-3 py-2.5">
                 <div className="flex items-start gap-2">
-                  <span className="text-sm font-bold text-teal-600 shrink-0">{i + 1}.</span>
-                  <p className="text-sm text-gray-700 leading-relaxed flex-1">{ec.description}</p>
+                  <span className="text-base font-bold text-teal-600 shrink-0">{i + 1}.</span>
+                  <p className="text-base text-gray-700 leading-relaxed flex-1">{ec.description}</p>
                 </div>
                 {(ec.self_score > 0 || ec.leader_score > 0) && (
                   <div className="flex items-center gap-2 mt-2 flex-wrap ml-5">
                     {ec.self_score > 0 && (
-                      <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold">自評：{ec.self_score} 分</span>
+                      <span className="text-sm bg-teal-100 text-teal-700 px-2.5 py-1 rounded-full font-semibold">自評：{ec.self_score} 分</span>
                     )}
                     {ec.leader_score > 0 && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Team Leader：{ec.leader_score} 分</span>
+                      <span className="text-sm bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">Team Leader：{ec.leader_score} 分</span>
                     )}
                     {canBossScore && ec.self_score > 0 ? (
                       <InlineBossScoreButtons
@@ -542,7 +545,7 @@ ${attText}
                         onScore={(s) => setBossExtraScores(prev => ({ ...prev, [i]: s }))}
                       />
                     ) : (ec.boss_score > 0 || bossExtraScores[i] > 0) ? (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆：{bossExtraScores[i] || ec.boss_score} 分</span>
+                      <span className="text-sm bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-semibold">老闆：{bossExtraScores[i] || ec.boss_score} 分</span>
                     ) : null}
                   </div>
                 )}
@@ -555,23 +558,23 @@ ${attText}
       {/* Section 2: Challenges + Solution */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
-          <h3 className="font-bold text-sm text-orange-800">⚡ 年度遇到的困難及解決方法</h3>
+          <h3 className="font-bold text-base text-orange-800">⚡ 年度遇到的困難及解決方法</h3>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <div className="text-xs font-semibold text-gray-500 mb-1">遇到的困難</div>
+            <div className="text-sm font-semibold text-gray-500 mb-1">遇到的困難</div>
             {r.challenges ? (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges}</p>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges}</p>
             ) : (
-              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+              <p className="text-base text-gray-400 italic">（未填寫）</p>
             )}
           </div>
           <div>
-            <div className="text-xs font-semibold text-gray-500 mb-1">如何解決</div>
+            <div className="text-sm font-semibold text-gray-500 mb-1">如何解決</div>
             {r.challenges_solution ? (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges_solution}</p>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.challenges_solution}</p>
             ) : (
-              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+              <p className="text-base text-gray-400 italic">（未填寫）</p>
             )}
           </div>
         </div>
@@ -580,23 +583,23 @@ ${attText}
       {/* Section 4: Goals + Commitment */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-green-50 px-4 py-3 border-b border-green-100">
-          <h3 className="font-bold text-sm text-green-800">🎯 未來一年目標及為完成目標願意做的事</h3>
+          <h3 className="font-bold text-base text-green-800">🎯 未來一年目標及為完成目標願意做的事</h3>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <div className="text-xs font-semibold text-gray-500 mb-1">未來一年目標</div>
+            <div className="text-sm font-semibold text-gray-500 mb-1">未來一年目標</div>
             {r.next_year_goals ? (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.next_year_goals}</p>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.next_year_goals}</p>
             ) : (
-              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+              <p className="text-base text-gray-400 italic">（未填寫）</p>
             )}
           </div>
           <div>
-            <div className="text-xs font-semibold text-gray-500 mb-1">為完成目標願意做的事</div>
+            <div className="text-sm font-semibold text-gray-500 mb-1">為完成目標願意做的事</div>
             {r.commitment ? (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.commitment}</p>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.commitment}</p>
             ) : (
-              <p className="text-sm text-gray-400 italic">（未填寫）</p>
+              <p className="text-base text-gray-400 italic">（未填寫）</p>
             )}
           </div>
         </div>
@@ -608,7 +611,7 @@ ${attText}
       {/* Section 6: Peer Review Results */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-indigo-50 px-4 py-3 border-b border-indigo-100">
-          <h3 className="font-bold text-sm text-indigo-800">👥 同事互評結果</h3>
+          <h3 className="font-bold text-base text-indigo-800">👥 同事互評結果</h3>
         </div>
         <div className="p-4">
           <PeerReviewResultSection staffId={r.staff_id} fiscalYear={r.fiscal_year} />
@@ -618,7 +621,7 @@ ${attText}
       {/* Section 7: Attendance Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-          <h3 className="font-bold text-sm text-slate-800">📋 年度考勤紀錄</h3>
+          <h3 className="font-bold text-base text-slate-800">📋 年度考勤紀錄</h3>
         </div>
         <div className="p-4">
           {loading ? (
@@ -693,25 +696,25 @@ ${attText}
       {(r.leader_comment || r.leader_next_year_expectation || r.leader_private_note) && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
-            <h3 className="font-bold text-sm text-blue-800">👤 Team Leader 回饋</h3>
+            <h3 className="font-bold text-base text-blue-800">👤 Team Leader 回饋</h3>
           </div>
           <div className="p-4 space-y-3">
             {r.leader_comment && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1">💬 鼓勵說話</div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
+                <div className="text-sm font-semibold text-gray-500 mb-1">💬 鼓勵說話</div>
+                <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
               </div>
             )}
             {r.leader_next_year_expectation && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1">🎯 來年工作期望及學習方向</div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_next_year_expectation}</p>
+                <div className="text-sm font-semibold text-gray-500 mb-1">🎯 來年工作期望及學習方向</div>
+                <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_next_year_expectation}</p>
               </div>
             )}
             {r.leader_private_note && (
               <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                <div className="text-xs font-semibold text-amber-700 mb-1">🔒 告訴公司的事（不公開）</div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_private_note}</p>
+                <div className="text-sm font-semibold text-amber-700 mb-1">🔒 告訴公司的事（不公開）</div>
+                <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_private_note}</p>
               </div>
             )}
           </div>
@@ -772,25 +775,25 @@ function StatBadge({ color, value, label }) {
 function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScore }) {
   const p = project;
   return (
-    <div className="border border-gray-100 rounded-lg px-3 py-2.5">
+    <div className="border border-gray-100 rounded-lg px-4 py-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-medium text-gray-800 flex-1">{p.project_name}</span>
-        <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
-        <span className="text-xs text-gray-400">{p.tasks}個任務</span>
+        <span className="text-base font-semibold text-gray-800 flex-1">{p.project_name}</span>
+        <span className="text-sm text-blue-600 font-bold">{p.hours}h</span>
+        <span className="text-sm text-gray-400">{p.tasks}個任務</span>
         {p.sales_amount > 0 && (
-          <span className="text-xs text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
+          <span className="text-sm text-yellow-600 font-semibold">${p.sales_amount.toLocaleString()}</span>
         )}
       </div>
       {p.contribution_note && (
-        <div className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded px-2 py-1.5">
+        <div className="text-sm text-gray-600 mt-2 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
           {(() => {
             try {
               const arr = JSON.parse(p.contribution_note);
               if (Array.isArray(arr)) return (
-                <ul className="list-disc list-inside space-y-0.5">
+                <ul className="list-disc list-inside space-y-1">
                   {arr.map((pt, pi) => {
                     if (typeof pt === "object" && pt.type) {
-                      return <li key={pi}><span className="font-semibold text-gray-600">[{pt.type}]</span> {pt.text}</li>;
+                      return <li key={pi}><span className="font-semibold text-gray-700">[{pt.type}]</span> {pt.text}</li>;
                     }
                     return <li key={pi}>{typeof pt === "string" ? pt : pt.text || ""}</li>;
                   })}
@@ -803,17 +806,17 @@ function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScor
       )}
       {/* Scores row */}
       {(p.self_score > 0 || p.leader_score > 0) && (
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
           {p.self_score > 0 && (
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">自評 {p.self_score}分</span>
+            <span className="text-sm bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">自評 {p.self_score}分</span>
           )}
           {p.leader_score > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Team Leader {p.leader_score}分</span>
+            <span className="text-sm bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">Team Leader {p.leader_score}分</span>
           )}
           {canBossScore && p.self_score > 0 ? (
             <InlineBossScoreButtons score={bossScore} scoreLevels={scoreLevels} onScore={onBossScore} />
           ) : (p.boss_score > 0 || bossScore > 0) ? (
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">老闆 {bossScore || p.boss_score}分</span>
+            <span className="text-sm bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-semibold">老闆 {bossScore || p.boss_score}分</span>
           ) : null}
         </div>
       )}
@@ -822,27 +825,58 @@ function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScor
 }
 
 function InlineBossScoreButtons({ score, scoreLevels, onScore }) {
+  const selectedLevel = scoreLevels.find(l => l.score === score);
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs font-semibold text-purple-700 shrink-0">老闆：</span>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map(s => {
-          const sl = scoreLevels.find(l => l.score === s);
-          const isSelected = score === s;
-          const sc = SCORE_COLORS[s];
+    <div className="flex flex-col gap-1 w-full mt-1">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold text-purple-700 shrink-0">老闆評分：</span>
+        <div className="flex gap-1.5">
+          {[1, 2, 3, 4, 5].map(s => {
+            const sl = scoreLevels.find(l => l.score === s);
+            const isSelected = score === s;
+            const sc = SCORE_COLORS[s];
+            return (
+              <button
+                key={s}
+                onClick={() => onScore(s)}
+                title={sl ? `${sl.label}：${sl.description}` : `${s} 分`}
+                className={`w-10 h-10 rounded-lg text-center transition-all border-2 ${
+                  isSelected
+                    ? `${sc.active} text-white border-transparent shadow-md scale-110`
+                    : `${sc.bg} ${sc.border} ${sc.text} hover:scale-105`
+                }`}
+              >
+                <div className="text-sm font-black">{s}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {selectedLevel && (
+        <div className="text-sm text-purple-600 bg-purple-50 rounded-lg px-3 py-1.5 border border-purple-100 ml-0">
+          <span className="font-bold">{selectedLevel.score}分 — {selectedLevel.label}</span>
+          {selectedLevel.description && <span className="text-purple-500">：{selectedLevel.description}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreLegend({ scoreLevels }) {
+  if (!scoreLevels || scoreLevels.length === 0) return null;
+  const sorted = [...scoreLevels].sort((a, b) => a.score - b.score);
+  return (
+    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
+      <div className="text-sm font-bold text-purple-800 mb-2">📋 評分參考標準</div>
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+        {sorted.map(sl => {
+          const sc = SCORE_COLORS[sl.score];
           return (
-            <button
-              key={s}
-              onClick={() => onScore(s)}
-              title={sl ? `${sl.label}：${sl.description}` : `${s} 分`}
-              className={`w-8 h-8 rounded-lg text-center transition-all border-2 ${
-                isSelected
-                  ? `${sc.active} text-white border-transparent shadow-md scale-110`
-                  : `${sc.bg} ${sc.border} ${sc.text} hover:scale-105`
-              }`}
-            >
-              <div className="text-xs font-black">{s}</div>
-            </button>
+            <div key={sl.score} className={`${sc.bg} ${sc.border} border rounded-lg px-3 py-2 text-center`}>
+              <div className={`text-lg font-black ${sc.text}`}>{sl.score}</div>
+              <div className={`text-xs font-bold ${sc.text}`}>{sl.label}</div>
+              {sl.description && <div className="text-[11px] text-gray-500 mt-0.5 leading-tight">{sl.description}</div>}
+            </div>
           );
         })}
       </div>
@@ -868,13 +902,13 @@ function SectionCard({ color, icon, title, content }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className={`${bgMap[color]} px-4 py-3 border-b ${borderMap[color]}`}>
-        <h3 className={`font-bold text-sm ${textMap[color]}`}>{icon} {title}</h3>
+        <h3 className={`font-bold text-base ${textMap[color]}`}>{icon} {title}</h3>
       </div>
       <div className="p-4">
         {content ? (
-          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{content}</p>
+          <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{content}</p>
         ) : (
-          <p className="text-sm text-gray-400 italic">（未填寫）</p>
+          <p className="text-base text-gray-400 italic">（未填寫）</p>
         )}
       </div>
     </div>
