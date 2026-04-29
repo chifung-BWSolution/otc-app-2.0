@@ -83,7 +83,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     initializedRef.current = true;
   }, [projectSummary]);
 
-  const allIndices = projects.map((_, i) => i).filter(i => (projects[i].hours || 0) >= 40);
+  const allIndices = projects.map((_, i) => i).filter(i => (projects[i].hours || 0) >= 36);
   const visibleIndices = showAll ? allIndices : allIndices.slice(0, INITIAL_SHOW);
   const hasMore = allIndices.length > INITIAL_SHOW && !showAll;
 
@@ -171,7 +171,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <p className="text-sm text-blue-600 mt-1">
             可為每個項目填寫銷售額、貢獻重點及自評分數（非必填，按需填寫即可）
           </p>
-          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 40 小時或以上的項目。</p>
+          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 36 小時或以上的項目。</p>
         </div>
 
         <div className="p-5">
@@ -311,21 +311,21 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 2: Challenges */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
-          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的困難及需要公司協助的地方</h3>
-          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要困難和挑戰，以及需要公司提供什麼支援。</p>
+          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的挑戰及需要公司協助的地方</h3>
+          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要挑戰，並具體說明涉及哪個項目及影響。</p>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">遇到的困難</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">遇到的挑戰</label>
             <PresetPicker category="difficulty" value={challenges} onChange={setChallenges} />
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
-              placeholder="可點選上方選項，或自行輸入..." value={challenges} onChange={e => setChallenges(e.target.value)} />
+              placeholder="可點選上方選項，並具體說明涉及哪個項目及其影響..." value={challenges} onChange={e => setChallenges(e.target.value)} />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1.5">需要公司協助的地方</label>
             <PresetPicker category="company_support" value={challengesSolution} onChange={setChallengesSolution} />
             <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
-              placeholder="可點選上方選項，或自行輸入..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
+              placeholder="可點選上方選項，並具體說明需要什麼支援..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
           </div>
         </div>
       </div>

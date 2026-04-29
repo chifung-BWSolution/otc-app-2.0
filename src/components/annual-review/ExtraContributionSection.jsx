@@ -56,7 +56,7 @@ export default function ExtraContributionSection({ items, onChange }) {
             {/* Self score - only show when description has content */}
             {item.description?.trim() && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1.5">自評分數</div>
+                <div className="text-sm font-bold text-gray-700 mb-1.5">自評分數</div>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map(score => {
                     const sl = scoreLevels.find(s => s.score === score);
@@ -73,7 +73,7 @@ export default function ExtraContributionSection({ items, onChange }) {
                             : `${sc.bg} ${sc.border} ${sc.text} hover:scale-102`
                         }`}
                       >
-                        <div className="text-sm font-black">{score}</div>
+                        <div className="text-lg font-black">{score}</div>
                         {sl && <div className={`text-[9px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
                       </button>
                     );

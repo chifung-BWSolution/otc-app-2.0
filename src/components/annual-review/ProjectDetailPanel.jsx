@@ -37,28 +37,11 @@ export default function ProjectDetailPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Step 1: Sales */}
+        {/* Step 1: Contribution points */}
         <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-xs font-bold flex items-center justify-center">1</span>
-            <label className="text-sm font-semibold text-gray-700">💰 銷售額（如適用）</label>
-          </div>
-          <input
-            type="number"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-50/50"
-            placeholder="如無可留空"
-            value={project.sales_amount || ""}
-            onChange={e => onUpdateSales(parseFloat(e.target.value) || 0)}
-          />
-        </div>
-
-        <div className="border-t border-gray-100" />
-
-        {/* Step 2: Contribution points */}
-        <div className="px-4 pt-3 pb-3">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center">2</span>
-            <label className="text-sm font-semibold text-gray-700">📝 貢獻重點</label>
+            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center">1</span>
+            <label className="text-sm font-semibold text-gray-700">📝 貢獻重點 + 成長重點</label>
             <span className="text-xs text-gray-400 ml-auto">{points.filter(p => p.text?.trim()).length} 項已填寫</span>
           </div>
 
@@ -80,22 +63,22 @@ export default function ProjectDetailPanel({
             onClick={onAddPoint}
             className="mt-2.5 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors px-1"
           >
-            <Plus size={13} /> 新增一項貢獻
+            <Plus size={13} /> 新增一項貢獻 / 成長重點
           </button>
         </div>
 
         <div className="border-t border-gray-100" />
 
-        {/* Step 3: Self Score — only enabled if has sales or contribution text */}
+        {/* Step 2: Self Score — only enabled if has contribution text */}
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-xs font-bold flex items-center justify-center">3</span>
+            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-xs font-bold flex items-center justify-center">2</span>
             <label className="text-sm font-semibold text-gray-700">⭐ 自評分數</label>
           </div>
 
-          {!(project.sales_amount > 0 || points.some(p => p.text?.trim())) ? (
+          {!points.some(p => p.text?.trim()) ? (
             <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-3 text-center border border-dashed border-gray-200">
-              請先填寫銷售額或貢獻重點後才可自評分數
+              請先填寫貢獻重點後才可自評分數
             </div>
           ) : (
             <>
@@ -176,7 +159,7 @@ function ContributionPointRow({ index, point, contributionTypes, canRemove, onUp
         <textarea
           className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50/50 resize-none"
           rows={2}
-          placeholder={point.type ? `描述你在「${point.type}」方面的具體貢獻...` : "先選擇類型，再描述貢獻..."}
+          placeholder={point.type ? `描述你在「${point.type}」方面的具體貢獻或成長...` : "先選擇類型，再描述貢獻或成長..."}
           value={point.text || ""}
           onChange={e => onUpdate("text", e.target.value)}
         />
