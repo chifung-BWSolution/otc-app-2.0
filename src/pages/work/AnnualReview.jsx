@@ -238,6 +238,34 @@ export default function AnnualReview() {
         .sort((a, b) => b.hours - a.hours);
 
       setProjectSummary(summary);
+
+      // Auto-create an empty draft immediately so user doesn't lose data
+      if (!existingReview) {
+        const draftPayload = {
+          staff_id: user.linked_staff_id,
+          staff_name: staffRec?.display_name || user.full_name || "",
+          staff_team: staffRec?.team_name || "",
+          staff_bu: staffRec?.bu_name || "",
+          staff_position: staffRec?.position || "",
+          leader_staff_id: staffRec?.team_leader || "",
+          fiscal_year: fy.label,
+          project_contributions: summary.map(p => ({
+            project_name: p.project_name,
+            project_id: p.project_id,
+            hours: p.hours,
+            tasks: p.tasks,
+            sales_amount: p.sales_amount || 0,
+            contribution_note: p.contribution_note || "",
+            self_score: p.self_score || null,
+          })),
+          extra_contributions: [],
+          status: "draft",
+        };
+        const created = await base44.entities.AnnualReview.create(draftPayload);
+        setActiveReview(created);
+        // Refresh list in background
+        base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50).then(setReviews);
+      }
     }
     } catch (err) {
       console.error("loadFormData error:", err);

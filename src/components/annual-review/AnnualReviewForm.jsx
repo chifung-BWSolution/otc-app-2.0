@@ -46,6 +46,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [contributionTypes, setContributionTypes] = useState([]);
   const [scoreLevels, setScoreLevels] = useState([]);
   const initializedRef = useRef(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState(null); // null | "saving" | "saved"
+  const autoSaveTimer = useRef(null);
+  const lastSavedJson = useRef("");
 
   // Load lookup data once
   useEffect(() => {
@@ -149,6 +152,50 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     commitment,
     company_feedback: feedback,
   });
+
+  // Keep a ref to getFormData so the timer always has latest state
+  const getFormDataRef = useRef(getFormData);
+  getFormDataRef.current = getFormData;
+  const existingReviewRef = useRef(existingReview);
+  existingReviewRef.current = existingReview;
+
+  // Auto-save every 30 seconds if there are changes — saves directly to entity without blocking UI
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    autoSaveTimer.current = setInterval(async () => {
+      const reviewId = existingReviewRef.current?.id;
+      if (!reviewId || saving) return;
+      const data = getFormDataRef.current();
+      const json = JSON.stringify(data);
+      if (json === lastSavedJson.current) return; // no changes
+      lastSavedJson.current = json;
+      setAutoSaveStatus("saving");
+      try {
+        await base44.entities.AnnualReview.update(reviewId, {
+          project_contributions: data.project_contributions,
+          extra_contributions: data.extra_contributions,
+          challenges: data.challenges,
+          challenges_solution: data.challenges_solution,
+          next_year_goals: data.next_year_goals,
+          commitment: data.commitment,
+          company_feedback: data.company_feedback,
+        });
+        setAutoSaveStatus("saved");
+        setTimeout(() => setAutoSaveStatus(null), 3000);
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+        setAutoSaveStatus(null);
+      }
+    }, 30000);
+    return () => clearInterval(autoSaveTimer.current);
+  }, [saving]);
+
+  // Initialize lastSavedJson on first load
+  useEffect(() => {
+    if (initializedRef.current && projects.length > 0) {
+      lastSavedJson.current = JSON.stringify(getFormData());
+    }
+  }, [initializedRef.current, projects.length]);
 
   const totalHours = projects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = projects.reduce((s, p) => s + (p.tasks || 0), 0);
@@ -367,23 +414,40 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pb-8">
-        <button onClick={() => onSave(getFormData(), false)} disabled={saving}
-          className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50">
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          儲存草稿
-        </button>
-        <button
-          onClick={() => {
-            if (window.confirm("確認提交年度評估表？提交後將無法修改。")) {
-              onSave(getFormData(), true);
-            }
-          }}
-          disabled={saving}
-          className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50">
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          正式提交
-        </button>
+      <div className="space-y-3 pb-8">
+        {/* Auto-save status */}
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+          {autoSaveStatus === "saving" && (
+            <><Loader2 size={12} className="animate-spin" /> 自動儲存中...</>
+          )}
+          {autoSaveStatus === "saved" && (
+            <><CheckCircle2 size={12} className="text-green-500" /> 已自動儲存</>
+          )}
+          {!autoSaveStatus && (
+            <span>每 30 秒自動儲存草稿</span>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => {
+            lastSavedJson.current = JSON.stringify(getFormData());
+            onSave(getFormData(), false);
+          }} disabled={saving}
+            className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            儲存
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm("確認提交年度評估表？提交後將無法修改。")) {
+                onSave(getFormData(), true);
+              }
+            }}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            正式提交
+          </button>
+        </div>
       </div>
     </div>
   );
