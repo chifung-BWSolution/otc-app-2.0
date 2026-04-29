@@ -543,6 +543,7 @@ ${attText}
                         score={bossExtraScores[i] || 0}
                         scoreLevels={scoreLevels}
                         onScore={(s) => setBossExtraScores(prev => ({ ...prev, [i]: s }))}
+                        avgScores={[ec.self_score, ec.leader_score, bossExtraScores[i] || 0].filter(s => s > 0)}
                       />
                     ) : (ec.boss_score > 0 || bossExtraScores[i] > 0) ? (
                       <span className="text-sm bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-semibold">老闆：{bossExtraScores[i] || ec.boss_score} 分</span>
@@ -814,7 +815,8 @@ function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScor
             <span className="text-sm bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">Team Leader {p.leader_score}分</span>
           )}
           {canBossScore && p.self_score > 0 ? (
-            <InlineBossScoreButtons score={bossScore} scoreLevels={scoreLevels} onScore={onBossScore} />
+            <InlineBossScoreButtons score={bossScore} scoreLevels={scoreLevels} onScore={onBossScore}
+              avgScores={[p.self_score, p.leader_score, bossScore].filter(s => s > 0)} />
           ) : (p.boss_score > 0 || bossScore > 0) ? (
             <span className="text-sm bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-semibold">老闆 {bossScore || p.boss_score}分</span>
           ) : null}
@@ -824,8 +826,11 @@ function ProjectCard({ project, bossScore, canBossScore, scoreLevels, onBossScor
   );
 }
 
-function InlineBossScoreButtons({ score, scoreLevels, onScore }) {
+function InlineBossScoreButtons({ score, scoreLevels, onScore, avgScores }) {
   const selectedLevel = scoreLevels.find(l => l.score === score);
+  const avg = avgScores && avgScores.length > 0
+    ? Math.round((avgScores.reduce((a, b) => a + b, 0) / avgScores.length) * 10) / 10
+    : null;
   return (
     <div className="flex flex-col gap-1 w-full mt-1">
       <div className="flex items-center gap-2">
@@ -851,6 +856,12 @@ function InlineBossScoreButtons({ score, scoreLevels, onScore }) {
             );
           })}
         </div>
+        {avg !== null && score > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-3 py-1.5 shrink-0">
+            <div className="text-lg font-black text-amber-600 leading-none">{avg}</div>
+            <div className="text-[10px] text-amber-500 font-medium">平均分</div>
+          </div>
+        )}
       </div>
       {selectedLevel && (
         <div className="text-sm text-purple-600 bg-purple-50 rounded-lg px-3 py-1.5 border border-purple-100 ml-0">
