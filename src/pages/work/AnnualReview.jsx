@@ -160,93 +160,94 @@ export default function AnnualReview() {
     setActiveFY(fy);
 
     try {
-    // Load all lookup data + staff's own dates in parallel
-    const [taskTypeList, nosTaskList, projectList, myAllDates] = await Promise.all([
-      base44.entities.NOSTaskType.filter({}, "display", 200),
-      loadAll(base44.entities.NOSTask, "display"),
-      loadAll(base44.entities.BubbleProject, "display_name"),
-      loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: user.linked_staff_id }),
-    ]);
-
-    const projectMap = {};
-    for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
-    const taskTypeMap = {};
-    for (const t of taskTypeList) { if (t.bubble_id) taskTypeMap[t.bubble_id] = t; }
-    const nosTaskMap = {};
-    for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
-
-    const myDates = myAllDates.filter(d => {
-      const rd = toLocalDate(d.report_date);
-      return rd && rd >= fy.start && rd <= fy.end;
-    });
-    const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
-
-    // Load tasks for this staff's dates only
-    const myTasks = await loadTasksForDates(myDateIds);
-
-    const resolveProjectName = (t) => {
-      if (t.project_name) return t.project_name;
-      if (t.project_id && projectMap[t.project_id]) return projectMap[t.project_id].display_name;
-      return "未指定項目";
-    };
-    const resolveTaskTypeName = (t) => {
-      if (t.task_type_id && taskTypeMap[t.task_type_id]) return taskTypeMap[t.task_type_id].display;
-      if (t.task_id && nosTaskMap[t.task_id]?.task_type_ids?.length) {
-        const tt = taskTypeMap[nosTaskMap[t.task_id].task_type_ids[0]];
-        if (tt) return tt.display;
-      }
-      return t.task_type_name || "未分類";
-    };
-    const resolveTaskName = (t) => {
-      if (t.task_id && nosTaskMap[t.task_id]) return nosTaskMap[t.task_id].display;
-      return t.task_name || t.keywords || "—";
-    };
-
-    const projAgg = {};
-    for (const t of myTasks) {
-      const projName = resolveProjectName(t);
-      const projId = t.project_id || "";
-      if (!projAgg[projName]) projAgg[projName] = { project_name: projName, project_id: projId, hours: 0, tasks: 0, sales_amount: 0, contribution_note: "", tasksByType: {} };
-      projAgg[projName].hours += t.work_hour || 0;
-      projAgg[projName].tasks += 1;
-      const typeName = resolveTaskTypeName(t);
-      if (!projAgg[projName].tasksByType[typeName]) projAgg[projName].tasksByType[typeName] = { name: typeName, hours: 0, taskMap: {} };
-      projAgg[projName].tasksByType[typeName].hours += t.work_hour || 0;
-      const tName = resolveTaskName(t);
-      if (!projAgg[projName].tasksByType[typeName].taskMap[tName]) projAgg[projName].tasksByType[typeName].taskMap[tName] = { name: tName, hours: 0, count: 0 };
-      projAgg[projName].tasksByType[typeName].taskMap[tName].hours += t.work_hour || 0;
-      projAgg[projName].tasksByType[typeName].taskMap[tName].count += 1;
-    }
-
-    const summary = Object.values(projAgg)
-      .map(p => ({
+    // If existing review already has project_contributions, use them directly
+    // (avoids RLS issues with BubbleManHourTask cross-collection queries for non-admin users)
+    if (existingReview?.project_contributions?.length > 0) {
+      const summary = existingReview.project_contributions.map(p => ({
         ...p,
-        hours: Math.round(p.hours * 10) / 10,
-        tasksByType: Object.values(p.tasksByType)
-          .map(tt => ({
-            ...tt,
-            hours: Math.round(tt.hours * 10) / 10,
-            tasks: Object.values(tt.taskMap).sort((a, b) => b.hours - a.hours),
-          }))
-          .sort((a, b) => b.hours - a.hours),
-      }))
-      .sort((a, b) => b.hours - a.hours);
+        hours: p.hours || 0,
+        tasks: p.tasks || 0,
+        sales_amount: p.sales_amount || 0,
+        contribution_note: p.contribution_note || "",
+        self_score: p.self_score || null,
+        tasksByType: [],
+      }));
+      setProjectSummary(summary);
+    } else {
+      // New form: load data from ManHourDate/Task
+      const [taskTypeList, nosTaskList, projectList, myAllDates] = await Promise.all([
+        base44.entities.NOSTaskType.filter({}, "display", 200),
+        loadAll(base44.entities.NOSTask, "display"),
+        loadAll(base44.entities.BubbleProject, "display_name"),
+        loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: user.linked_staff_id }),
+      ]);
 
-    // Merge saved sales/notes from existing review
-    if (existingReview?.project_contributions) {
-      const savedMap = {};
-      for (const s of existingReview.project_contributions) { savedMap[s.project_name] = s; }
-      for (const p of summary) {
-        const s = savedMap[p.project_name];
-        if (s) {
-          p.sales_amount = s.sales_amount || 0;
-          p.contribution_note = s.contribution_note || "";
-          p.self_score = s.self_score || null;
+      const projectMap = {};
+      for (const p of projectList) { if (p.bubble_id) projectMap[p.bubble_id] = p; }
+      const taskTypeMap = {};
+      for (const t of taskTypeList) { if (t.bubble_id) taskTypeMap[t.bubble_id] = t; }
+      const nosTaskMap = {};
+      for (const t of nosTaskList) { if (t.bubble_id) nosTaskMap[t.bubble_id] = t; }
+
+      const myDates = myAllDates.filter(d => {
+        const rd = toLocalDate(d.report_date);
+        return rd && rd >= fy.start && rd <= fy.end;
+      });
+      const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
+
+      // Load tasks for this staff's dates only
+      const myTasks = await loadTasksForDates(myDateIds);
+
+      const resolveProjectName = (t) => {
+        if (t.project_name) return t.project_name;
+        if (t.project_id && projectMap[t.project_id]) return projectMap[t.project_id].display_name;
+        return "未指定項目";
+      };
+      const resolveTaskTypeName = (t) => {
+        if (t.task_type_id && taskTypeMap[t.task_type_id]) return taskTypeMap[t.task_type_id].display;
+        if (t.task_id && nosTaskMap[t.task_id]?.task_type_ids?.length) {
+          const tt = taskTypeMap[nosTaskMap[t.task_id].task_type_ids[0]];
+          if (tt) return tt.display;
         }
-      }
-    }
+        return t.task_type_name || "未分類";
+      };
+      const resolveTaskName = (t) => {
+        if (t.task_id && nosTaskMap[t.task_id]) return nosTaskMap[t.task_id].display;
+        return t.task_name || t.keywords || "—";
+      };
 
-    setProjectSummary(summary);
+      const projAgg = {};
+      for (const t of myTasks) {
+        const projName = resolveProjectName(t);
+        const projId = t.project_id || "";
+        if (!projAgg[projName]) projAgg[projName] = { project_name: projName, project_id: projId, hours: 0, tasks: 0, sales_amount: 0, contribution_note: "", tasksByType: {} };
+        projAgg[projName].hours += t.work_hour || 0;
+        projAgg[projName].tasks += 1;
+        const typeName = resolveTaskTypeName(t);
+        if (!projAgg[projName].tasksByType[typeName]) projAgg[projName].tasksByType[typeName] = { name: typeName, hours: 0, taskMap: {} };
+        projAgg[projName].tasksByType[typeName].hours += t.work_hour || 0;
+        const tName = resolveTaskName(t);
+        if (!projAgg[projName].tasksByType[typeName].taskMap[tName]) projAgg[projName].tasksByType[typeName].taskMap[tName] = { name: tName, hours: 0, count: 0 };
+        projAgg[projName].tasksByType[typeName].taskMap[tName].hours += t.work_hour || 0;
+        projAgg[projName].tasksByType[typeName].taskMap[tName].count += 1;
+      }
+
+      const summary = Object.values(projAgg)
+        .map(p => ({
+          ...p,
+          hours: Math.round(p.hours * 10) / 10,
+          tasksByType: Object.values(p.tasksByType)
+            .map(tt => ({
+              ...tt,
+              hours: Math.round(tt.hours * 10) / 10,
+              tasks: Object.values(tt.taskMap).sort((a, b) => b.hours - a.hours),
+            }))
+            .sort((a, b) => b.hours - a.hours),
+        }))
+        .sort((a, b) => b.hours - a.hours);
+
+      setProjectSummary(summary);
+    }
     } catch (err) {
       console.error("loadFormData error:", err);
       setFormError(err.message || "載入數據時發生錯誤");
