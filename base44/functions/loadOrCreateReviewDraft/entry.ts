@@ -79,7 +79,7 @@ async function loadManHourData(sr, staffId, fyStart, fyEnd) {
 }
 
 // Build tasksByType breakdown per project
-function buildTasksByType(myTasks, projectMap, taskTypeMap) {
+function buildTasksByType(myTasks, projectMap, taskTypeMap, nosTaskMap) {
   const resolveProjectName = (t) => {
     if (t.project_name) return t.project_name;
     if (t.project_id && projectMap[t.project_id]) return projectMap[t.project_id].display_name;
@@ -92,12 +92,18 @@ function buildTasksByType(myTasks, projectMap, taskTypeMap) {
     const projName = resolveProjectName(t);
     if (!projTaskMap[projName]) projTaskMap[projName] = {};
 
-    const typeName = t.task_type_name || (t.task_type_id && taskTypeMap[t.task_type_id]?.display) || "其他";
+    // Resolve task type: direct task_type_id, or via NOSTask → task_type_ids[0]
+    let typeName = t.task_type_name || (t.task_type_id && taskTypeMap[t.task_type_id]?.display);
+    if (!typeName && t.task_id) {
+      const nt = nosTaskMap[t.task_id];
+      if (nt?.task_type_ids?.length) typeName = taskTypeMap[nt.task_type_ids[0]]?.display;
+    }
+    typeName = typeName || "其他";
     if (!projTaskMap[projName][typeName]) projTaskMap[projName][typeName] = { hours: 0, tasks: {} };
 
     projTaskMap[projName][typeName].hours += t.work_hour || 0;
 
-    const taskName = t.task_name || "未命名任務";
+    const taskName = (t.task_id && nosTaskMap[t.task_id]?.display) || t.task_name || t.keywords || "未命名任務";
     if (!projTaskMap[projName][typeName].tasks[taskName]) {
       projTaskMap[projName][typeName].tasks[taskName] = { hours: 0, count: 0 };
     }
@@ -154,8 +160,8 @@ Deno.serve(async (req) => {
     const fyEnd = `${y + 1}-03-31`;
 
     // Always load man hour data for task breakdown
-    const { myTasks, projectMap, taskTypeMap } = await loadManHourData(sr, staffId, fyStart, fyEnd);
-    const tasksByTypeMap = buildTasksByType(myTasks, projectMap, taskTypeMap);
+    const { myTasks, projectMap, taskTypeMap, nosTaskMap } = await loadManHourData(sr, staffId, fyStart, fyEnd);
+    const tasksByTypeMap = buildTasksByType(myTasks, projectMap, taskTypeMap, nosTaskMap);
 
     // Check for existing review
     const existing = await sr.entities.AnnualReview.filter(
