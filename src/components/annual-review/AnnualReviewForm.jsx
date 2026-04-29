@@ -209,11 +209,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 1: Project Contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-blue-50 px-5 py-4 border-b border-blue-100">
-          <h3 className="font-bold text-base text-blue-800">📊 第一部分：年度項目工作摘要</h3>
-          <p className="text-sm text-blue-600 mt-1">
+          <h3 className="font-bold text-lg text-blue-800">📊 第一部分：年度項目工作摘要</h3>
+          <p className="text-base text-blue-600 mt-1">
             可為每個項目填寫銷售額、貢獻重點及自評分數（非必填，按需填寫即可）
           </p>
-          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 36 小時或以上的項目。</p>
+          <p className="text-sm text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 36 小時或以上的項目。</p>
         </div>
 
         <div className="p-5">
@@ -221,21 +221,21 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <div className="flex gap-3 mb-5">
             <div className="bg-blue-50 rounded-lg px-4 py-3 text-center flex-1 border border-blue-100">
               <div className="text-2xl font-bold text-blue-600">{allIndices.length}</div>
-              <div className="text-xs text-gray-500">參與項目</div>
+              <div className="text-sm text-gray-500">參與項目</div>
             </div>
             <div className="bg-green-50 rounded-lg px-4 py-3 text-center flex-1 border border-green-100">
               <div className="text-2xl font-bold text-green-600">{Math.round(totalHours)}h</div>
-              <div className="text-xs text-gray-500">總工時</div>
+              <div className="text-sm text-gray-500">總工時</div>
             </div>
             <div className="bg-purple-50 rounded-lg px-4 py-3 text-center flex-1 border border-purple-100">
               <div className="text-2xl font-bold text-purple-600">{totalTasks}</div>
-              <div className="text-xs text-gray-500">總任務數</div>
+              <div className="text-sm text-gray-500">總任務數</div>
             </div>
             <div className={`rounded-lg px-4 py-3 text-center flex-1 border ${completedCount === allIndices.length && allIndices.length > 0 ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
               <div className={`text-2xl font-bold ${completedCount === allIndices.length && allIndices.length > 0 ? "text-emerald-600" : "text-amber-600"}`}>
                 {completedCount}/{allIndices.length}
               </div>
-              <div className="text-xs text-gray-500">已完成</div>
+              <div className="text-sm text-gray-500">已完成</div>
             </div>
           </div>
 
@@ -243,7 +243,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <div className="flex flex-col lg:flex-row gap-4 min-h-[520px]">
             {/* Left: Project list */}
             <div className="lg:w-[38%] flex flex-col border border-gray-200 rounded-xl overflow-hidden bg-white">
-              <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 text-sm font-bold text-gray-500 uppercase tracking-wider">
                 📁 選擇項目
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -271,12 +271,12 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                           <Circle size={16} className="text-gray-300 shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-800 truncate leading-tight">{p.project_name}</div>
+                          <div className="text-base font-medium text-gray-800 truncate leading-tight">{p.project_name}</div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs font-bold text-indigo-600">{p.hours}h</span>
-                            <span className="text-xs text-gray-400">{p.tasks}任務</span>
+                            <span className="text-sm font-bold text-indigo-600">{p.hours}h</span>
+                            <span className="text-sm text-gray-400">{p.tasks}任務</span>
                             {hasScore && (
-                              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">{scoresMap[projIdx]}分</span>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">{scoresMap[projIdx]}分</span>
                             )}
                           </div>
                         </div>
@@ -310,8 +310,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
                   );
                 })}
                 {hasMore && (
-                  <button className="w-full py-2.5 text-xs text-indigo-600 font-semibold hover:bg-indigo-50 transition-colors" onClick={() => setShowAll(true)}>
-                    顯示更多（共 {allIndices.length} 個項目）
+                  <button className="w-full py-2.5 text-sm text-indigo-600 font-semibold hover:bg-indigo-50 transition-colors" onClick={() => setShowAll(true)}>
+                  顯示更多（共 {allIndices.length} 個項目）
                   </button>
                 )}
                 {allIndices.length === 0 && (
@@ -342,8 +342,8 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section: Extra Contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-teal-50 px-5 py-4 border-b border-teal-100">
-          <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻</h3>
-          <p className="text-sm text-teal-600 mt-0.5">記錄項目工作以外的額外貢獻，例如：協助培訓、流程優化、跨部門支援等。每項需附自評分數。</p>
+          <h3 className="font-bold text-lg text-teal-800">🌟 額外貢獻</h3>
+          <p className="text-base text-teal-600 mt-0.5">記錄項目工作以外的額外貢獻，例如：協助培訓、流程優化、跨部門支援等。每項需附自評分數。</p>
         </div>
         <div className="p-5">
           <ExtraContributionSection items={extraContributions} onChange={setExtraContributions} />
@@ -353,20 +353,20 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 2: Challenges */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-orange-50 px-5 py-4 border-b border-orange-100">
-          <h3 className="font-bold text-base text-orange-800">⚡ 第二部分：年度遇到的挑戰及需要公司協助的地方</h3>
-          <p className="text-sm text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要挑戰，並具體說明涉及哪個項目及影響。</p>
+          <h3 className="font-bold text-lg text-orange-800">⚡ 第二部分：年度遇到的挑戰及需要公司協助的地方</h3>
+          <p className="text-base text-orange-600 mt-0.5">請描述你在這一年工作中遇到的主要挑戰，並具體說明涉及哪個項目及影響。</p>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">遇到的挑戰</label>
+            <label className="text-base font-medium text-gray-700 block mb-1.5">遇到的挑戰</label>
             <PresetPicker category="difficulty" value={challenges} onChange={setChallenges} />
-            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
               placeholder="可點選上方選項，並具體說明涉及哪個項目及其影響..." value={challenges} onChange={e => setChallenges(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">需要公司協助的地方</label>
+            <label className="text-base font-medium text-gray-700 block mb-1.5">需要公司協助的地方</label>
             <PresetPicker category="company_support" value={challengesSolution} onChange={setChallengesSolution} />
-            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" rows={4}
               placeholder="可點選上方選項，並具體說明需要什麼支援..." value={challengesSolution} onChange={e => setChallengesSolution(e.target.value)} />
           </div>
         </div>
@@ -375,20 +375,20 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 4: Goals */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-green-50 px-5 py-4 border-b border-green-100">
-          <h3 className="font-bold text-base text-green-800">🎯 第三部分：未來一年目標及為完成目標願意做的事</h3>
-          <p className="text-sm text-green-600 mt-0.5">請訂定你未來一年的工作目標，以及你願意付出什麼努力去達成。</p>
+          <h3 className="font-bold text-lg text-green-800">🎯 第三部分：未來一年目標及為完成目標願意做的事</h3>
+          <p className="text-base text-green-600 mt-0.5">請訂定你未來一年的工作目標，以及你願意付出什麼努力去達成。</p>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">未來一年目標</label>
+            <label className="text-base font-medium text-gray-700 block mb-1.5">未來一年目標</label>
             <PresetPicker category="goal" value={goals} onChange={setGoals} />
-            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
               placeholder="可點選上方選項，或自行輸入..." value={goals} onChange={e => setGoals(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">為完成目標願意做的事</label>
+            <label className="text-base font-medium text-gray-700 block mb-1.5">為完成目標願意做的事</label>
             <PresetPicker category="commitment" value={commitment} onChange={setCommitment} />
-            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
+            <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" rows={3}
               placeholder="可點選上方選項，或自行輸入..." value={commitment} onChange={e => setCommitment(e.target.value)} />
           </div>
         </div>
@@ -399,11 +399,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Section 5: Company Feedback */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-purple-50 px-5 py-4 border-b border-purple-100">
-          <h3 className="font-bold text-base text-purple-800">💬 第四部分：對公司的意見</h3>
-          <p className="text-sm text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
+          <h3 className="font-bold text-lg text-purple-800">💬 第四部分：對公司的意見</h3>
+          <p className="text-base text-purple-600 mt-0.5">對公司發展方向、管理方式、政策制度的意見和建議。</p>
         </div>
         <div className="p-5">
-          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" rows={5}
+          <textarea className="w-full border border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" rows={5}
             placeholder="例如：對內部流程的改善建議、對培訓制度的看法、對工作環境的意見等..." value={feedback} onChange={e => setFeedback(e.target.value)} />
         </div>
       </div>
@@ -411,7 +411,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       {/* Actions */}
       <div className="space-y-3 pb-8">
         {/* Auto-save status */}
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
           {autoSaveStatus === "saving" && (
             <><Loader2 size={12} className="animate-spin" /> 自動儲存中...</>
           )}
