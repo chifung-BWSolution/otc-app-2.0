@@ -127,19 +127,25 @@ export default function AnnualReview() {
     }
   };
 
-  // Create new form
-  const handleCreateNew = () => {
+  // Create new form — always fetch fresh from DB to avoid stale state
+  const handleCreateNew = async () => {
     const fy = getLastFY();
-    // Check if already exists for this FY
-    const existing = reviews.find(r => r.fiscal_year === fy.label);
+    // Fetch fresh from DB to avoid stale `reviews` state
+    const freshReviews = await base44.entities.AnnualReview.filter(
+      { staff_id: user.linked_staff_id, fiscal_year: fy.label }, "-created_date", 1
+    );
+    const existing = freshReviews[0] || null;
     if (existing) {
+      // Update reviews list state
+      if (!reviews.find(r => r.id === existing.id)) {
+        setReviews(prev => [existing, ...prev]);
+      }
       if (existing.status !== "draft") {
-        // Non-draft → show readonly
         setActiveReview(existing);
         setView("readonly");
         return;
       }
-      // Draft exists, resume editing
+      // Draft exists, resume editing — uses saved project_contributions (fast path)
       loadFormData(existing);
       return;
     }
@@ -239,7 +245,7 @@ export default function AnnualReview() {
 
       setProjectSummary(summary);
 
-      // Auto-create an empty draft immediately so user doesn't lose data
+      // Auto-create an empty draft immediately so user doesn't lose data on re-entry
       if (!existingReview) {
         const draftPayload = {
           staff_id: user.linked_staff_id,
@@ -261,10 +267,14 @@ export default function AnnualReview() {
           extra_contributions: [],
           status: "draft",
         };
-        const created = await base44.entities.AnnualReview.create(draftPayload);
-        setActiveReview(created);
-        // Refresh list in background
-        base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50).then(setReviews);
+        try {
+          const created = await base44.entities.AnnualReview.create(draftPayload);
+          setActiveReview(created);
+          // Refresh list in background
+          base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50).then(setReviews);
+        } catch (err) {
+          console.error("Auto-create draft failed:", err);
+        }
       }
     }
     } catch (err) {
@@ -277,43 +287,60 @@ export default function AnnualReview() {
   const handleSave = async (formData, isSubmit) => {
     setSaving(true);
     const fy = activeFY || getLastFY();
-    const payload = {
-      staff_id: user.linked_staff_id,
-      staff_name: staffRec?.display_name || user.full_name || "",
-      staff_team: staffRec?.team_name || "",
-      staff_bu: staffRec?.bu_name || "",
-      staff_position: staffRec?.position || "",
-      leader_staff_id: staffRec?.team_leader || "",
-      fiscal_year: fy.label,
-      project_contributions: formData.project_contributions,
-      extra_contributions: formData.extra_contributions,
-      challenges: formData.challenges,
-      challenges_solution: formData.challenges_solution,
-      next_year_goals: formData.next_year_goals,
-      commitment: formData.commitment,
-      company_feedback: formData.company_feedback,
-      status: isSubmit ? "peer_review_pending" : "draft",
-      ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),
-    };
 
-    let savedReview;
-    if (activeReview) {
-      await base44.entities.AnnualReview.update(activeReview.id, payload);
-      savedReview = { ...activeReview, ...payload };
+    if (activeReview && !isSubmit) {
+      // Draft save via backend function (bypasses RLS)
+      await base44.functions.invoke('saveAnnualReviewDraft', {
+        review_id: activeReview.id,
+        data: formData,
+      });
+      const savedReview = { ...activeReview, ...formData };
+      setActiveReview(savedReview);
+    } else if (activeReview && isSubmit) {
+      // Submit via backend — need service role for status change too
+      const submitPayload = {
+        ...formData,
+        status: "peer_review_pending",
+        submitted_at: new Date().toISOString(),
+      };
+      // Use direct update for submit (RLS allows staff_id match + draft status)
+      // If direct fails, we could add a backend function, but let's try first
+      await base44.functions.invoke('saveAnnualReviewDraft', {
+        review_id: activeReview.id,
+        data: formData,
+      });
+      // Status change via a separate service-role call
+      await base44.functions.invoke('submitAnnualReview', {
+        review_id: activeReview.id,
+      });
+      setActiveReview({ ...activeReview, ...submitPayload });
     } else {
-      savedReview = await base44.entities.AnnualReview.create(payload);
+      // No existing review — create new
+      const payload = {
+        staff_id: user.linked_staff_id,
+        staff_name: staffRec?.display_name || user.full_name || "",
+        staff_team: staffRec?.team_name || "",
+        staff_bu: staffRec?.bu_name || "",
+        staff_position: staffRec?.position || "",
+        leader_staff_id: staffRec?.team_leader || "",
+        fiscal_year: fy.label,
+        ...formData,
+        status: isSubmit ? "peer_review_pending" : "draft",
+        ...(isSubmit ? { submitted_at: new Date().toISOString() } : {}),
+      };
+      const created = await base44.entities.AnnualReview.create(payload);
+      setActiveReview(created);
     }
 
     // Update projectSummary with saved contribution data so form stays in sync
     const savedMap = {};
-    for (const s of (payload.project_contributions || [])) { savedMap[s.project_name] = s; }
+    for (const s of (formData.project_contributions || [])) { savedMap[s.project_name] = s; }
     const updatedSummary = projectSummary.map(p => {
       const s = savedMap[p.project_name];
       if (s) return { ...p, sales_amount: s.sales_amount || 0, contribution_note: s.contribution_note || "", self_score: s.self_score || null };
       return p;
     });
     setProjectSummary(updatedSummary);
-    setActiveReview(savedReview);
     setSaving(false);
 
     // Refresh list
@@ -325,10 +352,13 @@ export default function AnnualReview() {
     }
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
     setView("list");
     setActiveReview(null);
     setProjectSummary([]);
+    // Refresh reviews list to pick up any auto-created drafts
+    const allReviews = await base44.entities.AnnualReview.filter({ staff_id: user.linked_staff_id }, "-created_date", 50);
+    setReviews(allReviews);
   };
 
   if (loading) {

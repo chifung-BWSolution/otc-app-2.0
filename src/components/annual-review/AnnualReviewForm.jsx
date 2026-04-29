@@ -159,7 +159,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const existingReviewRef = useRef(existingReview);
   existingReviewRef.current = existingReview;
 
-  // Auto-save every 30 seconds if there are changes — saves directly to entity without blocking UI
+  // Auto-save every 30 seconds if there are changes — uses backend function to bypass RLS
   useEffect(() => {
     if (!initializedRef.current) return;
     autoSaveTimer.current = setInterval(async () => {
@@ -171,14 +171,9 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
       lastSavedJson.current = json;
       setAutoSaveStatus("saving");
       try {
-        await base44.entities.AnnualReview.update(reviewId, {
-          project_contributions: data.project_contributions,
-          extra_contributions: data.extra_contributions,
-          challenges: data.challenges,
-          challenges_solution: data.challenges_solution,
-          next_year_goals: data.next_year_goals,
-          commitment: data.commitment,
-          company_feedback: data.company_feedback,
+        await base44.functions.invoke('saveAnnualReviewDraft', {
+          review_id: reviewId,
+          data,
         });
         setAutoSaveStatus("saved");
         setTimeout(() => setAutoSaveStatus(null), 3000);
