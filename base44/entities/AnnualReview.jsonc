@@ -97,7 +97,15 @@
     },
     "leader_comment": {
       "type": "string",
-      "title": "\u4e0a\u53f8\u8a55\u8a9e"
+      "title": "Team Leader \u9f13\u52f5\u8aaa\u8a71"
+    },
+    "leader_next_year_expectation": {
+      "type": "string",
+      "title": "\u4f86\u5e74\u5de5\u4f5c\u671f\u671b\u53ca\u5b78\u7fd2\u65b9\u5411"
+    },
+    "leader_private_note": {
+      "type": "string",
+      "title": "\u544a\u8a34\u516c\u53f8\u7684\u4e8b\uff08\u4e0d\u516c\u958b\uff09"
     },
     "leader_scored_at": {
       "type": "string",

@@ -622,6 +622,35 @@ ${attText}
         </div>
       </div>
 
+      {/* Leader fields */}
+      {(r.leader_comment || r.leader_next_year_expectation || r.leader_private_note) && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
+            <h3 className="font-bold text-sm text-blue-800">👤 Team Leader 回饋</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            {r.leader_comment && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-1">💬 鼓勵說話</div>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
+              </div>
+            )}
+            {r.leader_next_year_expectation && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-1">🎯 來年工作期望及學習方向</div>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_next_year_expectation}</p>
+              </div>
+            )}
+            {r.leader_private_note && (
+              <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                <div className="text-xs font-semibold text-amber-700 mb-1">🔒 告訴公司的事（不公開）</div>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_private_note}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Boss Scoring */}
       <BossScoringSection review={r} onUpdated={refreshReview} />
 

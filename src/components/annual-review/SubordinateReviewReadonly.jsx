@@ -87,11 +87,21 @@ export default function SubordinateReviewReadonly({ review, onBack }) {
         </div>
       )}
 
-      {/* Leader comment if exists */}
-      {r.leader_comment && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div className="text-sm font-semibold text-gray-700 mb-1">💬 Team Leader評語</div>
-          <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
+      {/* Leader fields if exist */}
+      {(r.leader_comment || r.leader_next_year_expectation) && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+          {r.leader_comment && (
+            <div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">💬 鼓勵說話</div>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_comment}</p>
+            </div>
+          )}
+          {r.leader_next_year_expectation && (
+            <div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">🎯 來年工作期望及學習方向</div>
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{r.leader_next_year_expectation}</p>
+            </div>
+          )}
         </div>
       )}
 

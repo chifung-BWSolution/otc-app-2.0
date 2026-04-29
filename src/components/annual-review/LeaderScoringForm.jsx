@@ -29,6 +29,8 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
   const [projectScores, setProjectScores] = useState({});
   const [extraScores, setExtraScores] = useState({});
   const [comment, setComment] = useState(review.leader_comment || "");
+  const [nextYearExpectation, setNextYearExpectation] = useState(review.leader_next_year_expectation || "");
+  const [privateNote, setPrivateNote] = useState(review.leader_private_note || "");
   const [saving, setSaving] = useState(false);
 
   // Items that have self_score
@@ -72,6 +74,8 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
       project_contributions: updatedProjects,
       extra_contributions: updatedExtras,
       leader_comment: comment,
+      leader_next_year_expectation: nextYearExpectation,
+      leader_private_note: privateNote,
       leader_scored_at: new Date().toISOString(),
       status: "pending_boss",
     });
@@ -184,15 +188,40 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
         </div>
       )}
 
-      {/* Leader comment */}
+      {/* Leader encouragement */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 Team Leader評語</label>
+        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 鼓勵說話</label>
         <textarea
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
           rows={4}
-          placeholder="對這位同事的整體評價、建議或鼓勵..."
+          placeholder="對這位同事的鼓勵和肯定..."
           value={comment}
           onChange={e => setComment(e.target.value)}
+        />
+      </div>
+
+      {/* Next year expectation */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <label className="text-sm font-semibold text-gray-700 block mb-2">🎯 來年工作期望及學習方向</label>
+        <textarea
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-300"
+          rows={4}
+          placeholder="對這位同事來年的工作期望、發展方向及學習建議..."
+          value={nextYearExpectation}
+          onChange={e => setNextYearExpectation(e.target.value)}
+        />
+      </div>
+
+      {/* Private note to company */}
+      <div className="bg-white rounded-xl border-2 border-amber-200 shadow-sm p-4">
+        <label className="text-sm font-semibold text-gray-700 block mb-1">🔒 告訴公司的事</label>
+        <p className="text-xs text-amber-600 mb-2">此資訊不會公開予同事，只供公司參考。</p>
+        <textarea
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+          rows={4}
+          placeholder="任何想讓公司知道但不適合公開的事..."
+          value={privateNote}
+          onChange={e => setPrivateNote(e.target.value)}
         />
       </div>
 
