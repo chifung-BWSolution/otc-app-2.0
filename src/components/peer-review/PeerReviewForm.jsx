@@ -29,7 +29,7 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
   };
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-5 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
@@ -104,14 +104,14 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
                       onClick={() => !isSubmitted && setScore(dim.key, score)}
                       disabled={isSubmitted}
                       title={sl ? `${sl.label}：${sl.description}` : `${score} 分`}
-                      className={`flex-1 py-3 rounded-xl text-center transition-all border-2 ${
+                      className={`flex-1 py-4 rounded-xl text-center transition-all border-2 ${
                         isSelected
                           ? `${sc.activeBg} text-white border-transparent shadow-md scale-105`
                           : `${sc.bg} ${sc.border} ${sc.text} hover:scale-102`
                       } ${isSubmitted ? "cursor-default" : "cursor-pointer"}`}
                     >
-                      <div className="text-lg font-black">{score}</div>
-                      {sl && <div className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
+                      <div className="text-2xl font-black">{score}</div>
+                      {sl && <div className={`text-[11px] font-semibold leading-tight ${isSelected ? "text-white/90" : ""}`}>{sl.label}</div>}
                     </button>
                   );
                 })}
