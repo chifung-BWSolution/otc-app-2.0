@@ -2,16 +2,17 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Award, AlertTriangle } from "lucide-react";
 
-export default function MeritsDemeritsList({ staffId }) {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function MeritsDemeritsList({ staffId, preloadedRecords }) {
+  const [records, setRecords] = useState(preloadedRecords || []);
+  const [loading, setLoading] = useState(!preloadedRecords);
 
   useEffect(() => {
+    if (preloadedRecords) { setRecords(preloadedRecords); setLoading(false); return; }
     if (!staffId) { setLoading(false); return; }
     base44.entities.BubbleMeritsDemerits.filter({ staff_id: staffId }, "-event_date", 200)
       .then(setRecords)
       .finally(() => setLoading(false));
-  }, [staffId]);
+  }, [staffId, preloadedRecords]);
 
   if (loading) {
     return (

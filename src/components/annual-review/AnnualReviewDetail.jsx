@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import MeritsDemeritsList from "./MeritsDemeritsList";
+import ScoringBreakdown from "./ScoringBreakdown";
 
 
 const SCORE_COLORS = {
@@ -80,6 +81,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [bossProjectScores, setBossProjectScores] = useState({});
   const [bossExtraScores, setBossExtraScores] = useState({});
   const [savingBoss, setSavingBoss] = useState(false);
+  const [meritRecords, setMeritRecords] = useState([]);
 
   // Init boss scores from review data
   useEffect(() => {
@@ -133,7 +135,13 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
 
   const fy = parseFY(r.fiscal_year);
 
-  useEffect(() => { if (fy && r.staff_id) loadAttendanceStats(); }, [r.staff_id, r.fiscal_year]);
+  useEffect(() => {
+    if (fy && r.staff_id) loadAttendanceStats();
+    if (r.staff_id) {
+      base44.entities.BubbleMeritsDemerits.filter({ staff_id: r.staff_id }, "-event_date", 200)
+        .then(setMeritRecords);
+    }
+  }, [r.staff_id, r.fiscal_year]);
 
   const handleGenerateAppraisal = async () => {
     if (generatingAI) return; // prevent double-click
@@ -463,6 +471,9 @@ ${attText}
         </span>
       </div>
 
+      {/* Scoring Summary */}
+      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} />
+
       {/* Score Legend — show when boss can score */}
       {canBossScore && <ScoreLegend scoreLevels={scoreLevels} />}
 
@@ -626,7 +637,7 @@ ${attText}
           <h3 className="font-bold text-base text-amber-800">🏅 功過紀錄</h3>
         </div>
         <div className="p-4">
-          <MeritsDemeritsList staffId={r.staff_id} />
+          <MeritsDemeritsList staffId={r.staff_id} preloadedRecords={meritRecords} />
         </div>
       </div>
 
