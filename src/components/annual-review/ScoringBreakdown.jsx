@@ -151,24 +151,24 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         />
         <div className="border-t border-gray-200/50 my-1" />
         {onBossAdjustmentChange ? (
-          <div className="flex items-center gap-3 bg-white/60 rounded-lg px-4 py-2.5">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl px-5 py-4 border-2 border-purple-300 shadow-sm">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-800">⭐ 努力認可分數調整</span>
+                <span className="text-base font-black text-purple-800">⭐ 努力認可分數調整</span>
               </div>
-              <div className="text-[11px] text-gray-400 mt-0.5">老闆可手動加減分</div>
+              <div className="text-xs text-purple-600 mt-1 font-medium">老闆可手動加減分，用於獎勵額外努力或扣除不足之處</div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
               <button onClick={() => onBossAdjustmentChange(bossAdj - 1)}
-                className="w-8 h-8 rounded-lg bg-red-100 text-red-600 font-bold text-lg flex items-center justify-center hover:bg-red-200 transition-colors">−</button>
+                className="w-10 h-10 rounded-xl bg-red-100 text-red-600 font-bold text-xl flex items-center justify-center hover:bg-red-200 transition-colors border border-red-200">−</button>
               <input
                 type="number"
                 value={bossAdj}
                 onChange={e => onBossAdjustmentChange(parseFloat(e.target.value) || 0)}
-                className="w-16 text-center text-lg font-black border border-gray-300 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                className="w-20 text-center text-2xl font-black border-2 border-purple-300 rounded-xl py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
               />
               <button onClick={() => onBossAdjustmentChange(bossAdj + 1)}
-                className="w-8 h-8 rounded-lg bg-green-100 text-green-600 font-bold text-lg flex items-center justify-center hover:bg-green-200 transition-colors">+</button>
+                className="w-10 h-10 rounded-xl bg-green-100 text-green-600 font-bold text-xl flex items-center justify-center hover:bg-green-200 transition-colors border border-green-200">+</button>
             </div>
           </div>
         ) : bossAdj !== 0 ? (

@@ -848,7 +848,7 @@ ${attText}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
         >
           {generatingAI ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {generatingAI ? "AI 生成報告中..." : "AI 整合並進行 Appraisal"}
+          {generatingAI ? "生成報告中..." : "整合面談報告"}
         </button>
       </div>
 
