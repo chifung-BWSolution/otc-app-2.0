@@ -12,6 +12,7 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
     return init;
   });
   const [comment, setComment] = useState(existingReview?.comment || "");
+  const [privateNote, setPrivateNote] = useState(existingReview?.private_note || "");
   const [scoreLevels, setScoreLevels] = useState([]);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
   const isNoCollab = existingReview?.status === "no_collaboration";
 
   const handleSave = (submit) => {
-    onSave({ ...scores, comment }, submit);
+    onSave({ ...scores, comment, private_note: privateNote }, submit);
   };
 
   return (
@@ -134,6 +135,20 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
           placeholder="有任何其他想對這位同事說的話..."
           value={comment}
           onChange={e => setComment(e.target.value)}
+          disabled={isSubmitted}
+        />
+      </div>
+
+      {/* Private note to company */}
+      <div className="bg-white rounded-xl border-2 border-amber-200 shadow-sm p-4">
+        <label className="text-sm font-semibold text-gray-700 block mb-1">🔒 告訴公司的事（不公開）</label>
+        <p className="text-xs text-amber-600 mb-2">此資訊不會公開予同事，只供公司參考。</p>
+        <textarea
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+          rows={3}
+          placeholder="任何想讓公司知道但不適合公開的事..."
+          value={privateNote}
+          onChange={e => setPrivateNote(e.target.value)}
           disabled={isSubmitted}
         />
       </div>

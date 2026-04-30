@@ -55,6 +55,10 @@
       "type": "string",
       "title": "\u984d\u5916\u88dc\u5145\uff08\u9078\u586b\uff09"
     },
+    "private_note": {
+      "type": "string",
+      "title": "\u544a\u8a34\u516c\u53f8\u7684\u4e8b\uff08\u4e0d\u516c\u958b\uff09"
+    },
     "no_collaboration": {
       "type": "boolean",
       "title": "\u7121\u5408\u4f5c\u904e",

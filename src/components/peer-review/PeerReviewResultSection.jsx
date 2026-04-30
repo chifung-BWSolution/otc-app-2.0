@@ -25,6 +25,7 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
   const submittedReviews = useMemo(() => reviews.filter(r => r.status === "submitted"), [reviews]);
   const noCollabReviews = useMemo(() => reviews.filter(r => r.status === "no_collaboration"), [reviews]);
   const reviewsWithComments = useMemo(() => submittedReviews.filter(r => r.comment?.trim()), [submittedReviews]);
+  const reviewsWithPrivateNotes = useMemo(() => submittedReviews.filter(r => r.private_note?.trim()), [submittedReviews]);
 
   // Calculate average scores per dimension
   const dimStats = useMemo(() => {
@@ -145,6 +146,20 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* Private notes (visible to admin/management via RLS) */}
+      {reviewsWithPrivateNotes.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-2">
+          <div className="text-sm font-bold text-amber-800 mb-2">🔒 告訴公司的事（不公開予同事）</div>
+          <div className="space-y-2">
+            {reviewsWithPrivateNotes.map(r => (
+              <div key={r.id} className="bg-white rounded-lg p-3 border border-amber-100">
+                <div className="text-sm font-bold text-gray-700 mb-1">{r.reviewer_name}</div>
+                <div className="text-sm text-gray-600 leading-relaxed">{r.private_note}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
