@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, X, Users, Link2, Unlink, Loader2 } from "lucide-react";
+import { Search, X, Users, Link2, Unlink, Loader2, UserPlus, Send } from "lucide-react";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -10,6 +10,11 @@ export default function UserManagement() {
   const [linkingUserId, setLinkingUserId] = useState(null);
   const [staffSearch, setStaffSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("user");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,6 +76,23 @@ export default function UserManagement() {
     await loadData();
   };
 
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteMsg(null);
+    try {
+      await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
+      setInviteMsg({ type: "success", text: `已成功邀請 ${inviteEmail.trim()}` });
+      setInviteEmail("");
+      setInviteRole("user");
+      // Reload after a short delay to allow backend to create the user
+      setTimeout(() => loadData(), 2000);
+    } catch (err) {
+      setInviteMsg({ type: "error", text: err.message || "邀請失敗" });
+    }
+    setInviting(false);
+  };
+
   const filteredUsers = users.filter(u => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -103,7 +125,59 @@ export default function UserManagement() {
           <h2 className="text-base font-black text-gray-900">用戶帳戶管理</h2>
           <p className="text-xs text-gray-400">{users.length} 個帳戶 · 可為每個帳戶關聯員工資料</p>
         </div>
+        <button
+          onClick={() => setShowInvite(!showInvite)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
+        >
+          <UserPlus size={14} /> 邀請新用戶
+        </button>
       </div>
+
+      {/* Invite User */}
+      {showInvite && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-bold text-blue-800">📩 邀請新用戶</h3>
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-xs font-semibold text-gray-600 block mb-1">電郵地址</label>
+              <input
+                type="email"
+                className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+                placeholder="example@company.com"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleInvite()}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">角色</label>
+              <select
+                className="border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
+                value={inviteRole}
+                onChange={e => setInviteRole(e.target.value)}
+              >
+                <option value="user">user</option>
+                <option value="leader">leader</option>
+                <option value="management">management</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <button
+              onClick={handleInvite}
+              disabled={inviting || !inviteEmail.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {inviting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              發送邀請
+            </button>
+          </div>
+          {inviteMsg && (
+            <div className={`text-xs px-3 py-2 rounded-lg ${inviteMsg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+              {inviteMsg.text}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
