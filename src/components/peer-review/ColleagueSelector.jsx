@@ -29,7 +29,7 @@ export default function ColleagueSelector({ colleagues, existingReviews, myStaff
   const eligibleCount = colleagues.filter(c => c.bubble_id !== myStaffId).length;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-w-2xl mx-auto">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-indigo-50 rounded-xl p-3 text-center border border-indigo-100">
