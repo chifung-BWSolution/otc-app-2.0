@@ -13,11 +13,11 @@ export default function UserManagement() {
 
   const loadData = async () => {
     setLoading(true);
-    const [userList, staffList] = await Promise.all([
-      base44.entities.User.list("email", 500),
+    const [usersRes, staffList] = await Promise.all([
+      base44.functions.invoke("listUsersAdmin", {}),
       base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
     ]);
-    setUsers(userList);
+    setUsers(usersRes.data.users || []);
     setStaff(staffList);
     setLoading(false);
   };
@@ -31,8 +31,8 @@ export default function UserManagement() {
 
   const handleLink = async (userId, staffRec) => {
     setSaving(true);
-    await base44.entities.User.update(userId, {
-      linked_staff_id: staffRec.bubble_id,
+    await base44.functions.invoke("updateUserAdmin", {
+      userId, data: { linked_staff_id: staffRec.bubble_id },
     });
     // Also update Staff record's linked_user_email
     const user = users.find(u => u.id === userId);
@@ -57,13 +57,17 @@ export default function UserManagement() {
         await base44.entities.Staff.update(linkedStaff.id, { linked_user_email: "" });
       }
     }
-    await base44.entities.User.update(userId, { linked_staff_id: "" });
+    await base44.functions.invoke("updateUserAdmin", {
+      userId, data: { linked_staff_id: "" },
+    });
     setSaving(false);
     await loadData();
   };
 
   const handleRoleChange = async (userId, newRole) => {
-    await base44.entities.User.update(userId, { role: newRole });
+    await base44.functions.invoke("updateUserAdmin", {
+      userId, data: { role: newRole },
+    });
     await loadData();
   };
 
