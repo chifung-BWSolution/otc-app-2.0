@@ -4,6 +4,7 @@ import { Save, Send, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle } 
 import ProjectDetailPanel from "./ProjectDetailPanel";
 import PresetPicker from "./PresetPicker";
 import ExtraContributionSection from "./ExtraContributionSection";
+import SelfReviewRecords from "./SelfReviewRecords";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 const INITIAL_SHOW = 10;
@@ -410,6 +411,11 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
         </div>
       </div>
 
+      {/* Section: Merits & Attendance (read-only) */}
+      {existingReview?.staff_id && existingReview?.fiscal_year && (
+        <SelfReviewRecords staffId={existingReview.staff_id} fiscalYear={existingReview.fiscal_year} />
+      )}
+
       {/* Actions */}
       <div className="space-y-3 pb-8">
         {/* Auto-save status */}
@@ -442,7 +448,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
             disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            正式提交
+            確保資料正確無誤並提交
           </button>
         </div>
       </div>
