@@ -77,7 +77,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -90,8 +90,15 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
   if (!loaded) return null;
 
   const r = review;
-  const projects = r.project_contributions || [];
-  const extras = r.extra_contributions || [];
+  // Merge live boss scores (unsaved) into items for real-time calculation
+  const projects = (r.project_contributions || []).map((p, i) => {
+    const liveBoss = liveBossProjectScores?.[i];
+    return liveBoss ? { ...p, boss_score: liveBoss } : p;
+  });
+  const extras = (r.extra_contributions || []).map((e, i) => {
+    const liveBoss = liveBossExtraScores?.[i];
+    return liveBoss ? { ...e, boss_score: liveBoss } : e;
+  });
 
   const projResult = calcSectionScore(projects, 90);
   const extraResult = calcSectionScore(extras, 10);

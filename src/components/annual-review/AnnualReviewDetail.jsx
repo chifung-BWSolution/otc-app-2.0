@@ -491,7 +491,12 @@ ${attText}
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-blue-800">📊 項目工作摘要</h3>
             {(() => {
-              const res = calcSectionScore(allProjects, 90);
+              const merged = allProjects.map((p, i) => {
+                const origIdx = (r.project_contributions || []).indexOf(p);
+                const liveBoss = bossProjectScores[origIdx];
+                return liveBoss ? { ...p, boss_score: liveBoss } : p;
+              });
+              const res = calcSectionScore(merged, 90);
               return <span className="text-sm font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 90 <span className="text-xs font-medium opacity-70">(90%)</span></span>;
             })()}
           </div>
@@ -550,7 +555,11 @@ ${attText}
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
               {(() => {
-                const res = calcSectionScore(extras, 10);
+                const merged = extras.map((e, i) => {
+                  const liveBoss = bossExtraScores[i];
+                  return liveBoss ? { ...e, boss_score: liveBoss } : e;
+                });
+                const res = calcSectionScore(merged, 10);
                 return <span className="text-sm font-black text-teal-700 bg-teal-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 10 <span className="text-xs font-medium opacity-70">(10%)</span></span>;
               })()}
             </div>
@@ -795,7 +804,7 @@ ${attText}
       )}
 
       {/* Scoring Summary — at end */}
-      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} />
+      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} liveBossProjectScores={bossProjectScores} liveBossExtraScores={bossExtraScores} />
 
       {/* AI Appraisal Button */}
       <div className="flex justify-center pt-2 pb-2">
