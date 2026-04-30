@@ -21,13 +21,15 @@ function calcSectionScore(items, maxPoints) {
 
 // Attendance adjustments
 function calcAttendanceAdj(stats) {
-  if (!stats) return { late: 0, nopay: 0, ot: 0, total: 0, details: [] };
+  if (!stats) return { late: 0, nopay: 0, ot: 0, reportGap: 0, total: 0, details: [] };
   const details = [];
 
+  // Late: -2 per 720 minutes
   const lateBlocks = Math.floor((stats.totalLateMinutes || 0) / 720);
   const late = lateBlocks * -2;
   if (lateBlocks > 0) details.push(`遲到 ${stats.totalLateMinutes}分鐘 → ${lateBlocks}×720 = ${f2(late)}分`);
 
+  // NoPay leave: >=3 days → -2, then -0.5 per extra day
   let nopay = 0;
   const ulDays = stats.ulDays || 0;
   if (ulDays >= 3) {
@@ -37,11 +39,23 @@ function calcAttendanceAdj(stats) {
     details.push(`無薪假 ${ulDays}日 → 基本-2${ulDays > 3 ? ` + ${ulDays - 3}日×-0.5 = ${f2(nopay)}` : " = -2.00"}分`);
   }
 
+  // Voluntary OT: +2 per 1440 minutes
   const otBlocks = Math.floor((stats.voluntaryOTMinutes || 0) / 1440);
   const ot = otBlocks * 2;
   if (otBlocks > 0) details.push(`自願加班 ${stats.voluntaryOTMinutes}分鐘 → ${otBlocks}×1440 = +${f2(ot)}分`);
 
-  return { late, nopay, ot, total: late + nopay + ot, details };
+  // Report gap: -1 per 5 missing report days vs work days
+  let reportGap = 0;
+  const workDays = stats.workDays || 0;
+  const reportDays = stats.reportDays || 0;
+  const missingDays = Math.max(0, workDays - reportDays);
+  if (missingDays >= 5) {
+    const gapBlocks = Math.floor(missingDays / 5);
+    reportGap = gapBlocks * -1;
+    details.push(`匯報缺失 ${missingDays}日（上班${workDays} - 匯報${reportDays}）→ ${gapBlocks}×5 = ${f2(reportGap)}分`);
+  }
+
+  return { late, nopay, ot, reportGap, total: late + nopay + ot + reportGap, details };
 }
 
 // Merits/Demerits adjustment
@@ -125,7 +139,7 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
           label="📋 考勤調整"
           value={attResult.total}
           isAdj
-          sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)}` : "未載入"}
+          sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)} · 匯報${f2(attResult.reportGap)}` : "未載入"}
         />
       </div>
 

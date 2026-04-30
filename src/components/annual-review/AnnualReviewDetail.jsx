@@ -140,9 +140,17 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
 
   useEffect(() => {
     if (fy && r.staff_id) loadAttendanceStats();
-    if (r.staff_id) {
+    if (r.staff_id && fy) {
       base44.entities.BubbleMeritsDemerits.filter({ staff_id: r.staff_id }, "-event_date", 200)
-        .then(setMeritRecords);
+        .then(records => {
+          // Filter to only records within the FY date range
+          const filtered = records.filter(rec => {
+            if (!rec.event_date) return false;
+            const d = toLocalDate(rec.event_date);
+            return d && d >= fy.start && d <= fy.end;
+          });
+          setMeritRecords(filtered);
+        });
     }
   }, [r.staff_id, r.fiscal_year]);
 
