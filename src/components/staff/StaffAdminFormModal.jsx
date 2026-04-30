@@ -64,18 +64,9 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
 
   const [leaderOptions, setLeaderOptions] = useState([]);
 
-  // Load leader candidates: MGT team members + team leaders + assistant team leaders
+  // Load all active staff as leader candidates
   useEffect(() => {
-    base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000).then(list => {
-      const leaders = list.filter(s => {
-        const teamName = (s.team_name || "").toLowerCase();
-        const roleName = (s.team_role_name || "").toLowerCase();
-        if (teamName.includes("mgt")) return true;
-        if (roleName.includes("team leader") || roleName.includes("assistant team leader")) return true;
-        return false;
-      });
-      setLeaderOptions(leaders);
-    });
+    base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000).then(setLeaderOptions);
   }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -184,7 +175,7 @@ export default function StaffAdminFormModal({ staff, onClose, onSaved }) {
               {renderInput("Team", "team_name")}
               {renderInput("Team Role", "team_role_name")}
               <LeaderSelect
-                label="直屬上司"
+                label="Team Leader"
                 value={form.team_leader_name}
                 staffId={form.team_leader}
                 options={leaderOptions}
