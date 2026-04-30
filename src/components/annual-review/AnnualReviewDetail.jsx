@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } 
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import MeritsDemeritsList from "./MeritsDemeritsList";
 import ScoringBreakdown, { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "./ScoringBreakdown";
+import BossNotesSection from "./BossNotesSection";
 
 
 const SCORE_COLORS = {
@@ -83,6 +84,10 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [savingBoss, setSavingBoss] = useState(false);
   const [meritRecords, setMeritRecords] = useState([]);
   const [meritTypes, setMeritTypes] = useState([]);
+  const [bossAdjustment, setBossAdjustment] = useState(r.boss_score_adjustment || 0);
+  const [bossDeptGoals, setBossDeptGoals] = useState(r.boss_dept_goals || []);
+  const [bossPersonalGoals, setBossPersonalGoals] = useState(r.boss_personal_goals || []);
+  const [bossExtraNotes, setBossExtraNotes] = useState(r.boss_extra_notes || "");
 
   // Init boss scores from review data
   useEffect(() => {
@@ -109,6 +114,10 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     await base44.entities.AnnualReview.update(r.id, {
       project_contributions: updatedProjects,
       extra_contributions: updatedExtras,
+      boss_score_adjustment: bossAdjustment,
+      boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
+      boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
+      boss_extra_notes: bossExtraNotes,
     });
     setSavingBoss(false);
     refreshReview();
@@ -789,7 +798,35 @@ ${attText}
         </div>
       )}
 
-      {/* Save boss scores button */}
+      {/* Scoring Summary — at end */}
+      <ScoringBreakdown
+        review={r}
+        attendanceStats={attendanceStats}
+        meritRecords={meritRecords}
+        liveBossProjectScores={bossProjectScores}
+        liveBossExtraScores={bossExtraScores}
+        bossAdjustment={bossAdjustment}
+        onBossAdjustmentChange={canBossScore ? setBossAdjustment : undefined}
+      />
+
+      {/* Boss notes sections */}
+      {canBossScore && (
+        <BossNotesSection
+          deptGoals={bossDeptGoals}
+          personalGoals={bossPersonalGoals}
+          extraNotes={bossExtraNotes}
+          onDeptGoalsChange={setBossDeptGoals}
+          onPersonalGoalsChange={setBossPersonalGoals}
+          onExtraNotesChange={setBossExtraNotes}
+        />
+      )}
+
+      {/* Read-only boss notes when not in scoring mode */}
+      {!canBossScore && ((r.boss_dept_goals?.length > 0) || (r.boss_personal_goals?.length > 0) || r.boss_extra_notes) && (
+        <BossNotesReadonly deptGoals={r.boss_dept_goals} personalGoals={r.boss_personal_goals} extraNotes={r.boss_extra_notes} />
+      )}
+
+      {/* Save boss scores + AI button */}
       {canBossScore && (
         <div className="flex justify-center">
           <button
@@ -802,9 +839,6 @@ ${attText}
           </button>
         </div>
       )}
-
-      {/* Scoring Summary — at end */}
-      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} liveBossProjectScores={bossProjectScores} liveBossExtraScores={bossExtraScores} />
 
       {/* AI Appraisal Button */}
       <div className="flex justify-center pt-2 pb-2">
@@ -972,6 +1006,53 @@ function AttendanceStat({ icon, label, value, sub, warn }) {
       <div className={`text-base font-bold ${warn ? "text-orange-600" : "text-gray-800"}`}>{value}</div>
       <div className="text-[10px] text-gray-500 font-medium">{label}</div>
       {sub && <div className={`text-[10px] mt-0.5 ${warn ? "text-orange-500" : "text-gray-400"}`}>{sub}</div>}
+    </div>
+  );
+}
+
+function BossNotesReadonly({ deptGoals, personalGoals, extraNotes }) {
+  return (
+    <div className="space-y-4">
+      {deptGoals?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
+            <h3 className="font-bold text-base text-cyan-800">🏢 未來部門目標</h3>
+          </div>
+          <div className="p-4 space-y-1.5">
+            {deptGoals.map((g, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-sm font-bold text-cyan-600 shrink-0">{i + 1}.</span>
+                <p className="text-sm text-gray-700">{g}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {personalGoals?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-violet-50 px-4 py-3 border-b border-violet-100">
+            <h3 className="font-bold text-base text-violet-800">🎯 公司設定個人目標</h3>
+          </div>
+          <div className="p-4 space-y-1.5">
+            {personalGoals.map((g, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-sm font-bold text-violet-600 shrink-0">{i + 1}.</span>
+                <p className="text-sm text-gray-700">{g}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {extraNotes && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h3 className="font-bold text-base text-gray-700">📝 其它補充</h3>
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{extraNotes}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

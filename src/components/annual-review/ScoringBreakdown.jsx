@@ -77,7 +77,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, onBossAdjustmentChange }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -106,7 +106,8 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
 
   const meritResult = calcMeritAdj(meritRecords || [], meritTypes);
   const attResult = calcAttendanceAdj(attendanceStats);
-  const totalAdj = meritResult.adj + attResult.total;
+  const bossAdj = bossAdjustment || 0;
+  const totalAdj = meritResult.adj + attResult.total + bossAdj;
   const finalScore = baseScore + totalAdj;
 
   const scoreColor = finalScore >= 80 ? "text-green-600" : finalScore >= 60 ? "text-amber-600" : "text-red-600";
@@ -148,6 +149,31 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
           isAdj
           sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)} · 匯報${f2(attResult.reportGap)}` : "未載入"}
         />
+        <div className="border-t border-gray-200/50 my-1" />
+        {onBossAdjustmentChange ? (
+          <div className="flex items-center gap-3 bg-white/60 rounded-lg px-4 py-2.5">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-800">⭐ 努力認可分數調整</span>
+              </div>
+              <div className="text-[11px] text-gray-400 mt-0.5">老闆可手動加減分</div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => onBossAdjustmentChange(bossAdj - 1)}
+                className="w-8 h-8 rounded-lg bg-red-100 text-red-600 font-bold text-lg flex items-center justify-center hover:bg-red-200 transition-colors">−</button>
+              <input
+                type="number"
+                value={bossAdj}
+                onChange={e => onBossAdjustmentChange(parseFloat(e.target.value) || 0)}
+                className="w-16 text-center text-lg font-black border border-gray-300 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-purple-300"
+              />
+              <button onClick={() => onBossAdjustmentChange(bossAdj + 1)}
+                className="w-8 h-8 rounded-lg bg-green-100 text-green-600 font-bold text-lg flex items-center justify-center hover:bg-green-200 transition-colors">+</button>
+            </div>
+          </div>
+        ) : bossAdj !== 0 ? (
+          <ScoreRow label="⭐ 努力認可分數調整" value={bossAdj} isAdj sub="老闆手動調整" />
+        ) : null}
       </div>
 
       {/* Details */}

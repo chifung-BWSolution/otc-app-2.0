@@ -132,6 +132,30 @@
       "type": "string",
       "title": "\u5c0d\u516c\u53f8\u767c\u5c55/\u7ba1\u7406/\u653f\u7b56\u7684\u610f\u898b"
     },
+    "boss_score_adjustment": {
+      "type": "number",
+      "title": "\u52aa\u529b\u8a8d\u53ef\u5206\u6578\u8abf\u6574",
+      "description": "\u8001\u95c6\u624b\u52d5\u52a0\u6e1b\u5206",
+      "default": 0
+    },
+    "boss_dept_goals": {
+      "type": "array",
+      "title": "\u672a\u4f86\u90e8\u9580\u76ee\u6a19",
+      "items": {
+        "type": "string"
+      }
+    },
+    "boss_personal_goals": {
+      "type": "array",
+      "title": "\u516c\u53f8\u8a2d\u5b9a\u500b\u4eba\u76ee\u6a19",
+      "items": {
+        "type": "string"
+      }
+    },
+    "boss_extra_notes": {
+      "type": "string",
+      "title": "\u5176\u5b83\u88dc\u5145"
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",
