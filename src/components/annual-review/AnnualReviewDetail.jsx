@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import MeritsDemeritsList from "./MeritsDemeritsList";
-import ScoringBreakdown from "./ScoringBreakdown";
+import ScoringBreakdown, { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "./ScoringBreakdown";
 
 
 const SCORE_COLORS = {
@@ -82,10 +82,12 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [bossExtraScores, setBossExtraScores] = useState({});
   const [savingBoss, setSavingBoss] = useState(false);
   const [meritRecords, setMeritRecords] = useState([]);
+  const [meritTypes, setMeritTypes] = useState([]);
 
   // Init boss scores from review data
   useEffect(() => {
     base44.entities.ScoreLevel.filter({ is_active: true }, "-score", 100).then(setScoreLevels);
+    base44.entities.MeritDemeritType.filter({ is_active: true }, "sort_order", 100).then(setMeritTypes);
     const ps = {};
     (r.project_contributions || []).forEach((p, i) => { if (p.boss_score > 0) ps[i] = p.boss_score; });
     setBossProjectScores(ps);
@@ -113,6 +115,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   };
 
   const allProjects = (r.project_contributions || []).filter(p => p.project_name && p.project_name !== "未指定項目");
+  const extras = r.extra_contributions || [];
   const totalHours = allProjects.reduce((s, p) => s + (p.hours || 0), 0);
   const totalTasks = allProjects.reduce((s, p) => s + (p.tasks || 0), 0);
   const totalSales = allProjects.reduce((s, p) => s + (p.sales_amount || 0), 0);
@@ -471,16 +474,19 @@ ${attText}
         </span>
       </div>
 
-      {/* Scoring Summary */}
-      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} />
-
       {/* Score Legend — show when boss can score */}
       {canBossScore && <ScoreLegend scoreLevels={scoreLevels} />}
 
       {/* Section 1: Projects with contributions */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
-          <h3 className="font-bold text-base text-blue-800">📊 項目工作摘要</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-base text-blue-800">📊 項目工作摘要</h3>
+            {(() => {
+              const res = calcSectionScore(allProjects, 90);
+              return <span className="text-sm font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 90 <span className="text-xs font-medium opacity-70">(90%)</span></span>;
+            })()}
+          </div>
         </div>
         <div className="p-4">
           <div className="flex gap-3 mb-4">
@@ -533,7 +539,13 @@ ${attText}
       {r.extra_contributions?.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-teal-50 px-4 py-3 border-b border-teal-100">
-            <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-teal-800">🌟 額外貢獻（{r.extra_contributions.length} 項）</h3>
+              {(() => {
+                const res = calcSectionScore(extras, 10);
+                return <span className="text-sm font-black text-teal-700 bg-teal-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 10 <span className="text-xs font-medium opacity-70">(10%)</span></span>;
+              })()}
+            </div>
           </div>
           <div className="p-4 space-y-2">
             {r.extra_contributions.map((ec, i) => (
@@ -634,7 +646,15 @@ ${attText}
       {/* Section 7a: Merits & Demerits */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
-          <h3 className="font-bold text-base text-amber-800">🏅 功過紀錄</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-base text-amber-800">🏅 功過紀錄</h3>
+            {(() => {
+              const res = calcMeritAdj(meritRecords || [], meritTypes);
+              const v = res.adj;
+              const color = v > 0 ? "text-green-700 bg-green-100" : v < 0 ? "text-red-700 bg-red-100" : "text-gray-500 bg-gray-100";
+              return <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${color}`}>{v > 0 ? "+" : ""}{f2(v)}</span>;
+            })()}
+          </div>
         </div>
         <div className="p-4">
           <MeritsDemeritsList staffId={r.staff_id} preloadedRecords={meritRecords} />
@@ -644,7 +664,15 @@ ${attText}
       {/* Section 7b: Attendance Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-          <h3 className="font-bold text-base text-slate-800">📋 年度考勤紀錄</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-base text-slate-800">📋 年度考勤紀錄</h3>
+            {attendanceStats && (() => {
+              const res = calcAttendanceAdj(attendanceStats);
+              const v = res.total;
+              const color = v > 0 ? "text-green-700 bg-green-100" : v < 0 ? "text-red-700 bg-red-100" : "text-gray-500 bg-gray-100";
+              return <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${color}`}>{v > 0 ? "+" : ""}{f2(v)}</span>;
+            })()}
+          </div>
         </div>
         <div className="p-4">
           {loading ? (
@@ -757,6 +785,9 @@ ${attText}
           </button>
         </div>
       )}
+
+      {/* Scoring Summary — at end */}
+      <ScoringBreakdown review={r} attendanceStats={attendanceStats} meritRecords={meritRecords} />
 
       {/* AI Appraisal Button */}
       <div className="flex justify-center pt-2 pb-2">

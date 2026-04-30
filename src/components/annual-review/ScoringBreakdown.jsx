@@ -2,45 +2,46 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calculator } from "lucide-react";
 
-// Calculate project/extra score: average of best available score (boss > leader > self), scaled
-function calcAvgScore(items, maxPoints) {
+const f2 = (v) => (Math.round(v * 100) / 100).toFixed(2);
+
+// Calculate average score for items: average of (self + leader + boss) available scores per item, then scale
+// Logic: for each item, collect all non-zero scores among self/leader/boss, take their average → that's the item score out of 5
+// Then average all item scores → scale to maxPoints
+function calcSectionScore(items, maxPoints) {
   const scored = items.filter(p => p.self_score > 0);
   if (scored.length === 0) return { score: 0, avg: 0, count: 0 };
-  const total = scored.reduce((s, p) => {
-    const best = p.boss_score || p.leader_score || p.self_score || 0;
-    return s + best;
-  }, 0);
-  const avg = total / scored.length; // out of 5
-  return { score: Math.round((avg / 5) * maxPoints * 10) / 10, avg: Math.round(avg * 100) / 100, count: scored.length };
+  const itemScores = scored.map(p => {
+    const scores = [p.self_score, p.leader_score, p.boss_score].filter(s => s && s > 0);
+    return scores.reduce((a, b) => a + b, 0) / scores.length;
+  });
+  const avg = itemScores.reduce((a, b) => a + b, 0) / itemScores.length; // out of 5
+  const score = (avg / 5) * maxPoints;
+  return { score, avg, count: scored.length };
 }
 
 // Attendance adjustments
 function calcAttendanceAdj(stats) {
-  if (!stats) return { late: 0, nopay: 0, ot: 0, details: [] };
+  if (!stats) return { late: 0, nopay: 0, ot: 0, total: 0, details: [] };
   const details = [];
 
-  // Late: -2 per 720 minutes
   const lateBlocks = Math.floor((stats.totalLateMinutes || 0) / 720);
   const late = lateBlocks * -2;
-  if (lateBlocks > 0) details.push(`遲到 ${stats.totalLateMinutes}分鐘 → ${lateBlocks}×720 = ${late}分`);
+  if (lateBlocks > 0) details.push(`遲到 ${stats.totalLateMinutes}分鐘 → ${lateBlocks}×720 = ${f2(late)}分`);
 
-  // NoPay leave: >=3 days → -2, then -0.5 per extra day
   let nopay = 0;
   const ulDays = stats.ulDays || 0;
   if (ulDays >= 3) {
     nopay = -2;
     const extraDays = ulDays - 3;
     if (extraDays > 0) nopay += extraDays * -0.5;
-    nopay = Math.round(nopay * 10) / 10;
-    details.push(`無薪假 ${ulDays}日 → 基本-2${ulDays > 3 ? ` + ${ulDays - 3}日×-0.5 = ${nopay}` : " = -2"}分`);
+    details.push(`無薪假 ${ulDays}日 → 基本-2${ulDays > 3 ? ` + ${ulDays - 3}日×-0.5 = ${f2(nopay)}` : " = -2.00"}分`);
   }
 
-  // Voluntary OT: +2 per 1440 minutes
   const otBlocks = Math.floor((stats.voluntaryOTMinutes || 0) / 1440);
   const ot = otBlocks * 2;
-  if (otBlocks > 0) details.push(`自願加班 ${stats.voluntaryOTMinutes}分鐘 → ${otBlocks}×1440 = +${ot}分`);
+  if (otBlocks > 0) details.push(`自願加班 ${stats.voluntaryOTMinutes}分鐘 → ${otBlocks}×1440 = +${f2(ot)}分`);
 
-  return { late, nopay, ot, details };
+  return { late, nopay, ot, total: late + nopay + ot, details };
 }
 
 // Merits/Demerits adjustment
@@ -56,7 +57,7 @@ function calcMeritAdj(records, types) {
     const score = typeMap[typeName] || 0;
     if (score !== 0) {
       adj += score;
-      details.push(`${typeName}${r.brief_description ? ` — ${r.brief_description}` : ""} (${score > 0 ? "+" : ""}${score})`);
+      details.push(`${typeName}${r.brief_description ? ` — ${r.brief_description}` : ""} (${score > 0 ? "+" : ""}${f2(score)})`);
     }
   }
   return { adj, details };
@@ -75,18 +76,17 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
   if (!loaded) return null;
 
   const r = review;
-  const projects = (r.project_contributions || []).filter(p => p.self_score > 0);
-  const extras = (r.extra_contributions || []).filter(e => e.self_score > 0);
+  const projects = r.project_contributions || [];
+  const extras = r.extra_contributions || [];
 
-  const projResult = calcAvgScore(projects, 90);
-  const extraResult = calcAvgScore(extras, 10);
-  const baseScore = Math.round((projResult.score + extraResult.score) * 10) / 10;
+  const projResult = calcSectionScore(projects, 90);
+  const extraResult = calcSectionScore(extras, 10);
+  const baseScore = projResult.score + extraResult.score;
 
   const meritResult = calcMeritAdj(meritRecords || [], meritTypes);
   const attResult = calcAttendanceAdj(attendanceStats);
-  const attTotal = attResult.late + attResult.nopay + attResult.ot;
-  const totalAdj = Math.round((meritResult.adj + attTotal) * 10) / 10;
-  const finalScore = Math.round((baseScore + totalAdj) * 10) / 10;
+  const totalAdj = meritResult.adj + attResult.total;
+  const finalScore = baseScore + totalAdj;
 
   const scoreColor = finalScore >= 80 ? "text-green-600" : finalScore >= 60 ? "text-amber-600" : "text-red-600";
   const scoreBg = finalScore >= 80 ? "from-green-50 to-emerald-50 border-green-200" : finalScore >= 60 ? "from-amber-50 to-yellow-50 border-amber-200" : "from-red-50 to-orange-50 border-red-200";
@@ -98,11 +98,35 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         <h3 className="font-bold text-base text-gray-800">📊 評分摘要（滿分 100）</h3>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <ScoreBox label="項目工作" value={projResult.score} max={90} sub={`平均 ${projResult.avg}/5 × ${projResult.count}項`} />
-        <ScoreBox label="額外貢獻" value={extraResult.score} max={10} sub={`平均 ${extraResult.avg}/5 × ${extraResult.count}項`} />
-        <ScoreBox label="功過調整" value={meritResult.adj} isAdj sub={`${meritRecords?.length || 0} 條紀錄`} />
-        <ScoreBox label="考勤調整" value={attTotal} isAdj sub={attendanceStats ? "遲到/假期/加班" : "未載入"} />
+      {/* Section rows */}
+      <div className="space-y-2 mb-4">
+        <ScoreRow
+          label="📊 項目工作"
+          pct="90%"
+          value={projResult.score}
+          max={90}
+          sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`}
+        />
+        <ScoreRow
+          label="🌟 額外貢獻"
+          pct="10%"
+          value={extraResult.score}
+          max={10}
+          sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`}
+        />
+        <div className="border-t border-gray-200/50 my-1" />
+        <ScoreRow
+          label="🏅 功過調整"
+          value={meritResult.adj}
+          isAdj
+          sub={`${meritRecords?.length || 0} 條紀錄`}
+        />
+        <ScoreRow
+          label="📋 考勤調整"
+          value={attResult.total}
+          isAdj
+          sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)}` : "未載入"}
+        />
       </div>
 
       {/* Details */}
@@ -124,11 +148,11 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
       {/* Total */}
       <div className="mt-4 pt-4 border-t border-gray-200/50 flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          <span className="font-medium">基本分 {baseScore}</span>
-          {totalAdj !== 0 && <span className="ml-2">{totalAdj > 0 ? "+" : ""}{totalAdj} 調整</span>}
+          <span className="font-medium">基本分 {f2(baseScore)}</span>
+          {totalAdj !== 0 && <span className="ml-2">{totalAdj > 0 ? "+" : ""}{f2(totalAdj)} 調整</span>}
         </div>
         <div className={`text-3xl font-black ${scoreColor}`}>
-          {finalScore}
+          {f2(finalScore)}
           <span className="text-sm font-medium text-gray-400 ml-1">/ 100</span>
         </div>
       </div>
@@ -136,14 +160,27 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
   );
 }
 
-function ScoreBox({ label, value, max, sub, isAdj }) {
-  const display = isAdj ? (value > 0 ? `+${value}` : `${value}`) : `${value}`;
-  const color = isAdj ? (value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500") : "text-indigo-600";
+// Export for use in section headers
+export { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 };
+
+function ScoreRow({ label, pct, value, max, sub, isAdj }) {
+  const display = isAdj ? (value > 0 ? `+${f2(value)}` : f2(value)) : f2(value);
+  const color = isAdj
+    ? (value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500")
+    : "text-indigo-600";
   return (
-    <div className="bg-white/70 rounded-lg px-3 py-2.5 text-center border border-white/50">
-      <div className={`text-xl font-black ${color}`}>{display}</div>
-      <div className="text-xs font-semibold text-gray-700">{label}{max ? ` /${max}` : ""}</div>
-      {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
+    <div className="flex items-center gap-3 bg-white/60 rounded-lg px-4 py-2.5">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-800">{label}</span>
+          {pct && <span className="text-xs bg-gray-200/80 text-gray-600 px-1.5 py-0.5 rounded font-medium">{pct}</span>}
+        </div>
+        {sub && <div className="text-[11px] text-gray-400 mt-0.5">{sub}</div>}
+      </div>
+      <div className="text-right shrink-0">
+        <div className={`text-lg font-black ${color}`}>{display}</div>
+        {max && <div className="text-[10px] text-gray-400">/ {max}</div>}
+      </div>
     </div>
   );
 }
