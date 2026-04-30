@@ -128,11 +128,11 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
 
       {/* Comment */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 額外補充（選填）</label>
+        <label className="text-sm font-semibold text-gray-700 block mb-2">💬 鼓勵說話（不記名）</label>
         <textarea
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
           rows={3}
-          placeholder="有任何其他想對這位同事說的話..."
+          placeholder="寫一些鼓勵或肯定的話給這位同事..."
           value={comment}
           onChange={e => setComment(e.target.value)}
           disabled={isSubmitted}
