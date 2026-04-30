@@ -118,12 +118,19 @@ const modules = [
   },
 ];
 
+// Paths accessible by non-admin users
+const USER_ALLOWED_PATHS = ["/work/annual-review", "/work/peer-review"];
+
 export default function Home() {
   const navigate = useNavigate();
   const [isMGT, setIsMGT] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  const isAdmin = userRole === 'admin' || userRole === 'management';
 
   useEffect(() => {
     base44.auth.me().then(u => {
+      setUserRole(u?.role);
       if (u?.linked_staff_id) {
         base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)
           .then(list => {
@@ -146,18 +153,22 @@ export default function Home() {
         <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 pt-4 pb-2">
           <h3 className="text-sm font-bold text-gray-700 mb-3">{mod.icon} {mod.label}</h3>
           <div className="grid grid-cols-4 gap-y-4 gap-x-2">
-            {mod.items.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1.5 group"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl group-hover:bg-gray-100 group-active:scale-95 transition-all shadow-sm">
-                  {item.icon}
-                </div>
-                <span className="text-xs text-gray-600 text-center leading-tight w-full truncate px-0.5">{item.label}</span>
-              </button>
-            ))}
+            {mod.items.map((item) => {
+              const enabled = isAdmin || USER_ALLOWED_PATHS.includes(item.path);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => enabled && navigate(item.path)}
+                  disabled={!enabled}
+                  className={`flex flex-col items-center gap-1.5 ${enabled ? "group" : "opacity-35 cursor-not-allowed"}`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl transition-all shadow-sm ${enabled ? "group-hover:bg-gray-100 group-active:scale-95" : ""}`}>
+                    {item.icon}
+                  </div>
+                  <span className="text-xs text-gray-600 text-center leading-tight w-full truncate px-0.5">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
