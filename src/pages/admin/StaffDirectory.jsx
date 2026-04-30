@@ -188,6 +188,8 @@ export default function StaffDirectory() {
                   <th className="px-4 py-3 text-left">員工</th>
                   <th className="px-4 py-3 text-left">Team</th>
                   <th className="px-4 py-3 text-left">職位</th>
+                  <th className="px-4 py-3 text-left">Team Leader</th>
+                  <th className="px-4 py-3 text-left">入職日期</th>
                   {isPrivileged && <th className="px-4 py-3 text-left">電郵</th>}
                   <th className="px-4 py-3 text-left">狀態</th>
                 </tr>
@@ -218,6 +220,8 @@ export default function StaffDirectory() {
                       <div className="text-gray-400">{s.bu_name}</div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">{s.position || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{s.team_leader_name || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{s.entry_date ? new Date(s.entry_date).toLocaleDateString('zh-HK') : '—'}</td>
                     {isPrivileged && <td className="px-4 py-3 text-xs text-gray-500">{s.work_email || '—'}</td>}
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[s.o_status] || 'bg-gray-100 text-gray-500'}`}>
