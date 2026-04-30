@@ -131,6 +131,7 @@ export const menuGroups = [
       { label: "📊 功過記錄", path: "/admin/performance-records" },
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
+      { label: "👤 用戶帳戶管理", path: "/admin/user-management" },
     ],
   },
   {
