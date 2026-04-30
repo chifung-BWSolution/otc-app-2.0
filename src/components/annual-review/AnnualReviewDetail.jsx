@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
+import MeritsDemeritsList from "./MeritsDemeritsList";
 
 
 const SCORE_COLORS = {
@@ -619,7 +620,17 @@ ${attText}
         </div>
       </div>
 
-      {/* Section 7: Attendance Stats */}
+      {/* Section 7a: Merits & Demerits */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+          <h3 className="font-bold text-base text-amber-800">🏅 功過紀錄</h3>
+        </div>
+        <div className="p-4">
+          <MeritsDemeritsList staffId={r.staff_id} />
+        </div>
+      </div>
+
+      {/* Section 7b: Attendance Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
           <h3 className="font-bold text-base text-slate-800">📋 年度考勤紀錄</h3>
