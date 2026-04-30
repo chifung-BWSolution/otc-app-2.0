@@ -128,7 +128,7 @@ export default function Layout() {
 
       {/* Top Navigation (horizontal main categories) */}
       <div className="sticky top-[49px] z-30">
-        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} isMGT={isMGT} />
+        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} isMGT={isMGT} userRole={currentUser?.role} />
       </div>
 
       {/* Body: sub sidebar + content */}
@@ -138,6 +138,7 @@ export default function Layout() {
             activeKey={activeKey}
             collapsed={collapsed}
             setCollapsed={setCollapsed}
+            userRole={currentUser?.role}
           />
         )}
         <main className="flex-1 p-4 md:p-6 max-w-full min-w-0">

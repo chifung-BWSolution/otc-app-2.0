@@ -2,9 +2,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { menuGroups, findGroupByPath } from "./menuConfig";
 
-export default function SubSidebar({ activeKey, collapsed, setCollapsed }) {
+// Paths accessible by non-admin users
+const USER_ALLOWED_PATHS = ["/work/annual-review", "/work/peer-review"];
+
+export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRole }) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isAdmin = userRole === 'admin' || userRole === 'management';
 
   // Prefer explicit activeKey; otherwise derive from current route
   const routeGroup = findGroupByPath(location.pathname);
@@ -51,20 +56,25 @@ export default function SubSidebar({ activeKey, collapsed, setCollapsed }) {
             const active = location.pathname === item.path;
             const icon = item.label.split(" ")[0];
             const text = item.label.split(" ").slice(1).join(" ");
+            const enabled = isAdmin || USER_ALLOWED_PATHS.includes(item.path);
             return (
               <button
                 key={item.path}
                 onClick={() => {
+                  if (!enabled) return;
                   navigate(item.path);
                   if (window.innerWidth < 768) setCollapsed(true);
                 }}
+                disabled={!enabled}
                 title={item.label}
-                className={`w-full flex items-center py-2 text-sm transition-all hover:bg-gray-100 ${
+                className={`w-full flex items-center py-2 text-sm transition-all ${
                   collapsed ? "px-0 justify-center" : "px-4"
                 } ${
-                  active
-                    ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
-                    : "text-gray-700"
+                  !enabled
+                    ? "text-gray-300 cursor-not-allowed"
+                    : active
+                      ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
+                      : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <span className="text-base">{icon}</span>
