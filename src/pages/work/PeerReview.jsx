@@ -77,13 +77,19 @@ export default function PeerReview() {
       ...(submit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
+    let savedRecord;
     if (existing) {
       await base44.entities.PeerReview.update(existing.id, data);
+      savedRecord = { ...existing, ...data };
     } else {
-      await base44.entities.PeerReview.create(data);
+      savedRecord = await base44.entities.PeerReview.create(data);
     }
 
-    await refreshReviews();
+    // Optimistically update local state instead of re-fetching (avoids stale reads)
+    setReviews(prev => {
+      const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
+      return [...without, savedRecord];
+    });
     setSaving(false);
     if (submit) setSelectedColleague(null);
   };
@@ -106,23 +112,21 @@ export default function PeerReview() {
       submitted_at: new Date().toISOString(),
     };
 
+    let savedRecord;
     if (existing) {
       await base44.entities.PeerReview.update(existing.id, data);
+      savedRecord = { ...existing, ...data };
     } else {
-      await base44.entities.PeerReview.create(data);
+      savedRecord = await base44.entities.PeerReview.create(data);
     }
 
-    await refreshReviews();
+    // Optimistically update local state instead of re-fetching (avoids stale reads)
+    setReviews(prev => {
+      const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
+      return [...without, savedRecord];
+    });
     setSaving(false);
     setSelectedColleague(null);
-  };
-
-  const refreshReviews = async () => {
-    const myReviews = await base44.entities.PeerReview.filter(
-      { reviewer_staff_id: myStaff.bubble_id, fiscal_year: fiscalYear },
-      "-created_date", 200
-    );
-    setReviews(myReviews);
   };
 
   if (loading) {
