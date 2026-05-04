@@ -20,7 +20,7 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
   }, []);
 
   const setScore = (key, val) => setScores(prev => ({ ...prev, [key]: val }));
-  const isComplete = DIMENSIONS.every(d => scores[d.key] > 0);
+  const isComplete = DIMENSIONS.every(d => scores[d.key] > 0) && comment.trim().length > 0;
   const isSubmitted = existingReview?.status === "submitted";
   const isNoCollab = existingReview?.status === "no_collaboration";
 
@@ -167,8 +167,12 @@ export default function PeerReviewForm({ reviewee, existingReview, saving, onSav
             </button>
             <button
               onClick={() => {
-                if (!isComplete) {
+                if (!DIMENSIONS.every(d => scores[d.key] > 0)) {
                   alert("請先為所有範疇評分再提交");
+                  return;
+                }
+                if (!comment.trim()) {
+                  alert("請填寫鼓勵說話再提交");
                   return;
                 }
                 if (window.confirm("確認提交互評？提交後將無法修改。")) {
