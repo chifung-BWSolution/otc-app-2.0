@@ -29,6 +29,7 @@ export default function AnnualReview() {
   const [tab, setTab] = useState("mine");
   const [isLeader, setIsLeader] = useState(false);
   const [leaderName, setLeaderName] = useState("");
+  const [pendingLeaderCount, setPendingLeaderCount] = useState(0);
 
   const [view, setView] = useState("list");
   const [activeReview, setActiveReview] = useState(null);
@@ -62,7 +63,14 @@ export default function AnnualReview() {
 
     if (myStaff) {
       const myId = myStaff.bubble_id;
-      setIsLeader(allStaff.some(s => s.bubble_id !== myId && s.team_leader === myId));
+      const subs = allStaff.filter(s => s.bubble_id !== myId && s.team_leader === myId);
+      setIsLeader(subs.length > 0);
+      if (subs.length > 0) {
+        const fy = getLastFY().label;
+        const subIds = subs.map(s => s.bubble_id).filter(Boolean);
+        const allReviews = await base44.entities.AnnualReview.filter({ fiscal_year: fy, status: "pending_leader" }, "-created_date", 500);
+        setPendingLeaderCount(allReviews.filter(r => subIds.includes(r.staff_id)).length);
+      }
     }
     if (myStaff?.team_leader) {
       const leader = allStaff.find(s => s.bubble_id === myStaff.team_leader);
@@ -253,6 +261,11 @@ export default function AnnualReview() {
             }`}
           >
             <Users size={14} /> Team Member 評估表
+            {pendingLeaderCount > 0 && (
+              <span className="ml-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                {pendingLeaderCount}
+              </span>
+            )}
           </button>
         </div>
       )}
