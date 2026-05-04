@@ -29,14 +29,14 @@ function calcAttendanceAdj(stats) {
   const late = lateBlocks * -2;
   if (lateBlocks > 0) details.push(`遲到 ${stats.totalLateMinutes}分鐘 → ${lateBlocks}×720 = ${f2(late)}分`);
 
-  // NoPay leave: >=3 days → -2, then -0.5 per extra day
+  // NoPay leave: >=3 days → -2, then -1 per extra day
   let nopay = 0;
   const ulDays = stats.ulDays || 0;
   if (ulDays >= 3) {
     nopay = -2;
     const extraDays = ulDays - 3;
-    if (extraDays > 0) nopay += extraDays * -0.5;
-    details.push(`無薪假 ${ulDays}日 → 基本-2${ulDays > 3 ? ` + ${ulDays - 3}日×-0.5 = ${f2(nopay)}` : " = -2.00"}分`);
+    if (extraDays > 0) nopay += extraDays * -1;
+    details.push(`無薪假 ${ulDays}日 → 基本-2${ulDays > 3 ? ` + ${ulDays - 3}日×-1 = ${f2(nopay)}` : " = -2.00"}分`);
   }
 
   // Voluntary OT: +2 per 1440 minutes
@@ -150,6 +150,16 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
           sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)} · 匯報${f2(attResult.reportGap)}` : "未載入"}
         />
         <div className="border-t border-gray-200/50 my-1" />
+        {/* Sub-total before boss adjustment */}
+        <div className="flex items-center gap-3 bg-white/80 rounded-lg px-4 py-2.5 border border-gray-200">
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-bold text-gray-700">小計（調整前）</span>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-lg font-black text-gray-700">{f2(baseScore + meritResult.adj + attResult.total)}</div>
+          </div>
+        </div>
+        <div className="border-t border-gray-200/50 my-1" />
         {onBossAdjustmentChange ? (
           <>
           <div className="flex items-center gap-3 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl px-5 py-4 border-2 border-purple-300 shadow-sm">
@@ -201,17 +211,29 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         ) : null}
       </div>
 
+      {/* Total */}
+      <div className="mt-4 pt-4 border-t border-gray-200/50 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">基本分 {f2(baseScore)}</span>
+          {totalAdj !== 0 && <span className="ml-2">{totalAdj > 0 ? "+" : ""}{f2(totalAdj)} 調整</span>}
+        </div>
+        <div className={`text-3xl font-black ${scoreColor}`}>
+          {f2(finalScore)}
+          <span className="text-sm font-medium text-gray-400 ml-1">/ 100</span>
+        </div>
+      </div>
+
       {/* Attendance Rules */}
-      <div className="bg-white/60 rounded-lg px-4 py-3 text-xs space-y-1.5 mb-3">
+      <div className="bg-white/60 rounded-lg px-4 py-3 text-xs space-y-1.5 mt-4">
         <div className="font-semibold text-gray-700 mb-1">📋 考勤調整規則</div>
         <div className="text-gray-500">• <b>遲到</b>：每累計 720 分鐘（12 小時）→ <span className="text-red-600 font-semibold">-2 分</span></div>
-        <div className="text-gray-500">• <b>無薪假</b>：≥ 3 日 → <span className="text-red-600 font-semibold">-2 分</span>，之後每多 1 日 → <span className="text-red-600 font-semibold">-0.5 分</span></div>
+        <div className="text-gray-500">• <b>無薪假</b>：≥ 3 日 → <span className="text-red-600 font-semibold">-2 分</span>，之後每多 1 日 → <span className="text-red-600 font-semibold">-1 分</span></div>
         <div className="text-gray-500">• <b>自願加班</b>：每累計 1440 分鐘（24 小時）→ <span className="text-green-600 font-semibold">+2 分</span></div>
         <div className="text-gray-500">• <b>匯報缺失</b>：每 5 日未匯報（上班日 - 匯報日）→ <span className="text-red-600 font-semibold">-1 分</span></div>
       </div>
 
       {/* Details */}
-      <div className="space-y-2 text-xs">
+      <div className="space-y-2 text-xs mt-3">
         {meritResult.details.length > 0 && (
           <div className="bg-white/60 rounded-lg px-3 py-2">
             <div className="font-semibold text-gray-600 mb-1">功過明細：</div>
@@ -224,18 +246,6 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
             {attResult.details.map((d, i) => <div key={i} className="text-gray-500">{d}</div>)}
           </div>
         )}
-      </div>
-
-      {/* Total */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          <span className="font-medium">基本分 {f2(baseScore)}</span>
-          {totalAdj !== 0 && <span className="ml-2">{totalAdj > 0 ? "+" : ""}{f2(totalAdj)} 調整</span>}
-        </div>
-        <div className={`text-3xl font-black ${scoreColor}`}>
-          {f2(finalScore)}
-          <span className="text-sm font-medium text-gray-400 ml-1">/ 100</span>
-        </div>
       </div>
     </div>
   );
