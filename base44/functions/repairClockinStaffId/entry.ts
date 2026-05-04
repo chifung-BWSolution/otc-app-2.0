@@ -9,9 +9,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const batchOffset = body.offset || 0;
-    const batchSize = 100;
-
+    const mode = body.mode || 'scan'; // 'scan' or 'fix'
     const sr = base44.asServiceRole;
 
     // Load all staff to build name→bubble_id map
@@ -23,34 +21,34 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Load one batch of clockins
-    const batch = await sr.entities.BubbleClockin.filter({}, "id", batchSize, batchOffset);
-    let fixed = 0;
-    let needsFix = 0;
-
-    for (const c of batch) {
-      if (!c.staff_id && c.staff_name) {
-        needsFix++;
-        const mappedId = nameToId[c.staff_name];
-        if (mappedId) {
-          await sr.entities.BubbleClockin.update(c.id, { staff_id: mappedId });
-          fixed++;
-          await new Promise(r => setTimeout(r, 200));
-        }
+    if (mode === 'scan') {
+      // Just scan and report unique staff_names with null staff_id
+      const nullRecords = [];
+      let offset = 0;
+      while (true) {
+        const batch = await sr.entities.BubbleClockin.filter({ staff_id: null }, "id", 5000, offset);
+        nullRecords.push(...batch);
+        if (batch.length < 5000) break;
+        offset += batch.length;
+        await new Promise(r => setTimeout(r, 1000));
       }
+
+      // Count by staff_name
+      const nameCounts = {};
+      for (const c of nullRecords) {
+        const name = c.staff_name || '(empty)';
+        if (!nameCounts[name]) nameCounts[name] = { count: 0, hasMapping: !!nameToId[name], bubble_id: nameToId[name] || null };
+        nameCounts[name].count++;
+      }
+
+      return Response.json({
+        total_null_staff_id: nullRecords.length,
+        unique_names: Object.keys(nameCounts).length,
+        breakdown: nameCounts,
+      });
     }
 
-    const hasMore = batch.length === batchSize;
-
-    return Response.json({
-      success: true,
-      batchOffset,
-      batchSize: batch.length,
-      needsFix,
-      fixed,
-      nextOffset: hasMore ? batchOffset + batchSize : null,
-      hasMore,
-    });
+    return Response.json({ error: 'Unknown mode' }, { status: 400 });
   } catch (error) {
     console.error("Error:", error);
     return Response.json({ error: error.message }, { status: 500 });
