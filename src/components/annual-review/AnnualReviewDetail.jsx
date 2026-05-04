@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Calendar, Clock, AlertTriangle, Coffee, FileText } from "lucide-react";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import MeritsDemeritsList from "./MeritsDemeritsList";
 import ScoringBreakdown, { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "./ScoringBreakdown";
@@ -76,7 +76,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     const updated = await base44.entities.AnnualReview.filter({ id: r.id }, "id", 1);
     if (updated.length > 0) setReview(updated[0]);
   };
-  const [generatingAI, setGeneratingAI] = useState(false);
+  const [creatingReport, setCreatingReport] = useState(false);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [allProjectSummary, setAllProjectSummary] = useState([]);
   const [scoreLevels, setScoreLevels] = useState([]);
@@ -102,6 +102,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       { label: "本年度中標項目數", count: 0 },
     ]
   );
+  const [gpDisabled, setGpDisabled] = useState(r.boss_gp_disabled || false);
+  const [tenderDisabled, setTenderDisabled] = useState(r.boss_tender_disabled || false);
 
   // Init boss scores from review data
   useEffect(() => {
@@ -135,6 +137,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       boss_adjustment_note: bossAdjustmentNote,
       boss_gp_fields: bossGpFields,
       boss_tender_fields: bossTenderFields,
+      boss_gp_disabled: gpDisabled,
+      boss_tender_disabled: tenderDisabled,
     });
     setSavingBoss(false);
     refreshReview();
@@ -180,123 +184,99 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     }
   }, [r.staff_id, r.fiscal_year]);
 
-  const handleGenerateAppraisal = async () => {
-    if (generatingAI) return; // prevent double-click
-    setGeneratingAI(true);
+  const handleCreateReport = async () => {
+    if (creatingReport) return;
+    setCreatingReport(true);
     try {
-    // Build a comprehensive prompt from all data
-    const projectsText = allProjects.map(p => {
-      let line = `- ${p.project_name}: ${p.hours}h, ${p.tasks}個任務`;
-      if (p.sales_amount > 0) line += `, 銷售額 $${p.sales_amount.toLocaleString()}`;
-      if (p.self_score > 0) line += `, 自評分數：${p.self_score}/5`;
-      if (p.contribution_note) {
-        try {
-          const arr = JSON.parse(p.contribution_note);
-          if (Array.isArray(arr)) {
-            const formatted = arr.map(pt => {
-              if (typeof pt === "object" && pt.type) return `[${pt.type}] ${pt.text}`;
-              return typeof pt === "string" ? pt : pt.text || "";
-            }).filter(s => s.trim());
-            if (formatted.length > 0) line += `\n  員工自述貢獻重點：${formatted.join("；")}`;
-          }
-        } catch { line += `\n  員工自述貢獻重點：${p.contribution_note}`; }
+      // Build report content directly (no AI) — exclude private fields
+      const sections = [];
+      
+      // Project contributions
+      sections.push("## 📊 項目工作摘要\n");
+      sections.push(`- 總參與項目：${allProjects.length}`);
+      sections.push(`- 總工時：${Math.round(totalHours)}h / 總任務數：${totalTasks}`);
+      if (totalSales > 0) sections.push(`- 總銷售額：$${totalSales.toLocaleString()}`);
+      sections.push("");
+      
+      for (const p of contributedProjects) {
+        let line = `### ${p.project_name}\n`;
+        line += `- 工時：${p.hours}h · 任務數：${p.tasks}`;
+        if (p.sales_amount > 0) line += ` · 銷售額：$${p.sales_amount.toLocaleString()}`;
+        line += "\n";
+        if (p.contribution_note) {
+          try {
+            const arr = JSON.parse(p.contribution_note);
+            if (Array.isArray(arr)) {
+              const pts = arr.map(pt => {
+                if (typeof pt === "object" && pt.type) return `- [${pt.type}] ${pt.text}`;
+                return `- ${typeof pt === "string" ? pt : pt.text || ""}`;
+              }).filter(s => s.trim().length > 2);
+              if (pts.length > 0) line += "\n**員工貢獻重點：**\n" + pts.join("\n");
+            }
+          } catch { line += `\n**員工貢獻重點：** ${p.contribution_note}`; }
+        }
+        if (p.self_score > 0) line += `\n- 自評：${p.self_score}/5`;
+        if (p.leader_score > 0) line += ` · Leader：${p.leader_score}/5`;
+        if (p.boss_score > 0) line += ` · 老闆：${p.boss_score}/5`;
+        sections.push(line + "\n");
       }
-      return line;
-    }).join("\n") || "（無項目記錄）";
 
-    const attText = attendanceStats ? `上班日 ${attendanceStats.workDays} / 匯報日 ${attendanceStats.reportDays}，遲到 ${attendanceStats.totalLateMinutes} 分鐘，自願加班 ${attendanceStats.voluntaryOTMinutes} 分鐘，無薪假 ${attendanceStats.ulDays} 日（事假 ${attendanceStats.ulPersonalDays} 日、病假 ${attendanceStats.ulSickDays} 日）` : "（考勤數據未載入）";
-
-    // Load peer reviews for summary
-    let peerText = "（無互評數據）";
-    try {
-      const peers = await base44.entities.PeerReview.filter(
-        { reviewee_staff_id: r.staff_id, fiscal_year: r.fiscal_year, status: "submitted" },
-        "-created_date", 200
-      );
-      if (peers.length > 0) {
-        peerText = `共收到 ${peers.length} 份互評。`;
-        const comments = peers.filter(p => p.comment && p.comment.trim()).map(p => `${p.reviewer_name}：${p.comment}`);
-        if (comments.length > 0) peerText += `\n同事評語：\n${comments.join("\n")}`;
+      // Extra contributions
+      if (extras.length > 0) {
+        sections.push("## 🌟 額外貢獻\n");
+        for (const ec of extras) {
+          let line = `- ${ec.description}`;
+          if (ec.self_score > 0) line += ` （自評：${ec.self_score}/5）`;
+          sections.push(line);
+        }
+        sections.push("");
       }
-    } catch {}
 
-    const prompt = `你是一位專業的人力資源顧問，請根據以下員工年度評估資料，生成一份結構清晰、專業的年度表現整合報告。
+      // Challenges (public)
+      sections.push("## ⚡ 年度遇到的困難及解決方法\n");
+      sections.push(`**遇到的困難：** ${r.challenges || "（未填寫）"}\n`);
+      sections.push(`**需要公司協助：** ${r.challenges_solution || "（未填寫）"}\n`);
 
-員工：${r.staff_name}
-職位：${r.staff_position}
-Team：${r.staff_team} / BU：${r.staff_bu}
-年度：${r.fiscal_year}
+      // Goals (public)
+      sections.push("## 🎯 未來一年目標\n");
+      sections.push(`**目標：** ${r.next_year_goals || "（未填寫）"}\n`);
+      sections.push(`**為完成目標願意做的事：** ${r.commitment || "（未填寫）"}\n`);
 
-=== 📊 項目工作摘要 ===
-總參與項目：${allProjects.length}
-總工時：${Math.round(totalHours)}h / 總任務數：${totalTasks}
-${totalSales > 0 ? `總銷售額：$${totalSales.toLocaleString()}` : ""}
-項目詳情：
-${projectsText}
+      // Leader public feedback (exclude private note)
+      if (r.leader_comment || r.leader_next_year_expectation) {
+        sections.push("## 👤 Team Leader 回饋\n");
+        if (r.leader_comment) sections.push(`**鼓勵說話：** ${r.leader_comment}\n`);
+        if (r.leader_next_year_expectation) sections.push(`**來年期望：** ${r.leader_next_year_expectation}\n`);
+      }
 
-=== ⚡ 年度遇到的困難 ===
-困難：${r.challenges || "（未填寫）"}
-解決方法：${r.challenges_solution || "（未填寫）"}
+      // NOTE: Excludes leader_private_note, company_feedback, peer review private_note
+      // These are private fields that should not be visible to the employee
 
-=== 🎯 未來一年目標 ===
-${r.next_year_goals || "（未填寫）"}
+      const content = sections.join("\n");
 
-=== 💬 對公司的意見 ===
-${r.company_feedback || "（未填寫）"}
+      const newReport = await base44.entities.AppraisalReport.create({
+        annual_review_id: r.id,
+        staff_id: r.staff_id,
+        staff_name: r.staff_name,
+        staff_team: r.staff_team,
+        staff_bu: r.staff_bu,
+        staff_position: r.staff_position,
+        fiscal_year: r.fiscal_year,
+        report_content: content,
+        version: 1,
+        is_final: false,
+      });
 
-=== 👥 同事互評結果 ===
-${peerText}
+      if (r.status === "pending_boss_review") {
+        await base44.entities.AnnualReview.update(r.id, { status: "pending_boss" });
+      }
 
-=== 📋 考勤紀錄 ===
-${attText}
-
-請按以下結構生成報告（使用 Markdown 格式，繁體中文）：
-1. ## 📊 項目工作貢獻分析 — 分析項目貢獻的深度和廣度，突出亮點
-2. ## ⚡ 年度困難及解決方法評估 — 評價面對挑戰的態度和解決能力
-3. ## 🎯 未來一年目標評估 — 評價目標設定的合理性和進取性
-4. ## 👥 同事互評結果分析 — 綜合同事的評價，提煉關鍵訊息
-5. ## 📋 考勤紀錄分析 — 分析出勤表現
-6. ## 📝 整體評價及建議 — 給出綜合評價和發展建議
-
-每個部分要具體分析，不要空泛。語氣專業但有建設性。
-重要：在項目工作貢獻分析中，必須引用員工自己填寫的「重點」內容（即 contribution_note），逐個項目具體描述員工的貢獻，不要只用籠統語句概括。`;
-
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: {
-        type: "object",
-        properties: { report_markdown: { type: "string" } },
-        required: ["report_markdown"]
-      },
-    });
-
-    console.log("AI response:", res);
-    const content = res.report_markdown || res.report || (typeof res === "string" ? res : JSON.stringify(res));
-
-    const newReport = await base44.entities.AppraisalReport.create({
-      annual_review_id: r.id,
-      staff_id: r.staff_id,
-      staff_name: r.staff_name,
-      staff_team: r.staff_team,
-      staff_bu: r.staff_bu,
-      staff_position: r.staff_position,
-      fiscal_year: r.fiscal_year,
-      report_content: content,
-      version: 1,
-      is_final: false,
-    });
-
-    // After generating report, move to pending_boss (待面談)
-    if (r.status === "pending_boss_review") {
-      await base44.entities.AnnualReview.update(r.id, { status: "pending_boss" });
-    }
-
-    navigate(`/admin/appraisal-reports?reportId=${newReport.id}`);
+      navigate(`/admin/appraisal-reports?reportId=${newReport.id}`);
     } catch (err) {
-      console.error("AI generation failed:", err);
-      alert("AI 報告生成失敗：" + (err.message || "未知錯誤"));
+      console.error("Report creation failed:", err);
+      alert("報告生成失敗：" + (err.message || "未知錯誤"));
     } finally {
-      setGeneratingAI(false);
+      setCreatingReport(false);
     }
   };
 
@@ -542,11 +522,17 @@ ${attText}
               tenderFields={bossTenderFields}
               onGpChange={setBossGpFields}
               onTenderChange={setBossTenderFields}
+              gpDisabled={gpDisabled}
+              tenderDisabled={tenderDisabled}
+              onGpDisabledChange={setGpDisabled}
+              onTenderDisabledChange={setTenderDisabled}
             />
           ) : (
             <BossProjectFields
               gpFields={r.boss_gp_fields || []}
               tenderFields={r.boss_tender_fields || []}
+              gpDisabled={r.boss_gp_disabled}
+              tenderDisabled={r.boss_tender_disabled}
               readOnly
             />
           )}
@@ -844,8 +830,8 @@ ${attText}
         onBossAdjustmentNoteChange={canBossScore ? setBossAdjustmentNote : undefined}
       />
 
-      {/* Boss notes sections */}
-      {canBossScore && (
+      {/* Boss notes sections — editable when canBossScore (pending_boss_review or pending_boss) */}
+      {canBossScore ? (
         <BossNotesSection
           deptGoals={bossDeptGoals}
           personalGoals={bossPersonalGoals}
@@ -854,12 +840,9 @@ ${attText}
           onPersonalGoalsChange={setBossPersonalGoals}
           onExtraNotesChange={setBossExtraNotes}
         />
-      )}
-
-      {/* Read-only boss notes when not in scoring mode */}
-      {!canBossScore && ((r.boss_dept_goals?.length > 0) || (r.boss_personal_goals?.length > 0) || r.boss_extra_notes) && (
+      ) : ((r.boss_dept_goals?.length > 0) || (r.boss_personal_goals?.length > 0) || r.boss_extra_notes) ? (
         <BossNotesReadonly deptGoals={r.boss_dept_goals} personalGoals={r.boss_personal_goals} extraNotes={r.boss_extra_notes} />
-      )}
+      ) : null}
 
       {/* Save boss scores + AI button */}
       {canBossScore && (
@@ -875,15 +858,15 @@ ${attText}
         </div>
       )}
 
-      {/* AI Appraisal Button */}
+      {/* Create Report Button */}
       <div className="flex justify-center pt-2 pb-2">
         <button
-          onClick={handleGenerateAppraisal}
-          disabled={generatingAI}
+          onClick={handleCreateReport}
+          disabled={creatingReport}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
         >
-          {generatingAI ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {generatingAI ? "生成報告中..." : "整合面談報告"}
+          {creatingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+          {creatingReport ? "建立報告中..." : "整合面談報告"}
         </button>
       </div>
 

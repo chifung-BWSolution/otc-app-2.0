@@ -190,6 +190,16 @@
         }
       }
     },
+    "boss_gp_disabled": {
+      "type": "boolean",
+      "title": "\u9644\u52a0\u6b04\u4f4d I \u4e0d\u9069\u7528",
+      "default": false
+    },
+    "boss_tender_disabled": {
+      "type": "boolean",
+      "title": "\u9644\u52a0\u6b04\u4f4d II \u4e0d\u9069\u7528",
+      "default": false
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",
