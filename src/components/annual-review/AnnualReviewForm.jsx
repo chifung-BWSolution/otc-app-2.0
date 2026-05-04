@@ -87,7 +87,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     initializedRef.current = true;
   }, [projectSummary]);
 
-  const allIndices = projects.map((_, i) => i).filter(i => (projects[i].hours || 0) >= 36);
+  const allIndices = projects.map((_, i) => i).filter(i => projects[i].project_name && projects[i].project_name !== "未指定項目");
   const visibleIndices = showAll ? allIndices : allIndices.slice(0, INITIAL_SHOW);
   const hasMore = allIndices.length > INITIAL_SHOW && !showAll;
 
@@ -214,7 +214,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
           <p className="text-sm text-blue-600 mt-1">
             可為每個項目填寫銷售額、貢獻重點及自評分數（非必填，按需填寫即可）
           </p>
-          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下只列出全年累計 36 小時或以上的項目。</p>
+          <p className="text-xs text-blue-500/70 mt-1">⚠️ 以下列出全年所有已參與的項目。</p>
         </div>
 
         <div className="p-5">
