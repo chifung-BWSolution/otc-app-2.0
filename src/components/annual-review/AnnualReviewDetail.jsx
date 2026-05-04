@@ -89,6 +89,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [bossDeptGoals, setBossDeptGoals] = useState(r.boss_dept_goals || []);
   const [bossPersonalGoals, setBossPersonalGoals] = useState(r.boss_personal_goals || []);
   const [bossExtraNotes, setBossExtraNotes] = useState(r.boss_extra_notes || "");
+  const [bossAdjustmentNote, setBossAdjustmentNote] = useState(r.boss_adjustment_note || "");
   const [bossGpFields, setBossGpFields] = useState(
     r.boss_gp_fields?.length > 0 ? r.boss_gp_fields : [
       { label: "上年度Share GP", amount: 0 },
@@ -131,6 +132,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
       boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
       boss_extra_notes: bossExtraNotes,
+      boss_adjustment_note: bossAdjustmentNote,
       boss_gp_fields: bossGpFields,
       boss_tender_fields: bossTenderFields,
     });
@@ -481,7 +483,7 @@ ${attText}
   }, [allProjects]);
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
@@ -837,7 +839,9 @@ ${attText}
         liveBossProjectScores={bossProjectScores}
         liveBossExtraScores={bossExtraScores}
         bossAdjustment={bossAdjustment}
+        bossAdjustmentNote={bossAdjustmentNote}
         onBossAdjustmentChange={canBossScore ? setBossAdjustment : undefined}
+        onBossAdjustmentNoteChange={canBossScore ? setBossAdjustmentNote : undefined}
       />
 
       {/* Boss notes sections */}

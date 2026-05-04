@@ -77,7 +77,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, onBossAdjustmentChange }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -151,6 +151,7 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         />
         <div className="border-t border-gray-200/50 my-1" />
         {onBossAdjustmentChange ? (
+          <>
           <div className="flex items-center gap-3 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl px-5 py-4 border-2 border-purple-300 shadow-sm">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -171,8 +172,32 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
                 className="w-10 h-10 rounded-xl bg-green-100 text-green-600 font-bold text-xl flex items-center justify-center hover:bg-green-200 transition-colors border border-green-200">+</button>
             </div>
           </div>
+          {onBossAdjustmentNoteChange && (
+            <div className="mt-2">
+              <textarea
+                className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-white"
+                rows={2}
+                placeholder="分數調整備註（選填）..."
+                value={bossAdjustmentNote || ""}
+                onChange={e => onBossAdjustmentNoteChange(e.target.value)}
+              />
+            </div>
+          )}
+          {!onBossAdjustmentNoteChange && bossAdjustmentNote && (
+            <div className="mt-2 text-sm text-purple-700 bg-white/80 rounded-lg px-3 py-2 border border-purple-100">
+              📝 {bossAdjustmentNote}
+            </div>
+          )}
+        </>
         ) : bossAdj !== 0 ? (
-          <ScoreRow label="⭐ 努力認可分數調整" value={bossAdj} isAdj sub="老闆手動調整" />
+          <>
+            <ScoreRow label="⭐ 努力認可分數調整" value={bossAdj} isAdj sub="老闆手動調整" />
+            {bossAdjustmentNote && (
+              <div className="text-sm text-purple-700 bg-purple-50 rounded-lg px-4 py-2 border border-purple-100 ml-1">
+                📝 {bossAdjustmentNote}
+              </div>
+            )}
+          </>
         ) : null}
       </div>
 

@@ -19,6 +19,7 @@ export default function BossNotesSection({ deptGoals, personalGoals, extraNotes,
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
           <h3 className="font-bold text-base text-cyan-800">🏢 未來部門目標</h3>
+          <p className="text-xs text-cyan-600 mt-0.5">可於面談時再新增 / 更改</p>
         </div>
         <div className="p-4 space-y-2">
           {deptGoals.map((g, i) => (
@@ -47,6 +48,7 @@ export default function BossNotesSection({ deptGoals, personalGoals, extraNotes,
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-violet-50 px-4 py-3 border-b border-violet-100">
           <h3 className="font-bold text-base text-violet-800">🎯 公司設定個人目標</h3>
+          <p className="text-xs text-violet-600 mt-0.5">可於面談時再新增 / 更改</p>
         </div>
         <div className="p-4 space-y-2">
           {personalGoals.map((g, i) => (

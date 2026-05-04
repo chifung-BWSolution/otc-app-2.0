@@ -138,6 +138,10 @@
       "description": "\u8001\u95c6\u624b\u52d5\u52a0\u6e1b\u5206",
       "default": 0
     },
+    "boss_adjustment_note": {
+      "type": "string",
+      "title": "\u5206\u6578\u8abf\u6574\u5099\u8a3b"
+    },
     "boss_dept_goals": {
       "type": "array",
       "title": "\u672a\u4f86\u90e8\u9580\u76ee\u6a19",

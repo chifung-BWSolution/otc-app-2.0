@@ -20,7 +20,7 @@ export default function BossProjectFields({ gpFields, tenderFields, onGpChange, 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {hasGp && (
           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
-            <div className="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1"><DollarSign size={13} /> Share GP</div>
+            <div className="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1"><DollarSign size={13} /> 附加欄位 I</div>
             {gpFields.map((f, i) => f.amount > 0 && (
               <div key={i} className="flex items-center justify-between text-sm py-1">
                 <span className="text-gray-700">{f.label}</span>
@@ -31,7 +31,7 @@ export default function BossProjectFields({ gpFields, tenderFields, onGpChange, 
         )}
         {hasTender && (
           <div className="bg-sky-50 rounded-xl p-4 border border-sky-100">
-            <div className="text-xs font-bold text-sky-700 mb-2 flex items-center gap-1"><Hash size={13} /> 中標項目</div>
+            <div className="text-xs font-bold text-sky-700 mb-2 flex items-center gap-1"><Hash size={13} /> 附加欄位 II</div>
             {tenderFields.map((f, i) => f.count > 0 && (
               <div key={i} className="flex items-center justify-between text-sm py-1">
                 <span className="text-gray-700">{f.label}</span>
@@ -48,7 +48,7 @@ export default function BossProjectFields({ gpFields, tenderFields, onGpChange, 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* GP Fields */}
       <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
-        <div className="text-xs font-bold text-emerald-700 mb-3 flex items-center gap-1"><DollarSign size={13} /> Share GP（選填）</div>
+        <div className="text-xs font-bold text-emerald-700 mb-3 flex items-center gap-1"><DollarSign size={13} /> 附加欄位 I</div>
         <div className="space-y-2.5">
           {gpFields.map((f, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function BossProjectFields({ gpFields, tenderFields, onGpChange, 
 
       {/* Tender Fields */}
       <div className="bg-sky-50 rounded-xl p-4 border border-sky-200">
-        <div className="text-xs font-bold text-sky-700 mb-3 flex items-center gap-1"><Hash size={13} /> 中標項目數（選填）</div>
+        <div className="text-xs font-bold text-sky-700 mb-3 flex items-center gap-1"><Hash size={13} /> 附加欄位 II</div>
         <div className="space-y-2.5">
           {tenderFields.map((f, i) => (
             <div key={i} className="flex items-center gap-2">
