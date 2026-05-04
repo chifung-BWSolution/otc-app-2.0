@@ -67,13 +67,12 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
   };
 
   const loadAttendance = async () => {
-    const [staffList, clockinList, leaveList, regionList, dateList, taskList] = await Promise.all([
+    const [staffList, clockinList, leaveList, regionList, dateList] = await Promise.all([
       base44.entities.Staff.filter({ bubble_id: staffId }, "id", 1),
       loadAll(base44.entities.BubbleClockin, "id", 5000, { staff_id: staffId }),
       loadAll(base44.entities.BubbleLeave, "id", 5000, { staff_id: staffId }),
       base44.entities.Region.filter({ is_active: true }, "sort_order", 50),
       loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: staffId }),
-      loadAll(base44.entities.BubbleManHourTask, "-created_date"),
     ]);
 
     const staffRec = staffList[0];
@@ -123,18 +122,12 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
     }
 
     // Report days (dateList already filtered by staff_id)
-    const myDates = dateList.filter(d => {
-      const rd = toLocalDate(d.report_date);
-      return rd && rd >= fy.start && rd <= fy.end;
-    });
-    const myDateIds = new Set(myDates.map(d => d.bubble_id).filter(Boolean));
-    const dateIdsWithTasks = new Set(taskList.filter(t => myDateIds.has(t.man_hour_date_id)).map(t => t.man_hour_date_id));
+    // Use total_work_hour > 0 as proxy for having tasks, avoiding loading all BubbleManHourTask
     const reportDates = new Set();
-    for (const d of myDates) {
-      if (d.bubble_id && dateIdsWithTasks.has(d.bubble_id)) {
-        const rd = toLocalDate(d.report_date);
-        if (rd) reportDates.add(rd);
-      }
+    for (const d of dateList) {
+      const rd = toLocalDate(d.report_date);
+      if (!rd || rd < fy.start || rd > fy.end) continue;
+      if ((d.total_work_hour || 0) > 0) reportDates.add(rd);
     }
 
     // Unpaid leave (leaveList already filtered by staff_id)
