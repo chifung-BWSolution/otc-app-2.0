@@ -2,159 +2,27 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Award, AlertTriangle, Calendar, Clock, Coffee } from "lucide-react";
 
-const toLocalDate = (val) => {
-  if (!val) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-  const cleaned = val.split(' ')[0];
-  const parts = cleaned.split('/');
-  if (parts.length === 3) { const [d, m, y] = parts; return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`; }
-  if (val.includes('T')) { const d = new Date(val); const hkt = new Date(d.getTime() + 8 * 60 * 60 * 1000); return hkt.toISOString().slice(0, 10); }
-  return null;
-};
 
-function parseToDate(val) {
-  if (!val) return null;
-  if (val.includes('T')) return new Date(val);
-  const [datePart, timePart] = val.split(' ');
-  const parts = datePart.split('/');
-  if (parts.length === 3) {
-    const [d, m, y] = parts;
-    const [hh, mm] = (timePart || '0:00').split(':');
-    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), parseInt(hh), parseInt(mm));
-  }
-  return new Date(val);
-}
-
-function parseFY(fyLabel) {
-  const match = fyLabel.match(/FY(\d{4})\/(\d{4})/);
-  if (!match) return null;
-  const y = parseInt(match[1]);
-  return { start: `${y}-04-01`, end: `${y + 1}-03-31` };
-}
-
-async function loadAll(entity, sort = "id", batchSize = 5000, query = {}) {
-  const all = [];
-  let offset = 0;
-  while (true) {
-    const batch = await entity.filter(query, sort, batchSize, offset);
-    all.push(...batch);
-    if (batch.length < batchSize) break;
-    offset += batch.length;
-    await new Promise(r => setTimeout(r, 500));
-  }
-  return all;
-}
 
 export default function SelfReviewRecords({ staffId, fiscalYear }) {
   const [loading, setLoading] = useState(true);
   const [meritRecords, setMeritRecords] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState(null);
 
-  const fy = parseFY(fiscalYear);
-
   useEffect(() => {
-    if (!staffId || !fy) { setLoading(false); return; }
-    Promise.all([loadMerits(), loadAttendance()]).finally(() => setLoading(false));
+    if (!staffId || !fiscalYear) { setLoading(false); return; }
+    loadData();
   }, [staffId, fiscalYear]);
 
-  const loadMerits = async () => {
-    const records = await base44.entities.BubbleMeritsDemerits.filter({ staff_id: staffId }, "-event_date", 200);
-    setMeritRecords(records.filter(rec => {
-      if (!rec.event_date) return false;
-      const d = toLocalDate(rec.event_date);
-      return d && d >= fy.start && d <= fy.end;
-    }));
-  };
-
-  const loadAttendance = async () => {
-    const [staffList, clockinList, leaveList, regionList, dateList] = await Promise.all([
-      base44.entities.Staff.filter({ bubble_id: staffId }, "id", 1),
-      loadAll(base44.entities.BubbleClockin, "id", 5000, { staff_id: staffId }),
-      loadAll(base44.entities.BubbleLeave, "id", 5000, { staff_id: staffId }),
-      base44.entities.Region.filter({ is_active: true }, "sort_order", 50),
-      loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: staffId }),
-    ]);
-
-    const staffRec = staffList[0];
-
-    const staffRegion = regionList.find(reg => {
-      if (staffRec?.staff_region) return reg.code === staffRec.staff_region;
-      const loc = (staffRec?.o_base_location || "").toLowerCase();
-      return (reg.base_locations || []).some(v => v && loc.includes(v.toLowerCase()));
-    }) || regionList[0];
-
-    const parseTime = (t, fallback) => {
-      if (!t) return fallback;
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + (m || 0);
-    };
-    const weekdayEndMin = parseTime(staffRegion?.work_end, 18 * 60 + 30);
-    const satEndMin = parseTime(staffRegion?.sat_training_end, 13 * 60 + 30);
-
-    const myClockins = clockinList.filter(c => !!c.clockin_time);
-
-    const clockinDates = new Set();
-    let totalLateMinutes = 0;
-    let voluntaryOTMinutes = 0;
-
-    for (const c of myClockins) {
-      const d = toLocalDate(c.clockin_time);
-      if (!d || d < fy.start || d > fy.end) continue;
-      clockinDates.add(d);
-      if (c.late_minutes > 0) totalLateMinutes += c.late_minutes;
-      if (c.clock_out_time) {
-        const outDate = parseToDate(c.clock_out_time);
-        if (outDate) {
-          const outLocalDate = toLocalDate(c.clock_out_time);
-          if (outLocalDate && outLocalDate >= fy.start && outLocalDate <= fy.end) {
-            const dayOfWeek = outDate.getDay();
-            const outTotalMin = outDate.getHours() * 60 + outDate.getMinutes();
-            let threshold = null;
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) threshold = weekdayEndMin;
-            else if (dayOfWeek === 6) threshold = satEndMin;
-            if (threshold !== null && outTotalMin > threshold) {
-              let extraMin = outTotalMin - threshold - (c.ot_minutes || 0);
-              voluntaryOTMinutes += Math.max(0, extraMin);
-            }
-          }
-        }
-      }
-    }
-
-    // Report days (dateList already filtered by staff_id)
-    // Use total_work_hour > 0 as proxy for having tasks, avoiding loading all BubbleManHourTask
-    const reportDates = new Set();
-    for (const d of dateList) {
-      const rd = toLocalDate(d.report_date);
-      if (!rd || rd < fy.start || rd > fy.end) continue;
-      if ((d.total_work_hour || 0) > 0) reportDates.add(rd);
-    }
-
-    // Unpaid leave (leaveList already filtered by staff_id)
-    const myLeaves = leaveList.filter(l => {
-      if (l.approved !== true) return false;
-      const dn = (l.display_name || "");
-      if (!dn.includes("無薪") && !dn.toLowerCase().includes("unpaid") && !dn.toLowerCase().includes("no pay")) return false;
-      const sd = toLocalDate(l.start_date_time || l.end_date_time);
-      return sd && sd >= fy.start && sd <= fy.end;
+  const loadData = async () => {
+    setLoading(true);
+    const res = await base44.functions.invoke('loadAttendanceStats', {
+      staff_id: staffId,
+      fiscal_year: fiscalYear,
     });
-    const ulPersonalDays = myLeaves.filter(l => { const dn = l.display_name || ""; return dn.includes("無薪事假") || dn.includes("突發無薪事假"); }).reduce((s, l) => s + Math.abs(l.quota || 0), 0);
-    const ulSickDays = myLeaves.filter(l => { const dn = l.display_name || ""; return dn.includes("無薪病假") || dn.includes("無薪假期"); }).reduce((s, l) => s + Math.abs(l.quota || 0), 0);
-
-    setAttendanceStats({
-      workDays: clockinDates.size,
-      reportDays: reportDates.size,
-      totalLateMinutes,
-      voluntaryOTMinutes,
-      ulDays: myLeaves.reduce((s, l) => s + Math.abs(l.quota || 0), 0),
-      ulPersonalDays,
-      ulSickDays,
-      ulLeaves: myLeaves.map(l => ({
-        display_name: l.display_name,
-        quota: l.quota,
-        start: toLocalDate(l.start_date_time),
-      })),
-    });
+    setAttendanceStats(res.data.attendanceStats || null);
+    setMeritRecords(res.data.meritRecords || []);
+    setLoading(false);
   };
 
   if (loading) {
