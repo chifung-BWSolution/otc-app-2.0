@@ -6,6 +6,7 @@ import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSe
 import MeritsDemeritsList from "./MeritsDemeritsList";
 import ScoringBreakdown, { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "./ScoringBreakdown";
 import BossNotesSection from "./BossNotesSection";
+import BossProjectFields from "./BossProjectFields";
 
 
 const SCORE_COLORS = {
@@ -88,6 +89,18 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [bossDeptGoals, setBossDeptGoals] = useState(r.boss_dept_goals || []);
   const [bossPersonalGoals, setBossPersonalGoals] = useState(r.boss_personal_goals || []);
   const [bossExtraNotes, setBossExtraNotes] = useState(r.boss_extra_notes || "");
+  const [bossGpFields, setBossGpFields] = useState(
+    r.boss_gp_fields?.length > 0 ? r.boss_gp_fields : [
+      { label: "上年度Share GP", amount: 0 },
+      { label: "本年度Share GP", amount: 0 },
+    ]
+  );
+  const [bossTenderFields, setBossTenderFields] = useState(
+    r.boss_tender_fields?.length > 0 ? r.boss_tender_fields : [
+      { label: "上年度中標項目數", count: 0 },
+      { label: "本年度中標項目數", count: 0 },
+    ]
+  );
 
   // Init boss scores from review data
   useEffect(() => {
@@ -118,6 +131,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
       boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
       boss_extra_notes: bossExtraNotes,
+      boss_gp_fields: bossGpFields,
+      boss_tender_fields: bossTenderFields,
     });
     setSavingBoss(false);
     refreshReview();
@@ -517,6 +532,22 @@ ${attText}
             <StatBadge color="purple" value={totalTasks} label="總任務數" />
             {totalSales > 0 && <StatBadge color="yellow" value={`$${totalSales.toLocaleString()}`} label="銷售額" />}
           </div>
+
+          {/* Boss GP & Tender fields */}
+          {canBossScore ? (
+            <BossProjectFields
+              gpFields={bossGpFields}
+              tenderFields={bossTenderFields}
+              onGpChange={setBossGpFields}
+              onTenderChange={setBossTenderFields}
+            />
+          ) : (
+            <BossProjectFields
+              gpFields={r.boss_gp_fields || []}
+              tenderFields={r.boss_tender_fields || []}
+              readOnly
+            />
+          )}
 
           {contributedProjects.length > 0 && (
             <div className="space-y-2">

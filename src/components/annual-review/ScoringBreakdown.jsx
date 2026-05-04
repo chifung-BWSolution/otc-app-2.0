@@ -176,6 +176,15 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         ) : null}
       </div>
 
+      {/* Attendance Rules */}
+      <div className="bg-white/60 rounded-lg px-4 py-3 text-xs space-y-1.5 mb-3">
+        <div className="font-semibold text-gray-700 mb-1">📋 考勤調整規則</div>
+        <div className="text-gray-500">• <b>遲到</b>：每累計 720 分鐘（12 小時）→ <span className="text-red-600 font-semibold">-2 分</span></div>
+        <div className="text-gray-500">• <b>無薪假</b>：≥ 3 日 → <span className="text-red-600 font-semibold">-2 分</span>，之後每多 1 日 → <span className="text-red-600 font-semibold">-0.5 分</span></div>
+        <div className="text-gray-500">• <b>自願加班</b>：每累計 1440 分鐘（24 小時）→ <span className="text-green-600 font-semibold">+2 分</span></div>
+        <div className="text-gray-500">• <b>匯報缺失</b>：每 5 日未匯報（上班日 - 匯報日）→ <span className="text-red-600 font-semibold">-1 分</span></div>
+      </div>
+
       {/* Details */}
       <div className="space-y-2 text-xs">
         {meritResult.details.length > 0 && (

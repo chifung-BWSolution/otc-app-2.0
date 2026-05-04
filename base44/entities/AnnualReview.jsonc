@@ -156,6 +156,36 @@
       "type": "string",
       "title": "\u5176\u5b83\u88dc\u5145"
     },
+    "boss_gp_fields": {
+      "type": "array",
+      "title": "\u8001\u95c6 GP \u6b04\u4f4d",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "boss_tender_fields": {
+      "type": "array",
+      "title": "\u8001\u95c6\u4e2d\u6a19\u6b04\u4f4d",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        }
+      }
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",
