@@ -4,10 +4,11 @@ import { Loader2, Users } from "lucide-react";
 import ColleagueSelector from "@/components/peer-review/ColleagueSelector";
 import PeerReviewForm from "@/components/peer-review/PeerReviewForm";
 
-function getCurrentFY() {
+function getLastFY() {
   const now = new Date();
-  const y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  return `FY${y}/${y + 1}`;
+  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const year = currentFYStart - 1;
+  return `FY${year}/${year + 1}`;
 }
 
 export default function PeerReview() {
@@ -17,7 +18,7 @@ export default function PeerReview() {
   const [colleagues, setColleagues] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [selectedColleague, setSelectedColleague] = useState(null);
-  const fiscalYear = getCurrentFY();
+  const fiscalYear = getLastFY();
 
   useEffect(() => { loadData(); }, []);
 
