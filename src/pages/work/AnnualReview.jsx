@@ -281,7 +281,7 @@ export default function AnnualReview() {
           onPeerReview={() => setView("peer-review")}
         />
       ) : (
-        <SubordinateReviews staffRec={staffRec} user={user} />
+        <SubordinateReviews staffRec={staffRec} user={user} onLeaderScored={() => setPendingLeaderCount(prev => Math.max(0, prev - 1))} />
       )}
     </div>
   );

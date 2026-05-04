@@ -11,7 +11,7 @@ function getLastFY() {
   return `FY${year}/${year + 1}`;
 }
 
-export default function SubordinateReviews({ staffRec, user }) {
+export default function SubordinateReviews({ staffRec, user, onLeaderScored }) {
   const [loading, setLoading] = useState(true);
   const [subordinates, setSubordinates] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -67,7 +67,7 @@ export default function SubordinateReviews({ staffRec, user }) {
       <LeaderScoringForm
         review={scoringReview}
         onBack={() => setScoringReview(null)}
-        onSubmitted={() => { setScoringReview(null); loadData(); }}
+        onSubmitted={() => { setScoringReview(null); loadData(); onLeaderScored?.(); }}
       />
     );
   }
