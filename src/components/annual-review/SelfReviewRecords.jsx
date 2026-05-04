@@ -32,11 +32,11 @@ function parseFY(fyLabel) {
   return { start: `${y}-04-01`, end: `${y + 1}-03-31` };
 }
 
-async function loadAll(entity, sort = "id", batchSize = 5000) {
+async function loadAll(entity, sort = "id", batchSize = 5000, query = {}) {
   const all = [];
   let offset = 0;
   while (true) {
-    const batch = await entity.filter({}, sort, batchSize, offset);
+    const batch = await entity.filter(query, sort, batchSize, offset);
     all.push(...batch);
     if (batch.length < batchSize) break;
     offset += batch.length;
@@ -69,18 +69,14 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
   const loadAttendance = async () => {
     const [staffList, clockinList, leaveList, regionList, dateList, taskList] = await Promise.all([
       base44.entities.Staff.filter({ bubble_id: staffId }, "id", 1),
-      loadAll(base44.entities.BubbleClockin, "id"),
-      loadAll(base44.entities.BubbleLeave, "id"),
+      loadAll(base44.entities.BubbleClockin, "id", 5000, { staff_id: staffId }),
+      loadAll(base44.entities.BubbleLeave, "id", 5000, { staff_id: staffId }),
       base44.entities.Region.filter({ is_active: true }, "sort_order", 50),
-      loadAll(base44.entities.BubbleManHourDate, "-report_date"),
+      loadAll(base44.entities.BubbleManHourDate, "-report_date", 5000, { staff_id: staffId }),
       loadAll(base44.entities.BubbleManHourTask, "-created_date"),
     ]);
 
     const staffRec = staffList[0];
-    const staffNameToBubbleId = {};
-    // Build name→id mapping from all staff for clockin matching
-    const allStaff = await base44.entities.Staff.list("display_name", 2000);
-    for (const s of allStaff) { if (s.bubble_id && s.display_name) staffNameToBubbleId[s.display_name] = s.bubble_id; }
 
     const staffRegion = regionList.find(reg => {
       if (staffRec?.staff_region) return reg.code === staffRec.staff_region;
@@ -96,12 +92,7 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
     const weekdayEndMin = parseTime(staffRegion?.work_end, 18 * 60 + 30);
     const satEndMin = parseTime(staffRegion?.sat_training_end, 13 * 60 + 30);
 
-    const myClockins = clockinList.filter(c => {
-      if (!c.clockin_time) return false;
-      if (c.staff_id === staffId) return true;
-      if (!c.staff_id && c.staff_name) return staffNameToBubbleId[c.staff_name] === staffId;
-      return false;
-    });
+    const myClockins = clockinList.filter(c => !!c.clockin_time);
 
     const clockinDates = new Set();
     let totalLateMinutes = 0;
@@ -131,9 +122,8 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
       }
     }
 
-    // Report days
+    // Report days (dateList already filtered by staff_id)
     const myDates = dateList.filter(d => {
-      if (d.staff_id !== staffId) return false;
       const rd = toLocalDate(d.report_date);
       return rd && rd >= fy.start && rd <= fy.end;
     });
@@ -147,9 +137,9 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
       }
     }
 
-    // Unpaid leave
+    // Unpaid leave (leaveList already filtered by staff_id)
     const myLeaves = leaveList.filter(l => {
-      if (l.staff_id !== staffId || l.approved !== true) return false;
+      if (l.approved !== true) return false;
       const dn = (l.display_name || "");
       if (!dn.includes("無薪") && !dn.toLowerCase().includes("unpaid") && !dn.toLowerCase().includes("no pay")) return false;
       const sd = toLocalDate(l.start_date_time || l.end_date_time);
