@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Loader2, CheckCircle2, FileText, Save } from "lucide-react";
-import AppraisalScoring from "./AppraisalScoring";
+import { ArrowLeft, Loader2, CheckCircle2, FileText, Save, Download } from "lucide-react";
 import BossNotesSection from "@/components/annual-review/BossNotesSection";
 import BossProjectFields from "@/components/annual-review/BossProjectFields";
 import ReportContentDisplay from "./ReportContentDisplay";
@@ -18,6 +17,7 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [gpDisabled, setGpDisabled] = useState(false);
   const [tenderDisabled, setTenderDisabled] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     if (report.annual_review_id) {
@@ -80,15 +80,22 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
     setSavingNotes(false);
   };
 
-  const handleScoreUpdate = async (scores) => {
-    const total = (scores.score_projects || 0) + (scores.score_contributions || 0) +
-      (scores.score_challenges || 0) + (scores.score_goals || 0) +
-      (scores.score_peer_review || 0) + (scores.score_attendance || 0);
-    const data = { ...scores, total_score: total, scoring_completed: true };
-    await base44.entities.AppraisalReport.update(r.id, data);
-    const updated = { ...r, ...data };
-    setR(updated);
-    onUpdated(updated);
+  const handleDownloadPdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      const response = await base44.functions.invoke('generateAppraisalPdf', { report_id: r.id }, { responseType: 'arraybuffer' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Appraisal_${r.staff_name}_${r.fiscal_year}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      alert("PDF 生成失敗：" + (err.message || "未知錯誤"));
+    }
+    setGeneratingPdf(false);
   };
 
   return (
@@ -180,9 +187,18 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         <BossNotesReadonly deptGoals={bossDeptGoals} personalGoals={bossPersonalGoals} extraNotes={bossExtraNotes} />
       )}
 
-      {/* Scoring — only after confirmed */}
+      {/* PDF Download — after confirmed */}
       {r.is_final && (
-        <AppraisalScoring report={r} onSave={handleScoreUpdate} />
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={generatingPdf}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
+          >
+            {generatingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {generatingPdf ? "PDF 生成中..." : "下載面談報告 PDF（含簽名欄）"}
+          </button>
+        </div>
       )}
     </div>
   );
