@@ -5,6 +5,8 @@ import BossNotesSection from "@/components/annual-review/BossNotesSection";
 import BossProjectFields from "@/components/annual-review/BossProjectFields";
 import ReportContentDisplay from "./ReportContentDisplay";
 import SignAndDownloadSection from "./SignAndDownloadSection";
+import { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "@/components/annual-review/ScoringBreakdown";
+import { getTeamWeights, calcGpScore, calcSkillScore } from "@/lib/scoringConfig";
 
 export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [r, setR] = useState(report);
@@ -39,6 +41,38 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
     }
   }, [report.annual_review_id]);
 
+  const computeTotalScore = async () => {
+    if (!annualReview) return null;
+    // Determine team group
+    let teamGroup = null;
+    const staffList = await base44.entities.Staff.filter({ bubble_id: r.staff_id }, "id", 1);
+    if (staffList.length > 0) teamGroup = staffList[0].team_group || null;
+    const weights = getTeamWeights(teamGroup);
+
+    const projects = annualReview.project_contributions || [];
+    const extras = annualReview.extra_contributions || [];
+    const projResult = calcSectionScore(projects, weights.project);
+    const extraResult = calcSectionScore(extras, weights.extra);
+    const skillResult = calcSkillScore(annualReview.skill_scores, weights.skill, annualReview.skill_self_scores);
+    const gpResult = weights.gp > 0 ? calcGpScore(annualReview.boss_gp_fields, annualReview.boss_gp_score, weights.gp) : { score: 0 };
+    const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;
+
+    // Attendance
+    let attAdj = 0;
+    try {
+      const statsRes = await base44.functions.invoke('loadAttendanceStats', { staff_id: r.staff_id, fiscal_year: r.fiscal_year });
+      const attResult = calcAttendanceAdj(statsRes.data.attendanceStats || null);
+      attAdj = attResult.total;
+      // Merits
+      const meritTypes = await base44.entities.MeritDemeritType.filter({ is_active: true }, "sort_order", 100);
+      const meritResult = calcMeritAdj(statsRes.data.meritRecords || [], meritTypes);
+      attAdj += meritResult.adj;
+    } catch {}
+
+    const bossAdj = annualReview.boss_score_adjustment || 0;
+    return Math.round((baseScore + attAdj + bossAdj) * 100) / 100;
+  };
+
   const handleConfirm = async () => {
     setConfirming(true);
     if (annualReview) {
@@ -52,10 +86,18 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         boss_tender_disabled: tenderDisabled,
       });
     }
+    // Calculate total score
+    const totalScore = await computeTotalScore();
+
     // Also update report_content with latest GP/tender data
     const updatedContent = updateReportGpTender(r.report_content, gpFields, tenderFields, gpDisabled, tenderDisabled);
-    await base44.entities.AppraisalReport.update(r.id, { is_final: true, report_content: updatedContent });
-    const updated = { ...r, is_final: true, report_content: updatedContent };
+    const updateData = { is_final: true, report_content: updatedContent };
+    if (totalScore !== null) {
+      updateData.total_score = totalScore;
+      updateData.scoring_completed = true;
+    }
+    await base44.entities.AppraisalReport.update(r.id, updateData);
+    const updated = { ...r, ...updateData };
     setR(updated);
     onUpdated(updated);
     setConfirming(false);
@@ -171,7 +213,11 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
 
       {/* Sign & Download PDF — after confirmed */}
       {r.is_final && (
-        <SignAndDownloadSection report={r} />
+        <SignAndDownloadSection report={r} onPdfSaved={(url) => {
+          const updated = { ...r, pdf_url: url };
+          setR(updated);
+          onUpdated(updated);
+        }} />
       )}
     </div>
   );

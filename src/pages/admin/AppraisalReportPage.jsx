@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Search, Eye, Users, X, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, Search, Eye, Users, X, CheckCircle2, Download } from "lucide-react";
 import AppraisalReportDetail from "@/components/appraisal/AppraisalReportDetail";
 
 export default function AppraisalReportPage() {
@@ -138,10 +138,18 @@ export default function AppraisalReportPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button onClick={() => setSelectedReport(r)}
-                    className="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1 mx-auto">
-                    <Eye size={13} /> 查看
-                  </button>
+                  <div className="flex items-center gap-2 justify-center">
+                    <button onClick={() => setSelectedReport(r)}
+                      className="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1">
+                      <Eye size={13} /> 查看
+                    </button>
+                    {r.pdf_url && (
+                      <a href={r.pdf_url} target="_blank" rel="noopener noreferrer"
+                        className="text-green-600 hover:text-green-800 text-xs font-semibold flex items-center gap-1">
+                        <Download size={13} /> PDF
+                      </a>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

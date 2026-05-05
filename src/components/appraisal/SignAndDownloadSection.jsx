@@ -3,7 +3,7 @@ import { Loader2, Download, PenTool } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import SignaturePad from "./SignaturePad";
 
-export default function SignAndDownloadSection({ report }) {
+export default function SignAndDownloadSection({ report, onPdfSaved }) {
   const [showSignature, setShowSignature] = useState(false);
   const [staffSig, setStaffSig] = useState(null);
   const [bossSig, setBossSig] = useState(null);
@@ -27,6 +27,10 @@ export default function SignAndDownloadSection({ report }) {
 
       const { file_url, file_name } = response.data;
       
+      // Save PDF URL to database
+      await base44.entities.AppraisalReport.update(report.id, { pdf_url: file_url });
+      if (onPdfSaved) onPdfSaved(file_url);
+
       // Download the generated PDF
       const a = document.createElement("a");
       a.href = file_url;

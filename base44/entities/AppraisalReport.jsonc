@@ -80,6 +80,10 @@
       "type": "boolean",
       "title": "\u5df2\u5b8c\u6210\u8a55\u5206",
       "default": false
+    },
+    "pdf_url": {
+      "type": "string",
+      "title": "PDF \u6a94\u6848\u9023\u7d50"
     }
   },
   "required": [
