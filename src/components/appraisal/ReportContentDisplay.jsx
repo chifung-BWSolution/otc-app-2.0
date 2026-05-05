@@ -1,5 +1,9 @@
+import { useState, useEffect, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
 import ReactMarkdown from "react-markdown";
 import BossProjectFields from "@/components/annual-review/BossProjectFields";
+import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
+import { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "@/components/annual-review/ScoringBreakdown";
 
 function parseContributionPoints(points) {
   if (!points || !Array.isArray(points)) return [];
@@ -11,7 +15,7 @@ function parseContributionPoints(points) {
   }).filter(s => s.trim());
 }
 
-export default function ReportContentDisplay({ content, staffName }) {
+export default function ReportContentDisplay({ content, staffName, staffId, fiscalYear }) {
   // Try to parse as structured JSON; fallback to markdown
   let data = null;
   try {
@@ -172,6 +176,119 @@ export default function ReportContentDisplay({ content, staffName }) {
           </div>
         </div>
       )}
+
+      {/* Peer Review Results */}
+      {staffId && fiscalYear && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-indigo-50 px-4 py-3 border-b border-indigo-100">
+            <h3 className="font-bold text-base text-indigo-800">👥 同事互評結果</h3>
+          </div>
+          <div className="p-4">
+            <PeerReviewResultSection staffId={staffId} fiscalYear={fiscalYear} />
+          </div>
+        </div>
+      )}
+
+      {/* Scoring summary */}
+      {staffId && fiscalYear && (
+        <ReportScoringSection staffId={staffId} fiscalYear={fiscalYear} projects={projects} extras={extras} />
+      )}
+    </div>
+  );
+}
+
+function ReportScoringSection({ staffId, fiscalYear, projects, extras }) {
+  const [loading, setLoading] = useState(true);
+  const [attendanceStats, setAttendanceStats] = useState(null);
+  const [meritRecords, setMeritRecords] = useState([]);
+  const [meritTypes, setMeritTypes] = useState([]);
+  const [annualReview, setAnnualReview] = useState(null);
+
+  useEffect(() => {
+    if (!staffId || !fiscalYear) { setLoading(false); return; }
+    Promise.all([
+      base44.functions.invoke('loadAttendanceStats', { staff_id: staffId, fiscal_year: fiscalYear }),
+      base44.entities.MeritDemeritType.filter({ is_active: true }, "sort_order", 100),
+      base44.entities.AnnualReview.filter({ staff_id: staffId, fiscal_year: fiscalYear }, "-created_date", 1),
+    ]).then(([statsRes, types, reviews]) => {
+      setAttendanceStats(statsRes.data.attendanceStats || null);
+      setMeritRecords(statsRes.data.meritRecords || []);
+      setMeritTypes(types);
+      if (reviews.length > 0) setAnnualReview(reviews[0]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [staffId, fiscalYear]);
+
+  if (loading) return <div className="text-center py-4 text-gray-400 text-sm">載入評分數據...</div>;
+
+  // Build items from report data for scoring calc
+  const projItems = (projects || []).map(p => ({
+    self_score: p.avgScore || 0,
+    leader_score: 0,
+    boss_score: 0,
+  }));
+  // Use annual review data if available for more accurate scores
+  const arProjects = annualReview?.project_contributions || [];
+  const arExtras = annualReview?.extra_contributions || [];
+
+  const projResult = calcSectionScore(arProjects.length > 0 ? arProjects : projItems, 90);
+  const extraResult = calcSectionScore(arExtras.length > 0 ? arExtras : (extras || []).map(e => ({ self_score: e.avgScore || 0, leader_score: 0, boss_score: 0 })), 10);
+  const baseScore = projResult.score + extraResult.score;
+  const meritResult = calcMeritAdj(meritRecords, meritTypes);
+  const attResult = calcAttendanceAdj(attendanceStats);
+  const bossAdj = annualReview?.boss_score_adjustment || 0;
+  const totalAdj = meritResult.adj + attResult.total + bossAdj;
+  const finalScore = baseScore + totalAdj;
+
+  const scoreColor = finalScore >= 80 ? "text-green-600" : finalScore >= 60 ? "text-amber-600" : "text-red-600";
+  const scoreBg = finalScore >= 80 ? "from-green-50 to-emerald-50 border-green-200" : finalScore >= 60 ? "from-amber-50 to-yellow-50 border-amber-200" : "from-red-50 to-orange-50 border-red-200";
+
+  return (
+    <div className={`bg-gradient-to-r ${scoreBg} rounded-xl border-2 p-5`}>
+      <h3 className="font-bold text-base text-gray-800 mb-4">📊 評分摘要（滿分 100）</h3>
+      <div className="space-y-2 mb-4">
+        <ScoreRow label="📊 項目工作" pct="90%" value={projResult.score} max={90} sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`} />
+        <ScoreRow label="🌟 額外貢獻" pct="10%" value={extraResult.score} max={10} sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`} />
+        <div className="border-t border-gray-200/50 my-1" />
+        <ScoreRow label="🏅 功過調整" value={meritResult.adj} isAdj sub={`${meritRecords.length} 條紀錄`} />
+        <ScoreRow label="📋 考勤調整" value={attResult.total} isAdj sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)} · 匯報${f2(attResult.reportGap)}` : "未載入"} />
+        {bossAdj !== 0 && (
+          <>
+            <div className="border-t border-gray-200/50 my-1" />
+            <ScoreRow label="⭐ 努力認可調整" value={bossAdj} isAdj sub={annualReview?.boss_adjustment_note || "老闆手動調整"} />
+          </>
+        )}
+      </div>
+      <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">基本分 {f2(baseScore)}</span>
+          {totalAdj !== 0 && <span className="ml-2">{totalAdj > 0 ? "+" : ""}{f2(totalAdj)} 調整</span>}
+        </div>
+        <div className={`text-3xl font-black ${scoreColor}`}>
+          {f2(finalScore)}
+          <span className="text-sm font-medium text-gray-400 ml-1">/ 100</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreRow({ label, pct, value, max, sub, isAdj }) {
+  const display = isAdj ? (value > 0 ? `+${f2(value)}` : f2(value)) : f2(value);
+  const color = isAdj ? (value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500") : "text-indigo-600";
+  return (
+    <div className="flex items-center gap-3 bg-white/60 rounded-lg px-4 py-2.5">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-800">{label}</span>
+          {pct && <span className="text-xs bg-gray-200/80 text-gray-600 px-1.5 py-0.5 rounded font-medium">{pct}</span>}
+        </div>
+        {sub && <div className="text-[11px] text-gray-400 mt-0.5">{sub}</div>}
+      </div>
+      <div className="text-right shrink-0">
+        <div className={`text-lg font-black ${color}`}>{display}</div>
+        {max && <div className="text-[10px] text-gray-400">/ {max}</div>}
+      </div>
     </div>
   );
 }
