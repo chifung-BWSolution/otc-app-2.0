@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Loader2, Download, PenTool } from "lucide-react";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { base44 } from "@/api/base44Client";
+import { generateAppraisalPdf } from "@/lib/pdfGenerator";
 import SignaturePad from "./SignaturePad";
 
 export default function SignAndDownloadSection({ report, contentRef }) {
@@ -19,114 +19,24 @@ export default function SignAndDownloadSection({ report, contentRef }) {
     }
     setGenerating(true);
     try {
-      // 1. Capture the report content as image via html2canvas
-      const el = contentRef.current;
-      if (!el) { alert("找不到報告內容"); setGenerating(false); return; }
+      // Parse structured report data
+      let reportData = null;
+      try { reportData = JSON.parse(report.report_content); if (!reportData.summary) reportData = null; } catch {}
 
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: 800,
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const imgW = canvas.width;
-      const imgH = canvas.height;
-
-      // 2. Build PDF (A4)
-      const pdf = new jsPDF({ unit: "mm", format: "a4" });
-      const pageW = 210;
-      const pageH = 297;
-      const margin = 10;
-      const contentW = pageW - margin * 2;
-
-      // Scale content image to fit page width
-      const ratio = contentW / imgW;
-      const scaledH = imgH * ratio;
-
-      // Split into pages
-      const pageContentH = pageH - margin * 2;
-      let srcY = 0;
-      let page = 0;
-
-      while (srcY < imgH) {
-        if (page > 0) pdf.addPage();
-        const sliceH = Math.min(pageContentH / ratio, imgH - srcY);
-
-        // Create a temporary canvas for this slice
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = imgW;
-        sliceCanvas.height = sliceH;
-        const ctx = sliceCanvas.getContext("2d");
-        ctx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH);
-
-        const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-        const slicePageH = sliceH * ratio;
-        pdf.addImage(sliceData, "JPEG", margin, margin, contentW, slicePageH);
-
-        srcY += sliceH;
-        page++;
+      // Load annual review for boss notes
+      let annualReview = null;
+      if (report.annual_review_id) {
+        const ars = await base44.entities.AnnualReview.filter({ id: report.annual_review_id }, "id", 1);
+        if (ars.length > 0) annualReview = ars[0];
       }
 
-      // 3. Add signature page
-      pdf.addPage();
-      let y = 25;
-
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(30, 30, 80);
-      pdf.text("Signatures / Confirmation", pageW / 2, y, { align: "center" });
-      y += 15;
-
-      // Staff info line
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(`Staff: ${report.staff_name}    Fiscal Year: ${report.fiscal_year}`, margin + 5, y);
-      y += 12;
-
-      const sigW = 70;
-      const sigH = 35;
-      const sigGap = 30;
-      const col1X = margin + 15;
-      const col2X = pageW / 2 + 15;
-
-      // Staff signature
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(50, 50, 50);
-      pdf.text("Employee", col1X, y);
-      pdf.text("Management", col2X, y);
-      y += 5;
-
-      // Draw signature images
-      pdf.addImage(staffSig, "PNG", col1X, y, sigW, sigH);
-      pdf.addImage(bossSig, "PNG", col2X, y, sigW, sigH);
-      y += sigH + 3;
-
-      // Signature lines
-      pdf.setDrawColor(100, 100, 100);
-      pdf.setLineWidth(0.3);
-      pdf.line(col1X, y, col1X + sigW, y);
-      pdf.line(col2X, y, col2X + sigW, y);
-      y += 6;
-
-      // Names
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(report.staff_name || "", col1X, y);
-      pdf.text("Boss", col2X, y);
-      y += 8;
-
-      // Date — auto filled
-      pdf.setFontSize(9);
-      pdf.text(`Date: ${today}`, col1X, y);
-      pdf.text(`Date: ${today}`, col2X, y);
-
-      // 4. Download
-      pdf.save(`Appraisal_${report.staff_name}_${report.fiscal_year}.pdf`);
+      await generateAppraisalPdf({
+        report,
+        reportData,
+        annualReview,
+        staffSig,
+        bossSig,
+      });
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("PDF 生成失敗：" + (err.message || "未知錯誤"));
@@ -174,7 +84,7 @@ export default function SignAndDownloadSection({ report, contentRef }) {
           className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
         >
           {generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {generating ? "PDF 生成中..." : "生成並下載 PDF"}
+          {generating ? "PDF 生成中（首次需載入字體）..." : "生成並下載 PDF"}
         </button>
       </div>
     </div>

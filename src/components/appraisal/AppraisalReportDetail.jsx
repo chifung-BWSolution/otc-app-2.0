@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Loader2, CheckCircle2, FileText, Save } from "lucide-react";
 import BossNotesSection from "@/components/annual-review/BossNotesSection";
@@ -18,7 +18,6 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [gpDisabled, setGpDisabled] = useState(false);
   const [tenderDisabled, setTenderDisabled] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
-  const reportContentRef = useRef(null);
 
   useEffect(() => {
     if (report.annual_review_id) {
@@ -107,10 +106,8 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         )}
       </div>
 
-      {/* Report content — structured display (wrapped in ref for PDF capture) */}
-      <div ref={reportContentRef}>
-        <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} />
-      </div>
+      {/* Report content — structured display */}
+      <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} />
 
       {/* GP & Tender fields — editable before confirm */}
       {!r.is_final && (
@@ -174,7 +171,7 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
 
       {/* Sign & Download PDF — after confirmed */}
       {r.is_final && (
-        <SignAndDownloadSection report={r} contentRef={reportContentRef} />
+        <SignAndDownloadSection report={r} />
       )}
     </div>
   );
