@@ -129,8 +129,13 @@
     },
     "boss_gp_score": {
       "type": "number",
-      "title": "Share GP \u8001\u95c6\u8a55\u5206 (1-5)",
-      "description": "\u8001\u95c6\u5c0d Share GP \u8868\u73fe\u7684\u8a55\u5206"
+      "title": "Share GP \u8001\u95c6\u8a55\u5206 (0-100)",
+      "description": "\u8001\u95c6\u5c0d Share GP \u8868\u73fe\u7684\u8a55\u5206\uff0c0-100\u5206"
+    },
+    "boss_gp_comment": {
+      "type": "string",
+      "title": "Share GP \u8a55\u8a9e",
+      "description": "\u8001\u95c6\u5c0d Share GP \u8868\u73fe\u7684\u8a55\u8a9e"
     },
     "leader_comment": {
       "type": "string",

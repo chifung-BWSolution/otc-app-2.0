@@ -291,7 +291,7 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScor
         </span>
       </div>
       <div className="space-y-2 mb-4">
-        {weights.gp > 0 && <ScoreRow label="💰 Share GP" pct={`${weights.gp}%`} value={gpResult.score} max={weights.gp} sub={arGpScore > 0 ? `老闆評分 ${arGpScore}/5` : "未評分"} />}
+        {weights.gp > 0 && <ScoreRow label="💰 Share GP" pct={`${weights.gp}%`} value={gpResult.score} max={weights.gp} sub={arGpScore > 0 ? `老闆評分 ${arGpScore}/100` : "未評分"} />}
         <ScoreRow label="📊 項目工作" pct={`${weights.project}%`} value={projResult.score} max={weights.project} sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`} />
         <ScoreRow label="🌟 額外貢獻" pct={`${weights.extra}%`} value={extraResult.score} max={weights.extra} sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`} />
         <ScoreRow label="🛠️ 工作技能" pct={`${weights.skill}%`} value={skillResult.score} max={weights.skill} sub={`平均 ${f2(skillResult.avg)}/5 · ${skillResult.count} 項已評分`} />

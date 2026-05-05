@@ -115,6 +115,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     });
   });
   const [bossGpScore, setBossGpScore] = useState(r.boss_gp_score || 0);
+  const [bossGpComment, setBossGpComment] = useState(r.boss_gp_comment || "");
   const [staffTeamGroup, setStaffTeamGroup] = useState(null);
   const weights = getTeamWeights(staffTeamGroup);
 
@@ -161,6 +162,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       boss_tender_disabled: tenderDisabled,
       skill_scores: skillScores,
       boss_gp_score: bossGpScore,
+      boss_gp_comment: bossGpComment,
     });
     setSavingBoss(false);
     refreshReview();
@@ -592,7 +594,9 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
               <GpScoreSection
                 gpFields={canBossScore ? bossGpFields : (r.boss_gp_fields || [])}
                 bossGpScore={bossGpScore}
+                bossGpComment={bossGpComment}
                 onScoreChange={canBossScore ? setBossGpScore : undefined}
+                onCommentChange={canBossScore ? setBossGpComment : undefined}
                 readOnly={!canBossScore}
                 weightPct={weights.gp}
               />

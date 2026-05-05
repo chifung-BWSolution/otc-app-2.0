@@ -140,7 +140,7 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
             pct={`${weights.gp}%`}
             value={gpResult.score}
             max={weights.gp}
-            sub={gpResult.bossScore > 0 ? `老闆評分 ${gpResult.bossScore}/5` : "未評分"}
+            sub={gpResult.bossScore > 0 ? `老闆評分 ${gpResult.bossScore}/100` : "未評分"}
           />
         )}
         <ScoreRow

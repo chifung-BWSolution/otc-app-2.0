@@ -148,10 +148,10 @@ export function getTeamWeights(teamGroup) {
   };
 }
 
-// Calculate GP score: average of GP amounts → score out of 5 by boss, then scale
+// Calculate GP score: boss scores 0-100, then scale to maxPoints
 export function calcGpScore(gpFields, bossGpScore, maxPoints) {
   if (!bossGpScore || bossGpScore <= 0) return { score: 0, bossScore: 0 };
-  const score = (bossGpScore / 5) * maxPoints;
+  const score = (bossGpScore / 100) * maxPoints;
   return { score, bossScore: bossGpScore };
 }
 
