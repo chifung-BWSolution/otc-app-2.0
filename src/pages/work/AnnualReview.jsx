@@ -83,6 +83,7 @@ export default function AnnualReview() {
     if (review.status === "draft") {
       openDraftForm(review.fiscal_year);
     } else if (review.status === "peer_review_pending") {
+      setActiveReview(review);
       setView("peer-review");
     } else {
       setActiveReview(review);
@@ -187,7 +188,7 @@ export default function AnnualReview() {
   }
 
   if (view === "peer-review") {
-    return <PostSubmitPeerReview staffRec={staffRec} onBack={handleBack} />;
+    return <PostSubmitPeerReview staffRec={staffRec} fiscalYear={activeReview?.fiscal_year} onBack={handleBack} />;
   }
 
   if (view === "readonly" && activeReview) {

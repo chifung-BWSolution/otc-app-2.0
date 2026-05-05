@@ -11,13 +11,13 @@ function getLastFY() {
   return `FY${year}/${year + 1}`;
 }
 
-export default function PostSubmitPeerReview({ staffRec, onBack }) {
+export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalYear, onBack }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [colleagues, setColleagues] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [selectedColleague, setSelectedColleague] = useState(null);
-  const fiscalYear = getLastFY();
+  const fiscalYear = propFiscalYear || getLastFY();
 
   useEffect(() => { loadData(); }, []);
 
