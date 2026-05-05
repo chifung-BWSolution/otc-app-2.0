@@ -302,22 +302,13 @@ Deno.serve(async (req) => {
       leadership_potential: "領導潛力",
     };
     const skills = data?.skillScores || annualReview?.skill_scores;
-    const selfSkills = annualReview?.skill_self_scores;
     if (skills?.length > 0 && skills.some(s => s.boss_score > 0)) {
+      const scored = skills.filter(s => s.boss_score > 0);
+      const avg = Math.round((scored.reduce((a, s) => a + s.boss_score, 0) / scored.length) * 10) / 10;
       sectionTitle("工作技能評分");
       setCJK(9);
-      for (const s of skills) {
-        if (!s.boss_score) continue;
-        y = checkPage(doc, y, 5, pageH, margin);
-        const label = SKILL_LABELS[s.key] || s.key;
-        const selfS = selfSkills?.find(ss => ss.key === s.key)?.self_score;
-        let line = `  ${label}：`;
-        if (selfS > 0) line += `自評 ${selfS}/5  `;
-        line += `老闆 ${s.boss_score}/5`;
-        doc.text(line, margin, y);
-        y += 5;
-      }
-      y += 3;
+      doc.text(`  綜合平均分：${avg}/5（共 ${scored.length} 項）`, margin, y);
+      y += 8;
     }
 
     // ========== Boss Notes ==========
