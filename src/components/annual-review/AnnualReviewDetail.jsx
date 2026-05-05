@@ -117,6 +117,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   const [bossGpScore, setBossGpScore] = useState(r.boss_gp_score || 0);
   const [bossGpComment, setBossGpComment] = useState(r.boss_gp_comment || "");
   const [staffTeamGroup, setStaffTeamGroup] = useState(null);
+  const [staffEntryDate, setStaffEntryDate] = useState(null);
   const weights = getTeamWeights(staffTeamGroup);
 
   // Init boss scores from review data + load staff team_group
@@ -126,7 +127,10 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     // Look up staff's team_group for scoring weights
     if (r.staff_id) {
       base44.entities.Staff.filter({ bubble_id: r.staff_id }, "id", 1).then(staffList => {
-        if (staffList.length > 0) setStaffTeamGroup(staffList[0].team_group || null);
+        if (staffList.length > 0) {
+          setStaffTeamGroup(staffList[0].team_group || null);
+          setStaffEntryDate(staffList[0].entry_date || null);
+        }
       });
     }
     const ps = {};
@@ -532,6 +536,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
               pending_leader: { bg: "bg-blue-100", text: "text-blue-700", label: "待Leader評分" },
               pending_boss_review: { bg: "bg-pink-100", text: "text-pink-700", label: "待預審" },
               pending_boss: { bg: "bg-purple-100", text: "text-purple-700", label: "待面談" },
+              completed: { bg: "bg-green-100", text: "text-green-700", label: "已完成" },
             };
             const s = statusMap[r.status] || statusMap.draft;
             return <span className={`text-xs ${s.bg} ${s.text} px-3 py-1 rounded-full font-medium`}>{s.label}</span>;
@@ -559,6 +564,23 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           </div>
         </div>
         <div className="p-4">
+          {/* Staff entry date & tenure */}
+          {staffEntryDate && (
+            <div className="flex items-center gap-2 mb-3 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
+              <Calendar size={14} className="text-gray-400 shrink-0" />
+              <span>入職日期：<span className="font-semibold text-gray-800">{staffEntryDate}</span></span>
+              <span className="text-gray-300">|</span>
+              <span>年資：<span className="font-semibold text-gray-800">{(() => {
+                const entry = new Date(staffEntryDate);
+                const now = new Date();
+                let years = now.getFullYear() - entry.getFullYear();
+                let months = now.getMonth() - entry.getMonth();
+                if (months < 0) { years--; months += 12; }
+                if (now.getDate() < entry.getDate()) { months--; if (months < 0) { years--; months += 12; } }
+                return years > 0 ? `${years} 年 ${months} 個月` : `${months} 個月`;
+              })()}</span></span>
+            </div>
+          )}
           <div className="flex gap-3 mb-4">
             <StatBadge color="blue" value={allProjects.length} label="參與項目" />
             <StatBadge color="green" value={`${Math.round(totalHours)}h`} label="總工時" />

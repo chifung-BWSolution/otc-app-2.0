@@ -27,6 +27,10 @@ export default function SignAndDownloadSection({ report, onPdfSaved }) {
       const { file_url, file_name } = response.data;
       
       await base44.entities.AppraisalReport.update(report.id, { pdf_url: file_url });
+      // Mark annual review as completed
+      if (report.annual_review_id) {
+        await base44.entities.AnnualReview.update(report.annual_review_id, { status: "completed" });
+      }
       if (onPdfSaved) onPdfSaved(file_url);
 
       const a = document.createElement("a");

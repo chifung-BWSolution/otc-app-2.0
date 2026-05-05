@@ -12,6 +12,8 @@ export function getStatusInfo(status, leaderName) {
       return { label: "待預審", bg: "bg-pink-100", text: "text-pink-700", icon: Eye, iconColor: "text-pink-600", circleBg: "bg-pink-100" };
     case "pending_boss":
       return { label: "待面談", bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare, iconColor: "text-purple-600", circleBg: "bg-purple-100" };
+    case "completed":
+      return { label: "已完成", bg: "bg-green-100", text: "text-green-700", icon: CheckCircle, iconColor: "text-green-600", circleBg: "bg-green-100" };
     default:
       return { label: status, bg: "bg-gray-100", text: "text-gray-600", icon: Clock, iconColor: "text-gray-500", circleBg: "bg-gray-100" };
   }
