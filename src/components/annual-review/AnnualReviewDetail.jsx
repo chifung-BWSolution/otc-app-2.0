@@ -7,6 +7,9 @@ import MeritsDemeritsList from "./MeritsDemeritsList";
 import ScoringBreakdown, { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "./ScoringBreakdown";
 import BossNotesSection from "./BossNotesSection";
 import BossProjectFields from "./BossProjectFields";
+import SkillScoreSection from "./SkillScoreSection";
+import GpScoreSection from "./GpScoreSection";
+import { getTeamWeights, SKILL_ITEMS } from "@/lib/scoringConfig";
 
 
 const SCORE_COLORS = {
@@ -104,6 +107,15 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   );
   const [gpDisabled, setGpDisabled] = useState(r.boss_gp_disabled || false);
   const [tenderDisabled, setTenderDisabled] = useState(r.boss_tender_disabled || false);
+  const [skillScores, setSkillScores] = useState(() => {
+    const existing = r.skill_scores || [];
+    return SKILL_ITEMS.map(item => {
+      const found = existing.find(s => s.key === item.key);
+      return { key: item.key, boss_score: found?.boss_score || 0 };
+    });
+  });
+  const [bossGpScore, setBossGpScore] = useState(r.boss_gp_score || 0);
+  const weights = getTeamWeights(r.staff_bu);
 
   // Init boss scores from review data
   useEffect(() => {
@@ -140,6 +152,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       boss_tender_fields: bossTenderFields,
       boss_gp_disabled: gpDisabled,
       boss_tender_disabled: tenderDisabled,
+      skill_scores: skillScores,
+      boss_gp_score: bossGpScore,
     });
     setSavingBoss(false);
     refreshReview();
@@ -279,6 +293,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         goals: r.next_year_goals || "", commitment: r.commitment || "",
         leaderComment: r.leader_comment || "", leaderExpectation: r.leader_next_year_expectation || "",
         gpFields: bossGpFields, tenderFields: bossTenderFields, gpDisabled, tenderDisabled,
+        skillScores, bossGpScore, staffBu: r.staff_bu,
       };
 
       const newReport = await base44.entities.AppraisalReport.create({
@@ -529,8 +544,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
                 const liveBoss = bossProjectScores[origIdx];
                 return liveBoss ? { ...p, boss_score: liveBoss } : p;
               });
-              const res = calcSectionScore(merged, 90);
-              return <span className="text-sm font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 90 <span className="text-xs font-medium opacity-70">(90%)</span></span>;
+              const res = calcSectionScore(merged, weights.project);
+              return <span className="text-sm font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / {weights.project} <span className="text-xs font-medium opacity-70">({weights.project}%)</span></span>;
             })()}
           </div>
         </div>
@@ -614,8 +629,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
                   const liveBoss = bossExtraScores[i];
                   return liveBoss ? { ...e, boss_score: liveBoss } : e;
                 });
-                const res = calcSectionScore(merged, 10);
-                return <span className="text-sm font-black text-teal-700 bg-teal-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / 10 <span className="text-xs font-medium opacity-70">(10%)</span></span>;
+                const res = calcSectionScore(merged, weights.extra);
+                return <span className="text-sm font-black text-teal-700 bg-teal-100 px-2.5 py-1 rounded-lg">{f2(res.score)} / {weights.extra} <span className="text-xs font-medium opacity-70">({weights.extra}%)</span></span>;
               })()}
             </div>
           </div>
@@ -844,6 +859,27 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         </div>
       )}
 
+      {/* GP Score — only for BW teams */}
+      {weights.gp > 0 && !gpDisabled && (
+        <GpScoreSection
+          gpFields={bossGpFields}
+          bossGpScore={bossGpScore}
+          onScoreChange={canBossScore ? setBossGpScore : undefined}
+          readOnly={!canBossScore}
+          weightPct={weights.gp}
+        />
+      )}
+
+      {/* Skill Score Section */}
+      <SkillScoreSection
+        skillScores={skillScores}
+        onScoreChange={canBossScore ? (key, score) => {
+          setSkillScores(prev => prev.map(s => s.key === key ? { ...s, boss_score: score } : s));
+        } : undefined}
+        readOnly={!canBossScore}
+        weightPct={weights.skill}
+      />
+
       {/* Scoring Summary — at end */}
       <ScoringBreakdown
         review={r}
@@ -855,6 +891,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         bossAdjustmentNote={bossAdjustmentNote}
         onBossAdjustmentChange={canBossScore ? setBossAdjustment : undefined}
         onBossAdjustmentNoteChange={canBossScore ? setBossAdjustmentNote : undefined}
+        liveSkillScores={skillScores}
+        liveBossGpScore={bossGpScore}
       />
 
       {/* Boss notes sections — editable when canBossScore (pending_boss_review or pending_boss) */}

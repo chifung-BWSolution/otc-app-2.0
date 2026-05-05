@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import BossProjectFields from "@/components/annual-review/BossProjectFields";
 import PeerReviewResultSection from "@/components/peer-review/PeerReviewResultSection";
 import { calcSectionScore, calcAttendanceAdj, calcMeritAdj, f2 } from "@/components/annual-review/ScoringBreakdown";
+import { getTeamWeights, calcGpScore, calcSkillScore, SKILL_ITEMS } from "@/lib/scoringConfig";
 
 function parseContributionPoints(points) {
   if (!points || !Array.isArray(points)) return [];
@@ -39,7 +40,7 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
     );
   }
 
-  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled } = data;
+  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu } = data;
 
   return (
     <div className="space-y-4">
@@ -177,6 +178,28 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
         </div>
       )}
 
+      {/* Skill Scores */}
+      {skillScores?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
+            <h3 className="font-bold text-base text-cyan-800">🛠️ 工作技能評分</h3>
+          </div>
+          <div className="p-4 space-y-2">
+            {skillScores.filter(s => s.boss_score > 0).map((s, i) => {
+              const item = SKILL_ITEMS.find(sk => sk.key === s.key);
+              if (!item) return null;
+              return (
+                <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-base">{item.icon}</span>
+                  <span className="text-sm text-gray-700 flex-1">{item.label}</span>
+                  <span className="text-sm font-bold text-cyan-700">{s.boss_score}/5</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Peer Review Results */}
       {staffId && fiscalYear && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -191,13 +214,13 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
 
       {/* Scoring summary */}
       {staffId && fiscalYear && (
-        <ReportScoringSection staffId={staffId} fiscalYear={fiscalYear} projects={projects} extras={extras} />
+        <ReportScoringSection staffId={staffId} fiscalYear={fiscalYear} projects={projects} extras={extras} skillScores={skillScores} bossGpScore={bossGpScore} staffBu={staffBu} />
       )}
     </div>
   );
 }
 
-function ReportScoringSection({ staffId, fiscalYear, projects, extras }) {
+function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScores, bossGpScore, staffBu }) {
   const [loading, setLoading] = useState(true);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [meritRecords, setMeritRecords] = useState([]);
@@ -221,6 +244,9 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras }) {
 
   if (loading) return <div className="text-center py-4 text-gray-400 text-sm">載入評分數據...</div>;
 
+  const arBu = annualReview?.staff_bu || staffBu;
+  const weights = getTeamWeights(arBu);
+
   // Build items from report data for scoring calc
   const projItems = (projects || []).map(p => ({
     self_score: p.avgScore || 0,
@@ -231,9 +257,13 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras }) {
   const arProjects = annualReview?.project_contributions || [];
   const arExtras = annualReview?.extra_contributions || [];
 
-  const projResult = calcSectionScore(arProjects.length > 0 ? arProjects : projItems, 90);
-  const extraResult = calcSectionScore(arExtras.length > 0 ? arExtras : (extras || []).map(e => ({ self_score: e.avgScore || 0, leader_score: 0, boss_score: 0 })), 10);
-  const baseScore = projResult.score + extraResult.score;
+  const projResult = calcSectionScore(arProjects.length > 0 ? arProjects : projItems, weights.project);
+  const extraResult = calcSectionScore(arExtras.length > 0 ? arExtras : (extras || []).map(e => ({ self_score: e.avgScore || 0, leader_score: 0, boss_score: 0 })), weights.extra);
+  const arSkills = annualReview?.skill_scores || skillScores || [];
+  const skillResult = calcSkillScore(arSkills, weights.skill);
+  const arGpScore = annualReview?.boss_gp_score || bossGpScore || 0;
+  const gpResult = weights.gp > 0 ? calcGpScore(null, arGpScore, weights.gp) : { score: 0 };
+  const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;
   const meritResult = calcMeritAdj(meritRecords, meritTypes);
   const attResult = calcAttendanceAdj(attendanceStats);
   const bossAdj = annualReview?.boss_score_adjustment || 0;
@@ -245,10 +275,17 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras }) {
 
   return (
     <div className={`bg-gradient-to-r ${scoreBg} rounded-xl border-2 p-5`}>
-      <h3 className="font-bold text-base text-gray-800 mb-4">📊 評分摘要（滿分 100）</h3>
+      <h3 className="font-bold text-base text-gray-800 mb-2">📊 評分摘要（滿分 100）</h3>
+      <div className="mb-3">
+        <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${weights.type === "BW" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+          {weights.type === "BW" ? "🏗️ BW Team" : "📐 Front Team"}
+        </span>
+      </div>
       <div className="space-y-2 mb-4">
-        <ScoreRow label="📊 項目工作" pct="90%" value={projResult.score} max={90} sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`} />
-        <ScoreRow label="🌟 額外貢獻" pct="10%" value={extraResult.score} max={10} sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`} />
+        {weights.gp > 0 && <ScoreRow label="💰 Share GP" pct={`${weights.gp}%`} value={gpResult.score} max={weights.gp} sub={arGpScore > 0 ? `老闆評分 ${arGpScore}/5` : "未評分"} />}
+        <ScoreRow label="📊 項目工作" pct={`${weights.project}%`} value={projResult.score} max={weights.project} sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`} />
+        <ScoreRow label="🌟 額外貢獻" pct={`${weights.extra}%`} value={extraResult.score} max={weights.extra} sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`} />
+        <ScoreRow label="🛠️ 工作技能" pct={`${weights.skill}%`} value={skillResult.score} max={weights.skill} sub={`平均 ${f2(skillResult.avg)}/5 · ${skillResult.count} 項已評分`} />
         <div className="border-t border-gray-200/50 my-1" />
         <ScoreRow label="🏅 功過調整" value={meritResult.adj} isAdj sub={`${meritRecords.length} 條紀錄`} />
         <ScoreRow label="📋 考勤調整" value={attResult.total} isAdj sub={attendanceStats ? `遲到${f2(attResult.late)} · 無薪假${f2(attResult.nopay)} · 加班+${f2(attResult.ot)} · 匯報${f2(attResult.reportGap)}` : "未載入"} />

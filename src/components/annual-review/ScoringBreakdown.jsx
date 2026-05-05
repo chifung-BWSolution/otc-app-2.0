@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calculator } from "lucide-react";
+import { getTeamWeights, calcGpScore, calcSkillScore } from "@/lib/scoringConfig";
 
 const f2 = (v) => (Math.round(v * 100) / 100).toFixed(2);
 
@@ -77,7 +78,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange, liveSkillScores, liveBossGpScore }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -90,6 +91,8 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
   if (!loaded) return null;
 
   const r = review;
+  const weights = getTeamWeights(r.staff_bu);
+
   // Merge live boss scores (unsaved) into items for real-time calculation
   const projects = (r.project_contributions || []).map((p, i) => {
     const liveBoss = liveBossProjectScores?.[i];
@@ -100,9 +103,11 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
     return liveBoss ? { ...e, boss_score: liveBoss } : e;
   });
 
-  const projResult = calcSectionScore(projects, 90);
-  const extraResult = calcSectionScore(extras, 10);
-  const baseScore = projResult.score + extraResult.score;
+  const projResult = calcSectionScore(projects, weights.project);
+  const extraResult = calcSectionScore(extras, weights.extra);
+  const skillResult = calcSkillScore(liveSkillScores || r.skill_scores, weights.skill);
+  const gpResult = weights.gp > 0 ? calcGpScore(r.boss_gp_fields, liveBossGpScore ?? r.boss_gp_score, weights.gp) : { score: 0 };
+  const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;
 
   const meritResult = calcMeritAdj(meritRecords || [], meritTypes);
   const attResult = calcAttendanceAdj(attendanceStats);
@@ -120,21 +125,44 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
         <h3 className="font-bold text-base text-gray-800">📊 評分摘要（滿分 100）</h3>
       </div>
 
+      {/* Team type badge */}
+      <div className="mb-3">
+        <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${weights.type === "BW" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+          {weights.type === "BW" ? "🏗️ BW Team 評分模式" : "📐 Front Team 評分模式"}
+        </span>
+      </div>
+
       {/* Section rows */}
       <div className="space-y-2 mb-4">
+        {weights.gp > 0 && (
+          <ScoreRow
+            label="💰 Share GP"
+            pct={`${weights.gp}%`}
+            value={gpResult.score}
+            max={weights.gp}
+            sub={gpResult.bossScore > 0 ? `老闆評分 ${gpResult.bossScore}/5` : "未評分"}
+          />
+        )}
         <ScoreRow
           label="📊 項目工作"
-          pct="90%"
+          pct={`${weights.project}%`}
           value={projResult.score}
-          max={90}
+          max={weights.project}
           sub={`平均 ${f2(projResult.avg)}/5 · ${projResult.count} 項已評分`}
         />
         <ScoreRow
           label="🌟 額外貢獻"
-          pct="10%"
+          pct={`${weights.extra}%`}
           value={extraResult.score}
-          max={10}
+          max={weights.extra}
           sub={`平均 ${f2(extraResult.avg)}/5 · ${extraResult.count} 項已評分`}
+        />
+        <ScoreRow
+          label="🛠️ 工作技能"
+          pct={`${weights.skill}%`}
+          value={skillResult.score}
+          max={weights.skill}
+          sub={`平均 ${f2(skillResult.avg)}/5 · ${skillResult.count} 項已評分`}
         />
         <div className="border-t border-gray-200/50 my-1" />
         <ScoreRow

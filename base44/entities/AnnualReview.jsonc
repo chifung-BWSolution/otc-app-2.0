@@ -95,6 +95,27 @@
         }
       }
     },
+    "skill_scores": {
+      "type": "array",
+      "title": "\u5de5\u4f5c\u6280\u80fd\u8a55\u5206",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "boss_score": {
+            "type": "number",
+            "description": "\u8001\u95c6\u8a55\u5206 (1-5)"
+          }
+        }
+      }
+    },
+    "boss_gp_score": {
+      "type": "number",
+      "title": "Share GP \u8001\u95c6\u8a55\u5206 (1-5)",
+      "description": "\u8001\u95c6\u5c0d Share GP \u8868\u73fe\u7684\u8a55\u5206"
+    },
     "leader_comment": {
       "type": "string",
       "title": "Team Leader \u9f13\u52f5\u8aaa\u8a71"
