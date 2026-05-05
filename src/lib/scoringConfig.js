@@ -122,11 +122,12 @@ export const SKILL_ITEMS = [
   },
 ];
 
-// Determine scoring weights based on team/BU
+// Determine scoring weights based on team_group from NOSTeam setting
 // BW: Share GP 50%, Project 30%, Extra 10%, Skills 10%
 // Front (all others): Project 60%, Extra 20%, Skills 20%
-export function getTeamWeights(staffBu) {
-  const isBW = staffBu && (staffBu.toUpperCase().startsWith("BW") || staffBu.toUpperCase().includes("BW"));
+// Accepts teamGroup (e.g. "BW", "Front") — sourced from Staff.team_group or NOSTeam.team_group
+export function getTeamWeights(teamGroup) {
+  const isBW = teamGroup && teamGroup.toUpperCase() === "BW";
   if (isBW) {
     return {
       type: "BW",

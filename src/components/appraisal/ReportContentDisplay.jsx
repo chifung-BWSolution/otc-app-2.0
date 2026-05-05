@@ -40,7 +40,7 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
     );
   }
 
-  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu } = data;
+  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu, teamGroup } = data;
 
   return (
     <div className="space-y-4">
@@ -214,18 +214,19 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
 
       {/* Scoring summary */}
       {staffId && fiscalYear && (
-        <ReportScoringSection staffId={staffId} fiscalYear={fiscalYear} projects={projects} extras={extras} skillScores={skillScores} bossGpScore={bossGpScore} staffBu={staffBu} />
+        <ReportScoringSection staffId={staffId} fiscalYear={fiscalYear} projects={projects} extras={extras} skillScores={skillScores} bossGpScore={bossGpScore} staffBu={staffBu} teamGroup={teamGroup} />
       )}
     </div>
   );
 }
 
-function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScores, bossGpScore, staffBu }) {
+function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScores, bossGpScore, staffBu, teamGroup: propTeamGroup }) {
   const [loading, setLoading] = useState(true);
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [meritRecords, setMeritRecords] = useState([]);
   const [meritTypes, setMeritTypes] = useState([]);
   const [annualReview, setAnnualReview] = useState(null);
+  const [resolvedTeamGroup, setResolvedTeamGroup] = useState(propTeamGroup || null);
 
   useEffect(() => {
     if (!staffId || !fiscalYear) { setLoading(false); return; }
@@ -242,10 +243,17 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScor
     }).catch(() => setLoading(false));
   }, [staffId, fiscalYear]);
 
-  if (loading) return <div className="text-center py-4 text-gray-400 text-sm">載入評分數據...</div>;
+  useEffect(() => {
+    if (!resolvedTeamGroup && staffId) {
+      base44.entities.Staff.filter({ bubble_id: staffId }, "id", 1).then(list => {
+        if (list.length > 0) setResolvedTeamGroup(list[0].team_group || null);
+      });
+    }
+  }, [staffId, resolvedTeamGroup]);
 
-  const arBu = annualReview?.staff_bu || staffBu;
-  const weights = getTeamWeights(arBu);
+  const weights = getTeamWeights(resolvedTeamGroup);
+
+  if (loading) return <div className="text-center py-4 text-gray-400 text-sm">載入評分數據...</div>;
 
   // Build items from report data for scoring calc
   const projItems = (projects || []).map(p => ({

@@ -115,12 +115,19 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     });
   });
   const [bossGpScore, setBossGpScore] = useState(r.boss_gp_score || 0);
-  const weights = getTeamWeights(r.staff_bu);
+  const [staffTeamGroup, setStaffTeamGroup] = useState(null);
+  const weights = getTeamWeights(staffTeamGroup);
 
-  // Init boss scores from review data
+  // Init boss scores from review data + load staff team_group
   useEffect(() => {
     base44.entities.ScoreLevel.filter({ is_active: true }, "-score", 100).then(setScoreLevels);
     base44.entities.MeritDemeritType.filter({ is_active: true }, "sort_order", 100).then(setMeritTypes);
+    // Look up staff's team_group for scoring weights
+    if (r.staff_id) {
+      base44.entities.Staff.filter({ bubble_id: r.staff_id }, "id", 1).then(staffList => {
+        if (staffList.length > 0) setStaffTeamGroup(staffList[0].team_group || null);
+      });
+    }
     const ps = {};
     (r.project_contributions || []).forEach((p, i) => { if (p.boss_score > 0) ps[i] = p.boss_score; });
     setBossProjectScores(ps);
@@ -293,7 +300,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         goals: r.next_year_goals || "", commitment: r.commitment || "",
         leaderComment: r.leader_comment || "", leaderExpectation: r.leader_next_year_expectation || "",
         gpFields: bossGpFields, tenderFields: bossTenderFields, gpDisabled, tenderDisabled,
-        skillScores, bossGpScore, staffBu: r.staff_bu,
+        skillScores, bossGpScore, staffBu: r.staff_bu, teamGroup: staffTeamGroup,
       };
 
       const newReport = await base44.entities.AppraisalReport.create({
@@ -893,6 +900,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         onBossAdjustmentNoteChange={canBossScore ? setBossAdjustmentNote : undefined}
         liveSkillScores={skillScores}
         liveBossGpScore={bossGpScore}
+        teamGroup={staffTeamGroup}
       />
 
       {/* Boss notes sections — editable when canBossScore (pending_boss_review or pending_boss) */}

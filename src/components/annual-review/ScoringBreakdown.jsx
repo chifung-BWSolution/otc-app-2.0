@@ -78,7 +78,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange, liveSkillScores, liveBossGpScore }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange, liveSkillScores, liveBossGpScore, teamGroup }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -91,7 +91,7 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
   if (!loaded) return null;
 
   const r = review;
-  const weights = getTeamWeights(r.staff_bu);
+  const weights = getTeamWeights(teamGroup);
 
   // Merge live boss scores (unsaved) into items for real-time calculation
   const projects = (r.project_contributions || []).map((p, i) => {
