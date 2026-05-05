@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Loader2, CheckCircle2, FileText } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { ArrowLeft, Loader2, CheckCircle2, FileText, Save } from "lucide-react";
 import AppraisalScoring from "./AppraisalScoring";
 import BossNotesSection from "@/components/annual-review/BossNotesSection";
+import BossProjectFields from "@/components/annual-review/BossProjectFields";
+import ReportContentDisplay from "./ReportContentDisplay";
 
 export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [r, setR] = useState(report);
@@ -12,9 +13,12 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [bossDeptGoals, setBossDeptGoals] = useState([]);
   const [bossPersonalGoals, setBossPersonalGoals] = useState([]);
   const [bossExtraNotes, setBossExtraNotes] = useState("");
+  const [gpFields, setGpFields] = useState([]);
+  const [tenderFields, setTenderFields] = useState([]);
+  const [gpDisabled, setGpDisabled] = useState(false);
+  const [tenderDisabled, setTenderDisabled] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
 
-  // Fetch the original AnnualReview data
   useEffect(() => {
     if (report.annual_review_id) {
       base44.entities.AnnualReview.filter({ id: report.annual_review_id }, "id", 1)
@@ -25,6 +29,10 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
             setBossDeptGoals(ar.boss_dept_goals || []);
             setBossPersonalGoals(ar.boss_personal_goals || []);
             setBossExtraNotes(ar.boss_extra_notes || "");
+            setGpFields(ar.boss_gp_fields || []);
+            setTenderFields(ar.boss_tender_fields || []);
+            setGpDisabled(ar.boss_gp_disabled || false);
+            setTenderDisabled(ar.boss_tender_disabled || false);
           }
         })
         .catch(() => {});
@@ -33,16 +41,21 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
 
   const handleConfirm = async () => {
     setConfirming(true);
-    // Save boss notes to annual review before confirming
     if (annualReview) {
       await base44.entities.AnnualReview.update(annualReview.id, {
         boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
         boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
         boss_extra_notes: bossExtraNotes,
+        boss_gp_fields: gpFields,
+        boss_tender_fields: tenderFields,
+        boss_gp_disabled: gpDisabled,
+        boss_tender_disabled: tenderDisabled,
       });
     }
-    await base44.entities.AppraisalReport.update(r.id, { is_final: true });
-    const updated = { ...r, is_final: true };
+    // Also update report_content with latest GP/tender data
+    const updatedContent = updateReportGpTender(r.report_content, gpFields, tenderFields, gpDisabled, tenderDisabled);
+    await base44.entities.AppraisalReport.update(r.id, { is_final: true, report_content: updatedContent });
+    const updated = { ...r, is_final: true, report_content: updatedContent };
     setR(updated);
     onUpdated(updated);
     setConfirming(false);
@@ -55,7 +68,15 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
       boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
       boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
       boss_extra_notes: bossExtraNotes,
+      boss_gp_fields: gpFields,
+      boss_tender_fields: tenderFields,
+      boss_gp_disabled: gpDisabled,
+      boss_tender_disabled: tenderDisabled,
     });
+    // Update report_content too
+    const updatedContent = updateReportGpTender(r.report_content, gpFields, tenderFields, gpDisabled, tenderDisabled);
+    await base44.entities.AppraisalReport.update(r.id, { report_content: updatedContent });
+    setR(prev => ({ ...prev, report_content: updatedContent }));
     setSavingNotes(false);
   };
 
@@ -96,18 +117,31 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         )}
       </div>
 
-      {/* Report content */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <ReactMarkdown className="prose prose-sm prose-slate max-w-none text-sm leading-relaxed
-          [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mt-4 [&>h1]:mb-2
-          [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-4 [&>h2]:mb-2
-          [&>h3]:text-sm [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1
-          [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5
-          [&>blockquote]:border-l-4 [&>blockquote]:border-indigo-300 [&>blockquote]:pl-3 [&>blockquote]:text-gray-600 [&>blockquote]:italic
-        ">
-          {r.report_content || "（報告內容為空）"}
-        </ReactMarkdown>
-      </div>
+      {/* Report content — structured display */}
+      <ReportContentDisplay content={r.report_content} staffName={r.staff_name} />
+
+      {/* GP & Tender fields — editable before confirm */}
+      {!r.is_final && (
+        <BossProjectFields
+          gpFields={gpFields}
+          tenderFields={tenderFields}
+          onGpChange={setGpFields}
+          onTenderChange={setTenderFields}
+          gpDisabled={gpDisabled}
+          tenderDisabled={tenderDisabled}
+          onGpDisabledChange={setGpDisabled}
+          onTenderDisabledChange={setTenderDisabled}
+        />
+      )}
+      {r.is_final && (
+        <BossProjectFields
+          gpFields={gpFields}
+          tenderFields={tenderFields}
+          gpDisabled={gpDisabled}
+          tenderDisabled={tenderDisabled}
+          readOnly
+        />
+      )}
 
       {/* Boss notes — editable before confirm */}
       {!r.is_final && (
@@ -126,8 +160,8 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
               disabled={savingNotes}
               className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 disabled:opacity-50 transition-colors"
             >
-              {savingNotes ? <Loader2 size={14} className="animate-spin" /> : null}
-              💾 儲存目標
+              {savingNotes ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              儲存
             </button>
             <button
               onClick={handleConfirm}
@@ -152,6 +186,19 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
       )}
     </div>
   );
+}
+
+function updateReportGpTender(content, gpFields, tenderFields, gpDisabled, tenderDisabled) {
+  try {
+    const data = JSON.parse(content);
+    data.gpFields = gpFields;
+    data.tenderFields = tenderFields;
+    data.gpDisabled = gpDisabled;
+    data.tenderDisabled = tenderDisabled;
+    return JSON.stringify(data);
+  } catch {
+    return content;
+  }
 }
 
 function BossNotesReadonly({ deptGoals, personalGoals, extraNotes }) {

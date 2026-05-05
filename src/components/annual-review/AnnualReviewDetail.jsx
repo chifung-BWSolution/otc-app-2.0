@@ -260,6 +260,26 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
 
       const content = sections.join("\n");
 
+      // Build structured report data JSON for rich display
+      const reportData = {
+        summary: { projectCount: allProjects.length, totalHours: Math.round(totalHours), totalTasks, totalSales },
+        projects: contributedProjects.map(p => {
+          const pAvg = avg(p.self_score, p.leader_score, p.boss_score);
+          let points = [];
+          if (p.contribution_note) {
+            try { const arr = JSON.parse(p.contribution_note); if (Array.isArray(arr)) points = arr; } catch {}
+          }
+          return { name: p.project_name, hours: p.hours, tasks: p.tasks, sales: p.sales_amount || 0, avgScore: pAvg, points };
+        }),
+        extras: extras.filter(e => e.description?.trim()).map(e => ({
+          description: e.description, avgScore: avg(e.self_score, e.leader_score, e.boss_score),
+        })),
+        challenges: r.challenges || "", challengesSolution: r.challenges_solution || "",
+        goals: r.next_year_goals || "", commitment: r.commitment || "",
+        leaderComment: r.leader_comment || "", leaderExpectation: r.leader_next_year_expectation || "",
+        gpFields: bossGpFields, tenderFields: bossTenderFields, gpDisabled, tenderDisabled,
+      };
+
       const newReport = await base44.entities.AppraisalReport.create({
         annual_review_id: r.id,
         staff_id: r.staff_id,
@@ -268,7 +288,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         staff_bu: r.staff_bu,
         staff_position: r.staff_position,
         fiscal_year: r.fiscal_year,
-        report_content: content,
+        report_content: JSON.stringify(reportData),
         version: 1,
         is_final: false,
       });
@@ -544,7 +564,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           )}
 
           {contributedProjects.length > 0 && (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {contributedProjects.map((p, i) => {
                 const origIdx = allProjects.indexOf(p);
                 return (
@@ -568,12 +588,12 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           {otherProjects.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="text-xs font-bold text-gray-500 mb-2">📁 其他項目（員工未撰寫貢獻重點）</div>
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-1.5">
                 {otherProjects.map((p, i) => (
                   <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                    <span className="text-sm text-gray-700 flex-1">{p.project_name}</span>
-                    <span className="text-xs text-blue-600 font-bold">{p.hours}h</span>
-                    <span className="text-xs text-gray-400">{p.tasks}個任務</span>
+                    <span className="text-sm text-gray-700 flex-1 truncate">{p.project_name}</span>
+                    <span className="text-xs text-blue-600 font-bold shrink-0">{p.hours}h</span>
+                    <span className="text-xs text-gray-400 shrink-0">{p.tasks}個任務</span>
                   </div>
                 ))}
               </div>
