@@ -78,7 +78,7 @@ function calcMeritAdj(records, types) {
   return { adj, details };
 }
 
-export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange, liveSkillScores, liveBossGpScore, teamGroup }) {
+export default function ScoringBreakdown({ review, attendanceStats, meritRecords, liveBossProjectScores, liveBossExtraScores, bossAdjustment, bossAdjustmentNote, onBossAdjustmentChange, onBossAdjustmentNoteChange, liveSkillScores, liveBossGpScore, teamGroup, skillSelfScores }) {
   const [meritTypes, setMeritTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -105,7 +105,7 @@ export default function ScoringBreakdown({ review, attendanceStats, meritRecords
 
   const projResult = calcSectionScore(projects, weights.project);
   const extraResult = calcSectionScore(extras, weights.extra);
-  const skillResult = calcSkillScore(liveSkillScores || r.skill_scores, weights.skill);
+  const skillResult = calcSkillScore(liveSkillScores || r.skill_scores, weights.skill, skillSelfScores || r.skill_self_scores);
   const gpResult = weights.gp > 0 ? calcGpScore(r.boss_gp_fields, liveBossGpScore ?? r.boss_gp_score, weights.gp) : { score: 0 };
   const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;
 

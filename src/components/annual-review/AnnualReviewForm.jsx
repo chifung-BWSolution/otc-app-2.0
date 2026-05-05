@@ -5,6 +5,8 @@ import ProjectDetailPanel from "./ProjectDetailPanel";
 import PresetPicker from "./PresetPicker";
 import ExtraContributionSection from "./ExtraContributionSection";
 import SelfReviewRecords from "./SelfReviewRecords";
+import SelfSkillScoreSection from "./SelfSkillScoreSection";
+import { SKILL_ITEMS } from "@/lib/scoringConfig";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 const INITIAL_SHOW = 10;
@@ -46,6 +48,13 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
   const [scoresMap, setScoresMap] = useState({});
   const [contributionTypes, setContributionTypes] = useState([]);
   const [scoreLevels, setScoreLevels] = useState([]);
+  const [skillSelfScores, setSkillSelfScores] = useState(() => {
+    const existing = existingReview?.skill_self_scores || [];
+    return SKILL_ITEMS.map(item => {
+      const found = existing.find(s => s.key === item.key);
+      return { key: item.key, self_score: found?.self_score || 0 };
+    });
+  });
   const initializedRef = useRef(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState(null); // null | "saving" | "saved"
   const autoSaveTimer = useRef(null);
@@ -152,6 +161,7 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
     next_year_goals: goals,
     commitment,
     company_feedback: feedback,
+    skill_self_scores: skillSelfScores,
   });
 
   // Keep a ref to getFormData so the timer always has latest state
@@ -410,6 +420,14 @@ export default function AnnualReviewForm({ projectSummary, existingReview, savin
             placeholder="例如：對內部流程的改善建議、對培訓制度的看法、對工作環境的意見等..." value={feedback} onChange={e => setFeedback(e.target.value)} />
         </div>
       </div>
+
+      {/* Section: Skill Self-Assessment */}
+      <SelfSkillScoreSection
+        skillSelfScores={skillSelfScores}
+        onScoreChange={(key, score) => {
+          setSkillSelfScores(prev => prev.map(s => s.key === key ? { ...s, self_score: score } : s));
+        }}
+      />
 
       {/* Section: Merits & Attendance (read-only) */}
       {existingReview?.staff_id && existingReview?.fiscal_year && (

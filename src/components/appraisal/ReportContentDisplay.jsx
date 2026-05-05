@@ -268,7 +268,8 @@ function ReportScoringSection({ staffId, fiscalYear, projects, extras, skillScor
   const projResult = calcSectionScore(arProjects.length > 0 ? arProjects : projItems, weights.project);
   const extraResult = calcSectionScore(arExtras.length > 0 ? arExtras : (extras || []).map(e => ({ self_score: e.avgScore || 0, leader_score: 0, boss_score: 0 })), weights.extra);
   const arSkills = annualReview?.skill_scores || skillScores || [];
-  const skillResult = calcSkillScore(arSkills, weights.skill);
+  const arSkillSelf = annualReview?.skill_self_scores || [];
+  const skillResult = calcSkillScore(arSkills, weights.skill, arSkillSelf);
   const arGpScore = annualReview?.boss_gp_score || bossGpScore || 0;
   const gpResult = weights.gp > 0 ? calcGpScore(null, arGpScore, weights.gp) : { score: 0 };
   const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;

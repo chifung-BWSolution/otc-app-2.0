@@ -155,12 +155,27 @@ export function calcGpScore(gpFields, bossGpScore, maxPoints) {
   return { score, bossScore: bossGpScore };
 }
 
-// Calculate skill scores: average of all boss skill scores, then scale
-export function calcSkillScore(skillScores, maxPoints) {
+// Calculate skill scores: for each skill, average self+boss scores, then overall average, then scale
+// skillScores: [{key, boss_score}], skillSelfScores: [{key, self_score}]
+export function calcSkillScore(skillScores, maxPoints, skillSelfScores) {
   if (!skillScores || skillScores.length === 0) return { score: 0, avg: 0, count: 0 };
-  const scored = skillScores.filter(s => s.boss_score > 0);
-  if (scored.length === 0) return { score: 0, avg: 0, count: 0 };
-  const avg = scored.reduce((a, s) => a + s.boss_score, 0) / scored.length;
+  const selfMap = {};
+  if (skillSelfScores) {
+    for (const s of skillSelfScores) {
+      if (s.self_score > 0) selfMap[s.key] = s.self_score;
+    }
+  }
+  const itemAvgs = [];
+  for (const s of skillScores) {
+    const vals = [];
+    if (selfMap[s.key] > 0) vals.push(selfMap[s.key]);
+    if (s.boss_score > 0) vals.push(s.boss_score);
+    if (vals.length > 0) {
+      itemAvgs.push(vals.reduce((a, b) => a + b, 0) / vals.length);
+    }
+  }
+  if (itemAvgs.length === 0) return { score: 0, avg: 0, count: 0 };
+  const avg = itemAvgs.reduce((a, b) => a + b, 0) / itemAvgs.length;
   const score = (avg / 5) * maxPoints;
-  return { score, avg: Math.round(avg * 10) / 10, count: scored.length };
+  return { score, avg: Math.round(avg * 10) / 10, count: itemAvgs.length };
 }

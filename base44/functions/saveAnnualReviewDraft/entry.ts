@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
       'project_contributions', 'extra_contributions',
       'challenges', 'challenges_solution',
       'next_year_goals', 'commitment', 'company_feedback',
+      'skill_self_scores',
     ];
     for (const f of allowedFields) {
       if (data[f] !== undefined) updatePayload[f] = data[f];

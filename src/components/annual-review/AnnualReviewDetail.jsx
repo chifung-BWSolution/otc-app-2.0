@@ -866,10 +866,10 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         </div>
       )}
 
-      {/* GP Score — only for BW teams */}
+      {/* GP Score — only for BW teams, shown near 附加欄位 I */}
       {weights.gp > 0 && !gpDisabled && (
         <GpScoreSection
-          gpFields={bossGpFields}
+          gpFields={canBossScore ? bossGpFields : (r.boss_gp_fields || [])}
           bossGpScore={bossGpScore}
           onScoreChange={canBossScore ? setBossGpScore : undefined}
           readOnly={!canBossScore}
@@ -880,6 +880,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       {/* Skill Score Section */}
       <SkillScoreSection
         skillScores={skillScores}
+        skillSelfScores={r.skill_self_scores}
         onScoreChange={canBossScore ? (key, score) => {
           setSkillScores(prev => prev.map(s => s.key === key ? { ...s, boss_score: score } : s));
         } : undefined}
@@ -901,6 +902,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         liveSkillScores={skillScores}
         liveBossGpScore={bossGpScore}
         teamGroup={staffTeamGroup}
+        skillSelfScores={r.skill_self_scores}
       />
 
       {/* Boss notes sections — editable when canBossScore (pending_boss_review or pending_boss) */}
