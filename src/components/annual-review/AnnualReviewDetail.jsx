@@ -586,6 +586,19 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
             />
           )}
 
+          {/* GP Score — inline with 附加欄位 I for BW teams */}
+          {weights.gp > 0 && !gpDisabled && (
+            <div className="mt-3">
+              <GpScoreSection
+                gpFields={canBossScore ? bossGpFields : (r.boss_gp_fields || [])}
+                bossGpScore={bossGpScore}
+                onScoreChange={canBossScore ? setBossGpScore : undefined}
+                readOnly={!canBossScore}
+                weightPct={weights.gp}
+              />
+            </div>
+          )}
+
           {contributedProjects.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {contributedProjects.map((p, i) => {
@@ -864,17 +877,6 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
             )}
           </div>
         </div>
-      )}
-
-      {/* GP Score — only for BW teams, shown near 附加欄位 I */}
-      {weights.gp > 0 && !gpDisabled && (
-        <GpScoreSection
-          gpFields={canBossScore ? bossGpFields : (r.boss_gp_fields || [])}
-          bossGpScore={bossGpScore}
-          onScoreChange={canBossScore ? setBossGpScore : undefined}
-          readOnly={!canBossScore}
-          weightPct={weights.gp}
-        />
       )}
 
       {/* Skill Score Section */}
