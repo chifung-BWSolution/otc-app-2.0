@@ -568,7 +568,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           {staffEntryDate && (
             <div className="flex items-center gap-2 mb-3 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
               <Calendar size={14} className="text-gray-400 shrink-0" />
-              <span>入職日期：<span className="font-semibold text-gray-800">{staffEntryDate}</span></span>
+              <span>入職日期：<span className="font-semibold text-gray-800">{staffEntryDate?.split('T')[0]}</span></span>
               <span className="text-gray-300">|</span>
               <span>年資：<span className="font-semibold text-gray-800">{(() => {
                 const entry = new Date(staffEntryDate);

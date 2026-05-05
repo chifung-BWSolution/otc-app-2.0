@@ -347,6 +347,81 @@ Deno.serve(async (req) => {
       y += 3;
     }
 
+    // ========== Peer Review Results ==========
+    // Fetch peer reviews for this staff
+    const peerReviews = await base44.asServiceRole.entities.PeerReview.filter(
+      { reviewee_staff_id: report.staff_id, fiscal_year: report.fiscal_year, status: "submitted" },
+      "-created_date", 200
+    );
+    
+    if (peerReviews.length > 0) {
+      sectionTitle("同事互評結果");
+      
+      // Dimension definitions
+      const PEER_DIMS = [
+        { key: "score_attitude", label: "工作態度與責任心" },
+        { key: "score_professionalism", label: "專業能力與執行品質" },
+        { key: "score_teamwork", label: "團隊合作與溝通" },
+        { key: "score_problem_solving", label: "問題解決與創新貢獻" },
+        { key: "score_company_contribution", label: "對公司整體發展的貢獻" },
+      ];
+
+      setCJK(9);
+      doc.setTextColor(50, 50, 50);
+      doc.text(`已提交互評人數：${peerReviews.length}`, margin, y);
+      y += 6;
+      
+      // Dimension averages
+      for (const dim of PEER_DIMS) {
+        y = checkPage(doc, y, 5, pageH, margin);
+        const scores = peerReviews.map(r => r[dim.key]).filter(s => s > 0);
+        const avg = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : 0;
+        setCJK(9);
+        doc.setTextColor(50, 50, 50);
+        doc.text(`  ${dim.label}：${avg}/5`, margin, y);
+        y += 5;
+      }
+
+      // Overall average
+      const allDimAvgs = PEER_DIMS.map(dim => {
+        const scores = peerReviews.map(r => r[dim.key]).filter(s => s > 0);
+        return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      }).filter(a => a > 0);
+      if (allDimAvgs.length > 0) {
+        const overallAvg = Math.round((allDimAvgs.reduce((a, b) => a + b, 0) / allDimAvgs.length) * 10) / 10;
+        y += 2;
+        setCJK(9);
+        doc.setTextColor(30, 50, 100);
+        doc.text(`  綜合平均分：${overallAvg}/5`, margin, y);
+        doc.setTextColor(50, 50, 50);
+        y += 6;
+      }
+
+      // Comments from peers
+      const reviewsWithComments = peerReviews.filter(r => r.comment?.trim());
+      if (reviewsWithComments.length > 0) {
+        y += 2;
+        labelText("同事額外補充：");
+        for (const r of reviewsWithComments) {
+          y = checkPage(doc, y, 8, pageH, margin);
+          setCJK(8);
+          doc.setTextColor(80, 80, 80);
+          doc.text(`${r.reviewer_name}：`, margin + 3, y);
+          y += 4;
+          setCJK(8);
+          doc.setTextColor(60, 60, 60);
+          const lines = wrapText(doc, r.comment, cW - 8);
+          for (const line of lines) {
+            y = checkPage(doc, y, 4, pageH, margin);
+            doc.text(line, margin + 6, y);
+            y += 4;
+          }
+          y += 2;
+        }
+      }
+      y += 3;
+    }
+
     // ========== Signature Page ==========
     doc.addPage();
     y = 30;
