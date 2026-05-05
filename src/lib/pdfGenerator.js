@@ -1,30 +1,58 @@
 import { jsPDF } from "jspdf";
 
 // Font loading cache
-let fontLoaded = false;
+let cachedFontB64 = null;
 let fontLoadPromise = null;
 
 // Load Noto Sans SC font for CJK support
 async function loadCJKFont(pdf) {
-  if (fontLoaded) return;
-  if (fontLoadPromise) { await fontLoadPromise; return; }
-
-  fontLoadPromise = (async () => {
-    // Use a compact CJK font from Google Fonts — Noto Sans SC Regular
-    const fontUrl = "https://cdn.jsdelivr.net/gh/nicholasgasior/gfonts-subset@master/fonts/noto-sans-sc/NotoSansSC-Regular.ttf";
-    const resp = await fetch(fontUrl);
-    const buf = await resp.arrayBuffer();
-    // Convert to base64
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    const b64 = btoa(binary);
-    // Register font
-    pdf.addFileToVFS("NotoSansSC-Regular.ttf", b64);
+  // If we already have the font cached, just register it on this pdf instance
+  if (cachedFontB64) {
+    pdf.addFileToVFS("NotoSansSC-Regular.ttf", cachedFontB64);
     pdf.addFont("NotoSansSC-Regular.ttf", "NotoSansSC", "normal");
-    fontLoaded = true;
-  })();
+    return;
+  }
+
+  // Load font from CDN (only once)
+  if (!fontLoadPromise) {
+    fontLoadPromise = (async () => {
+      // Try multiple CDN sources
+      const urls = [
+        "https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf",
+        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.0.12/files/noto-sans-sc-chinese-simplified-400-normal.woff",
+        "https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYA.ttf",
+      ];
+      
+      let buf = null;
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            buf = await resp.arrayBuffer();
+            if (buf.byteLength > 50000) break; // valid font file
+            buf = null;
+          }
+        } catch {}
+      }
+      
+      if (!buf) throw new Error("無法載入中文字體，請檢查網路連線");
+      
+      // Convert to base64
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      cachedFontB64 = btoa(binary);
+      return cachedFontB64;
+    })();
+  }
+  
   await fontLoadPromise;
+  pdf.addFileToVFS("NotoSansSC-Regular.ttf", cachedFontB64);
+  pdf.addFont("NotoSansSC-Regular.ttf", "NotoSansSC", "normal");
 }
 
 // Helper: wrap text to fit within maxWidth, returns array of lines
