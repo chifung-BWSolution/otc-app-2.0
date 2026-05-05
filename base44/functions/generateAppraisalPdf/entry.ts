@@ -302,13 +302,29 @@ Deno.serve(async (req) => {
       leadership_potential: "領導潛力",
     };
     const skills = data?.skillScores || annualReview?.skill_scores;
+    const selfSkills = annualReview?.skill_self_scores;
     if (skills?.length > 0 && skills.some(s => s.boss_score > 0)) {
       const scored = skills.filter(s => s.boss_score > 0);
-      const avg = Math.round((scored.reduce((a, s) => a + s.boss_score, 0) / scored.length) * 10) / 10;
+      const overallAvg = Math.round((scored.reduce((a, s) => a + s.boss_score, 0) / scored.length) * 10) / 10;
       sectionTitle("工作技能評分");
       setCJK(9);
-      doc.text(`  綜合平均分：${avg}/5（共 ${scored.length} 項）`, margin, y);
-      y += 8;
+      for (const s of scored) {
+        y = checkPage(doc, y, 5, pageH, margin);
+        const label = SKILL_LABELS[s.key] || s.key;
+        const selfS = selfSkills?.find(ss => ss.key === s.key)?.self_score;
+        const vals = [];
+        if (selfS > 0) vals.push(selfS);
+        if (s.boss_score > 0) vals.push(s.boss_score);
+        const itemAvg = vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
+        doc.text(`  ${label}：${itemAvg}/5`, margin, y);
+        y += 5;
+      }
+      y += 2;
+      setCJK(9);
+      doc.setTextColor(30, 50, 100);
+      doc.text(`  綜合平均分：${overallAvg}/5`, margin, y);
+      doc.setTextColor(50, 50, 50);
+      y += 6;
     }
 
     // ========== Boss Notes ==========
