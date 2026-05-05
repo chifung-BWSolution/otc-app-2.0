@@ -117,7 +117,8 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
     setBossExtraScores(es);
   }, [r.id]);
 
-  const canBossScore = r.status === "pending_boss_review" || r.status === "pending_boss";
+  // Allow boss to score/edit GP/notes at any submitted status (not just pending_boss_review/pending_boss)
+  const canBossScore = r.status !== "draft";
 
   const handleSaveBossScores = async () => {
     setSavingBoss(true);
