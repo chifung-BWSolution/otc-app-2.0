@@ -16,26 +16,28 @@ async function loadCJKFont(pdf) {
   // Load font from CDN (only once)
   if (!fontLoadPromise) {
     fontLoadPromise = (async () => {
-      // Try multiple CDN sources
-      const urls = [
-        "https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf",
-        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.0.12/files/noto-sans-sc-chinese-simplified-400-normal.woff",
-        "https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYA.ttf",
-      ];
+      // Must use a real TTF file — OTF/WOFF won't work with jsPDF
+      // Google Fonts API can serve TTF via User-Agent trick
+      const cssUrl = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400&display=swap";
+      const cssResp = await fetch(cssUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+      });
+      const cssText = await cssResp.text();
       
-      let buf = null;
-      for (const url of urls) {
-        try {
-          const resp = await fetch(url);
-          if (resp.ok) {
-            buf = await resp.arrayBuffer();
-            if (buf.byteLength > 50000) break; // valid font file
-            buf = null;
-          }
-        } catch {}
+      // Extract .ttf or .woff2 URL from the CSS — Google serves .ttf for this UA
+      const urlMatch = cssText.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/);
+      let fontUrl = urlMatch ? urlMatch[1] : null;
+      
+      // Fallback: use a known working TTF from cdn
+      if (!fontUrl) {
+        fontUrl = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/Variable/TTF/NotoSansSC-VF.ttf";
       }
+
+      const resp = await fetch(fontUrl);
+      if (!resp.ok) throw new Error("無法載入中文字體");
+      const buf = await resp.arrayBuffer();
       
-      if (!buf) throw new Error("無法載入中文字體，請檢查網路連線");
+      if (buf.byteLength < 10000) throw new Error("無法載入中文字體，請檢查網路連線");
       
       // Convert to base64
       const bytes = new Uint8Array(buf);

@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Loader2, Download, PenTool } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { generateAppraisalPdf } from "@/lib/pdfGenerator";
 import SignaturePad from "./SignaturePad";
 
-export default function SignAndDownloadSection({ report, contentRef }) {
+export default function SignAndDownloadSection({ report }) {
   const [showSignature, setShowSignature] = useState(false);
   const [staffSig, setStaffSig] = useState(null);
   const [bossSig, setBossSig] = useState(null);
@@ -19,24 +18,23 @@ export default function SignAndDownloadSection({ report, contentRef }) {
     }
     setGenerating(true);
     try {
-      // Parse structured report data
-      let reportData = null;
-      try { reportData = JSON.parse(report.report_content); if (!reportData.summary) reportData = null; } catch {}
-
-      // Load annual review for boss notes
-      let annualReview = null;
-      if (report.annual_review_id) {
-        const ars = await base44.entities.AnnualReview.filter({ id: report.annual_review_id }, "id", 1);
-        if (ars.length > 0) annualReview = ars[0];
-      }
-
-      await generateAppraisalPdf({
-        report,
-        reportData,
-        annualReview,
-        staffSig,
-        bossSig,
+      // Call backend function to generate PDF with CJK font support
+      const response = await base44.functions.invoke('generateAppraisalPdf', {
+        report_id: report.id,
+        staff_signature: staffSig,
+        boss_signature: bossSig,
       });
+
+      const { file_url, file_name } = response.data;
+      
+      // Download the generated PDF
+      const a = document.createElement("a");
+      a.href = file_url;
+      a.download = file_name || `Appraisal_${report.staff_name}_${report.fiscal_year}.pdf`;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("PDF 生成失敗：" + (err.message || "未知錯誤"));
