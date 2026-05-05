@@ -191,7 +191,13 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       // Build report content directly (no AI) — exclude private fields
       const sections = [];
       
-      // Project contributions
+      // Helper: calc average of non-zero scores
+      const avg = (...vals) => {
+        const valid = vals.filter(v => v > 0);
+        return valid.length > 0 ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : null;
+      };
+
+      // Project contributions — show averages only, no individual scores
       sections.push("## 📊 項目工作摘要\n");
       sections.push(`- 總參與項目：${allProjects.length}`);
       sections.push(`- 總工時：${Math.round(totalHours)}h / 總任務數：${totalTasks}`);
@@ -211,28 +217,28 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
                 if (typeof pt === "object" && pt.type) return `- [${pt.type}] ${pt.text}`;
                 return `- ${typeof pt === "string" ? pt : pt.text || ""}`;
               }).filter(s => s.trim().length > 2);
-              if (pts.length > 0) line += "\n**員工貢獻重點：**\n" + pts.join("\n");
+              if (pts.length > 0) line += "\n**貢獻重點：**\n" + pts.join("\n");
             }
-          } catch { line += `\n**員工貢獻重點：** ${p.contribution_note}`; }
+          } catch { line += `\n**貢獻重點：** ${p.contribution_note}`; }
         }
-        if (p.self_score > 0) line += `\n- 自評：${p.self_score}/5`;
-        if (p.leader_score > 0) line += ` · Leader：${p.leader_score}/5`;
-        if (p.boss_score > 0) line += ` · 老闆：${p.boss_score}/5`;
+        const pAvg = avg(p.self_score, p.leader_score, p.boss_score);
+        if (pAvg) line += `\n- 綜合評分：${pAvg}/5`;
         sections.push(line + "\n");
       }
 
-      // Extra contributions
+      // Extra contributions — show averages only
       if (extras.length > 0) {
         sections.push("## 🌟 額外貢獻\n");
         for (const ec of extras) {
           let line = `- ${ec.description}`;
-          if (ec.self_score > 0) line += ` （自評：${ec.self_score}/5）`;
+          const eAvg = avg(ec.self_score, ec.leader_score, ec.boss_score);
+          if (eAvg) line += ` （綜合評分：${eAvg}/5）`;
           sections.push(line);
         }
         sections.push("");
       }
 
-      // Challenges (public)
+      // Challenges (public — exclude company_feedback which is private)
       sections.push("## ⚡ 年度遇到的困難及解決方法\n");
       sections.push(`**遇到的困難：** ${r.challenges || "（未填寫）"}\n`);
       sections.push(`**需要公司協助：** ${r.challenges_solution || "（未填寫）"}\n`);
@@ -250,7 +256,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       }
 
       // NOTE: Excludes leader_private_note, company_feedback, peer review private_note
-      // These are private fields that should not be visible to the employee
+      // These are private/confidential fields that should NOT be visible to the employee in the meeting report
 
       const content = sections.join("\n");
 
@@ -463,7 +469,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
   }, [allProjects]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
@@ -858,17 +864,33 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         </div>
       )}
 
-      {/* Create Report Button */}
-      <div className="flex justify-center pt-2 pb-2">
-        <button
-          onClick={handleCreateReport}
-          disabled={creatingReport}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
-        >
-          {creatingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-          {creatingReport ? "建立報告中..." : "整合面談報告"}
-        </button>
-      </div>
+      {/* Create Report Button — only show when boss has scored all scorable items */}
+      {(() => {
+        const scorableProjects = allProjects.filter(p => p.self_score > 0);
+        const allProjectsScored = scorableProjects.every((p, i) => {
+          const origIdx = allProjects.indexOf(p);
+          return (bossProjectScores[origIdx] || p.boss_score) > 0;
+        });
+        const scorableExtras = extras.filter(e => e.self_score > 0);
+        const allExtrasScored = scorableExtras.every((e, i) => {
+          const origIdx = extras.indexOf(e);
+          return (bossExtraScores[origIdx] || e.boss_score) > 0;
+        });
+        const allScored = allProjectsScored && allExtrasScored && (scorableProjects.length > 0 || scorableExtras.length > 0);
+        if (!allScored) return null;
+        return (
+          <div className="flex justify-center pt-2 pb-2">
+            <button
+              onClick={handleCreateReport}
+              disabled={creatingReport}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
+            >
+              {creatingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+              {creatingReport ? "建立報告中..." : "整合面談報告"}
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Meta */}
       {r.submitted_at && (
