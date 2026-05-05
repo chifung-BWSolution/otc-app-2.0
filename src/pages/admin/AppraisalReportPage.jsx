@@ -33,7 +33,59 @@ export default function AppraisalReportPage() {
       const found = all.find(r => r.id === directReportId);
       if (found) setSelectedReport(found);
     }
+
+    // Backfill total_score for confirmed reports missing scores
+    for (const r of all) {
+      if (r.is_final && !r.total_score && r.report_content) {
+        computeAndSaveScore(r).then(score => {
+          if (score !== null) {
+            setReports(prev => prev.map(rp => rp.id === r.id ? { ...rp, total_score: score, scoring_completed: true } : rp));
+          }
+        });
+      }
+    }
     setLoading(false);
+  };
+
+  const computeAndSaveScore = async (report) => {
+    try {
+      const { calcSectionScore, calcAttendanceAdj, calcMeritAdj } = await import("@/components/annual-review/ScoringBreakdown");
+      const { getTeamWeights, calcGpScore, calcSkillScore } = await import("@/lib/scoringConfig");
+
+      const reviews = await base44.entities.AnnualReview.filter({ id: report.annual_review_id }, "id", 1);
+      if (reviews.length === 0) return null;
+      const ar = reviews[0];
+
+      let teamGroup = null;
+      const staffList = await base44.entities.Staff.filter({ bubble_id: report.staff_id }, "id", 1);
+      if (staffList.length > 0) teamGroup = staffList[0].team_group || null;
+      const weights = getTeamWeights(teamGroup);
+
+      const projResult = calcSectionScore(ar.project_contributions || [], weights.project);
+      const extraResult = calcSectionScore(ar.extra_contributions || [], weights.extra);
+      const skillResult = calcSkillScore(ar.skill_scores, weights.skill, ar.skill_self_scores);
+      const gpResult = weights.gp > 0 ? calcGpScore(ar.boss_gp_fields, ar.boss_gp_score, weights.gp) : { score: 0 };
+      const baseScore = projResult.score + extraResult.score + skillResult.score + gpResult.score;
+
+      let attAdj = 0;
+      try {
+        const statsRes = await base44.functions.invoke('loadAttendanceStats', { staff_id: report.staff_id, fiscal_year: report.fiscal_year });
+        const attResult = calcAttendanceAdj(statsRes.data.attendanceStats || null);
+        attAdj = attResult.total;
+        const meritTypes = await base44.entities.MeritDemeritType.filter({ is_active: true }, "sort_order", 100);
+        const meritResult = calcMeritAdj(statsRes.data.meritRecords || [], meritTypes);
+        attAdj += meritResult.adj;
+      } catch {}
+
+      const bossAdj = ar.boss_score_adjustment || 0;
+      const totalScore = Math.round((baseScore + attAdj + bossAdj) * 100) / 100;
+
+      await base44.entities.AppraisalReport.update(report.id, { total_score: totalScore, scoring_completed: true });
+      return totalScore;
+    } catch (e) {
+      console.error("Score calc failed for", report.staff_name, e);
+      return null;
+    }
   };
 
   const fyList = useMemo(() => [...new Set(reports.map(r => r.fiscal_year).filter(Boolean))].sort().reverse(), [reports]);

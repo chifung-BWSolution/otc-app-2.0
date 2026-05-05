@@ -178,27 +178,37 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
         </div>
       )}
 
-      {/* Skill Scores */}
-      {skillScores?.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
-            <h3 className="font-bold text-base text-cyan-800">🛠️ 工作技能評分</h3>
+      {/* Skill Scores — show combined average only */}
+      {skillScores?.length > 0 && (() => {
+        const scored = skillScores.filter(s => s.boss_score > 0);
+        if (scored.length === 0) return null;
+        const avg = Math.round((scored.reduce((a, s) => a + s.boss_score, 0) / scored.length) * 10) / 10;
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-base text-cyan-800">🛠️ 工作技能評分（{scored.length} 項）</h3>
+                <span className="text-sm font-black text-cyan-700 bg-cyan-100 px-2.5 py-1 rounded-lg">綜合 {avg}/5</span>
+              </div>
+            </div>
+            <div className="p-4 space-y-2">
+              {scored.map((s, i) => {
+                const item = SKILL_ITEMS.find(sk => sk.key === s.key);
+                if (!item) return null;
+                return (
+                  <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="text-base">{item.icon}</span>
+                    <span className="text-sm text-gray-700 flex-1">{item.label}</span>
+                    <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full bg-cyan-500`} style={{ width: `${(s.boss_score / 5) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="p-4 space-y-2">
-            {skillScores.filter(s => s.boss_score > 0).map((s, i) => {
-              const item = SKILL_ITEMS.find(sk => sk.key === s.key);
-              if (!item) return null;
-              return (
-                <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-base">{item.icon}</span>
-                  <span className="text-sm text-gray-700 flex-1">{item.label}</span>
-                  <span className="text-sm font-bold text-cyan-700">{s.boss_score}/5</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Peer Review Results */}
       {staffId && fiscalYear && (
