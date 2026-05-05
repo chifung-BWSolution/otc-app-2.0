@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Loader2, CheckCircle2, FileText, Save, Download } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, FileText, Save } from "lucide-react";
 import BossNotesSection from "@/components/annual-review/BossNotesSection";
 import BossProjectFields from "@/components/annual-review/BossProjectFields";
 import ReportContentDisplay from "./ReportContentDisplay";
+import SignAndDownloadSection from "./SignAndDownloadSection";
 
 export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [r, setR] = useState(report);
@@ -17,7 +18,7 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
   const [gpDisabled, setGpDisabled] = useState(false);
   const [tenderDisabled, setTenderDisabled] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const reportContentRef = useRef(null);
 
   useEffect(() => {
     if (report.annual_review_id) {
@@ -80,24 +81,6 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
     setSavingNotes(false);
   };
 
-  const handleDownloadPdf = async () => {
-    setGeneratingPdf(true);
-    try {
-      const response = await base44.functions.invoke('generateAppraisalPdf', { report_id: r.id }, { responseType: 'arraybuffer' });
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Appraisal_${r.staff_name}_${r.fiscal_year}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("PDF download failed:", err);
-      alert("PDF 生成失敗：" + (err.message || "未知錯誤"));
-    }
-    setGeneratingPdf(false);
-  };
-
   return (
     <div className="max-w-6xl space-y-4">
       {/* Header */}
@@ -124,8 +107,10 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         )}
       </div>
 
-      {/* Report content — structured display */}
-      <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} />
+      {/* Report content — structured display (wrapped in ref for PDF capture) */}
+      <div ref={reportContentRef}>
+        <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} />
+      </div>
 
       {/* GP & Tender fields — editable before confirm */}
       {!r.is_final && (
@@ -187,18 +172,9 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
         <BossNotesReadonly deptGoals={bossDeptGoals} personalGoals={bossPersonalGoals} extraNotes={bossExtraNotes} />
       )}
 
-      {/* PDF Download — after confirmed */}
+      {/* Sign & Download PDF — after confirmed */}
       {r.is_final && (
-        <div className="flex justify-center pt-2 pb-4">
-          <button
-            onClick={handleDownloadPdf}
-            disabled={generatingPdf}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
-          >
-            {generatingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            {generatingPdf ? "PDF 生成中..." : "下載面談報告 PDF（含簽名欄）"}
-          </button>
-        </div>
+        <SignAndDownloadSection report={r} contentRef={reportContentRef} />
       )}
     </div>
   );
