@@ -18,7 +18,6 @@ export default function SignAndDownloadSection({ report, onPdfSaved }) {
     }
     setGenerating(true);
     try {
-      // Call backend function to generate PDF with CJK font support
       const response = await base44.functions.invoke('generateAppraisalPdf', {
         report_id: report.id,
         staff_signature: staffSig,
@@ -27,11 +26,9 @@ export default function SignAndDownloadSection({ report, onPdfSaved }) {
 
       const { file_url, file_name } = response.data;
       
-      // Save PDF URL to database
       await base44.entities.AppraisalReport.update(report.id, { pdf_url: file_url });
       if (onPdfSaved) onPdfSaved(file_url);
 
-      // Download the generated PDF
       const a = document.createElement("a");
       a.href = file_url;
       a.download = file_name || `Appraisal_${report.staff_name}_${report.fiscal_year}.pdf`;
@@ -45,6 +42,11 @@ export default function SignAndDownloadSection({ report, onPdfSaved }) {
     }
     setGenerating(false);
   };
+
+  // If PDF already exists, don't show the sign/download button
+  if (report.pdf_url) {
+    return null;
+  }
 
   if (!showSignature) {
     return (
