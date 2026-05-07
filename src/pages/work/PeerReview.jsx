@@ -93,13 +93,11 @@ export default function PeerReview() {
       ...(submit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
-    let savedRecord;
-    if (existing) {
-      await base44.entities.PeerReview.update(existing.id, data);
-      savedRecord = { ...existing, ...data };
-    } else {
-      savedRecord = await base44.entities.PeerReview.create(data);
-    }
+    const res = await base44.functions.invoke('savePeerReview', {
+      review_id: existing?.id || null,
+      data,
+    });
+    const savedRecord = res.data.review;
 
     // Optimistically update local state instead of re-fetching (avoids stale reads)
     setReviews(prev => {
@@ -138,13 +136,11 @@ export default function PeerReview() {
       submitted_at: new Date().toISOString(),
     };
 
-    let savedRecord;
-    if (existing) {
-      await base44.entities.PeerReview.update(existing.id, data);
-      savedRecord = { ...existing, ...data };
-    } else {
-      savedRecord = await base44.entities.PeerReview.create(data);
-    }
+    const res = await base44.functions.invoke('savePeerReview', {
+      review_id: existing?.id || null,
+      data,
+    });
+    const savedRecord = res.data.review;
 
     setReviews(prev => {
       const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
