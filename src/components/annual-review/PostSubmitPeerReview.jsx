@@ -125,28 +125,7 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
   const submitted = reviews.filter(r => r.status === "submitted" || r.status === "no_collaboration");
   const allDone = eligible.length > 0 && submitted.length >= eligible.length;
 
-  // Auto-transition annual review status when all peer reviews are done
-  useEffect(() => {
-    if (!allDone || !staffRec?.bubble_id) return;
-    (async () => {
-      const myReviews = await base44.entities.AnnualReview.filter(
-        { staff_id: staffRec.bubble_id, status: "peer_review_pending" }, "-created_date", 1
-      );
-      if (myReviews.length === 0) return;
-      const ar = myReviews[0];
-      // Check if staff has a team leader AND the leader is NOT from MGT Team
-      let needsLeader = false;
-      if (staffRec.team_leader) {
-        const allStaff = await base44.entities.Staff.filter({ bubble_id: staffRec.team_leader }, "id", 1);
-        const leader = allStaff[0];
-        // If leader's team is MGT Team, skip leader evaluation
-        const leaderTeam = (leader?.team_name || "").toLowerCase();
-        needsLeader = leader && !leaderTeam.includes("mgt");
-      }
-      const newStatus = needsLeader ? "pending_leader" : "pending_boss_review";
-      await base44.entities.AnnualReview.update(ar.id, { status: newStatus });
-    })();
-  }, [allDone]);
+  // Auto-transition is now handled server-side by onPeerReviewCompleted automation
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-gray-400"><div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" /></div>;
