@@ -72,18 +72,22 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
       leader_score: extraScores[i] || e.leader_score || null,
     }));
 
-    await base44.entities.AnnualReview.update(review.id, {
-      project_contributions: updatedProjects,
-      extra_contributions: updatedExtras,
-      leader_comment: comment,
-      leader_next_year_expectation: nextYearExpectation,
-      leader_private_note: privateNote,
-      leader_scored_at: new Date().toISOString(),
-      status: "pending_boss_review",
-    });
-
-    setSaving(false);
-    onSubmitted();
+    try {
+      await base44.functions.invoke('submitLeaderScoring', {
+        review_id: review.id,
+        project_contributions: updatedProjects,
+        extra_contributions: updatedExtras,
+        leader_comment: comment,
+        leader_next_year_expectation: nextYearExpectation,
+        leader_private_note: privateNote,
+      });
+      setSaving(false);
+      onSubmitted();
+    } catch (err) {
+      console.error("Leader scoring submit failed:", err);
+      alert("提交失敗：" + (err?.response?.data?.error || err.message || "未知錯誤"));
+      setSaving(false);
+    }
   };
 
   const renderScoreRow = (label, selfScore, leaderScore, onScore) => {
