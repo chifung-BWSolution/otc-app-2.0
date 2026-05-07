@@ -40,9 +40,17 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
   const existingReviewFor = (id) => reviews.find(r => r.reviewee_staff_id === id) || null;
 
   const handleSave = async (formData, submit) => {
-    if (!staffRec || !selectedColleague) return;
+    if (!staffRec || !selectedColleague || saving) return;
     setSaving(true);
-    const existing = existingReviewFor(selectedColleague.bubble_id);
+    // Check local state AND DB for existing record to prevent duplicates
+    let existing = existingReviewFor(selectedColleague.bubble_id);
+    if (!existing) {
+      const dbRecords = await base44.entities.PeerReview.filter(
+        { reviewer_staff_id: staffRec.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
+        "-created_date", 1
+      );
+      if (dbRecords.length > 0) existing = dbRecords[0];
+    }
     const data = {
       ...formData,
       reviewer_staff_id: staffRec.bubble_id,
@@ -73,9 +81,17 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
   };
 
   const handleNoCollab = async () => {
-    if (!staffRec || !selectedColleague) return;
+    if (!staffRec || !selectedColleague || saving) return;
     setSaving(true);
-    const existing = existingReviewFor(selectedColleague.bubble_id);
+    // Check local state AND DB for existing record to prevent duplicates
+    let existing = existingReviewFor(selectedColleague.bubble_id);
+    if (!existing) {
+      const dbRecords = await base44.entities.PeerReview.filter(
+        { reviewer_staff_id: staffRec.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
+        "-created_date", 1
+      );
+      if (dbRecords.length > 0) existing = dbRecords[0];
+    }
     const data = {
       reviewer_staff_id: staffRec.bubble_id,
       reviewer_name: staffRec.display_name,
@@ -96,7 +112,6 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
     } else {
       savedRecord = await base44.entities.PeerReview.create(data);
     }
-    // Optimistically update local state instead of re-fetching (avoids stale reads)
     setReviews(prev => {
       const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
       return [...without, savedRecord];

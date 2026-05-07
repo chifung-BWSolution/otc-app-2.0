@@ -60,9 +60,17 @@ export default function PeerReview() {
   };
 
   const handleSave = async (formData, submit) => {
-    if (!myStaff || !selectedColleague) return;
+    if (!myStaff || !selectedColleague || saving) return;
     setSaving(true);
-    const existing = existingReviewFor(selectedColleague.bubble_id);
+    // Check local state AND DB for existing record to prevent duplicates
+    let existing = existingReviewFor(selectedColleague.bubble_id);
+    if (!existing) {
+      const dbRecords = await base44.entities.PeerReview.filter(
+        { reviewer_staff_id: myStaff.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
+        "-created_date", 1
+      );
+      if (dbRecords.length > 0) existing = dbRecords[0];
+    }
     const data = {
       ...formData,
       reviewer_staff_id: myStaff.bubble_id,
@@ -95,9 +103,17 @@ export default function PeerReview() {
   };
 
   const handleNoCollab = async () => {
-    if (!myStaff || !selectedColleague) return;
+    if (!myStaff || !selectedColleague || saving) return;
     setSaving(true);
-    const existing = existingReviewFor(selectedColleague.bubble_id);
+    // Check local state AND DB for existing record to prevent duplicates
+    let existing = existingReviewFor(selectedColleague.bubble_id);
+    if (!existing) {
+      const dbRecords = await base44.entities.PeerReview.filter(
+        { reviewer_staff_id: myStaff.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
+        "-created_date", 1
+      );
+      if (dbRecords.length > 0) existing = dbRecords[0];
+    }
     const data = {
       reviewer_staff_id: myStaff.bubble_id,
       reviewer_name: myStaff.display_name,
@@ -120,7 +136,6 @@ export default function PeerReview() {
       savedRecord = await base44.entities.PeerReview.create(data);
     }
 
-    // Optimistically update local state instead of re-fetching (avoids stale reads)
     setReviews(prev => {
       const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
       return [...without, savedRecord];
