@@ -46,11 +46,17 @@ export default function PeerReview() {
 
     // Load existing reviews by this user
     if (myRec?.bubble_id) {
-      const myReviews = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: myRec.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 200
-      );
-      setReviews(myReviews);
+      try {
+        const myReviews = await base44.entities.PeerReview.filter(
+          { reviewer_staff_id: myRec.bubble_id, fiscal_year: fiscalYear },
+          "-created_date", 200
+        );
+        console.log("[PeerReview] Found", myReviews.length, "reviews for", myRec.display_name);
+        setReviews(myReviews);
+      } catch (err) {
+        console.error("[PeerReview] Failed to load reviews:", err);
+        setReviews([]);
+      }
     }
     setLoading(false);
   };
