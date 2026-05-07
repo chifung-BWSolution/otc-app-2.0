@@ -93,25 +93,27 @@ export default function PeerReview() {
       ...(submit ? { submitted_at: new Date().toISOString() } : {}),
     };
 
-    const res = await base44.functions.invoke('savePeerReview', {
-      review_id: existing?.id || null,
-      data,
-    });
-    const savedRecord = res.data.review;
-
-    // Optimistically update local state instead of re-fetching (avoids stale reads)
-    setReviews(prev => {
-      const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
-      return [...without, savedRecord];
-    });
+    try {
+      const res = await base44.functions.invoke('savePeerReview', {
+        review_id: existing?.id || null,
+        data,
+      });
+      const savedRecord = res.data.review;
+      setReviews(prev => {
+        const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
+        return [...without, savedRecord];
+      });
+      if (submit) setSelectedColleague(null);
+    } catch (err) {
+      console.error("[PeerReview] Save failed:", err);
+      alert("儲存失敗：" + (err?.response?.data?.error || err.message || "未知錯誤"));
+    }
     setSaving(false);
-    if (submit) setSelectedColleague(null);
   };
 
   const handleNoCollab = async () => {
     if (!myStaff || !selectedColleague || saving) return;
     setSaving(true);
-    // Check local state AND DB for existing record to prevent duplicates
     let existing = existingReviewFor(selectedColleague.bubble_id);
     if (!existing) {
       try {
@@ -136,18 +138,22 @@ export default function PeerReview() {
       submitted_at: new Date().toISOString(),
     };
 
-    const res = await base44.functions.invoke('savePeerReview', {
-      review_id: existing?.id || null,
-      data,
-    });
-    const savedRecord = res.data.review;
-
-    setReviews(prev => {
-      const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
-      return [...without, savedRecord];
-    });
+    try {
+      const res = await base44.functions.invoke('savePeerReview', {
+        review_id: existing?.id || null,
+        data,
+      });
+      const savedRecord = res.data.review;
+      setReviews(prev => {
+        const without = prev.filter(r => r.reviewee_staff_id !== selectedColleague.bubble_id);
+        return [...without, savedRecord];
+      });
+      setSelectedColleague(null);
+    } catch (err) {
+      console.error("[PeerReview] NoCollab save failed:", err);
+      alert("儲存失敗：" + (err?.response?.data?.error || err.message || "未知錯誤"));
+    }
     setSaving(false);
-    setSelectedColleague(null);
   };
 
   if (loading) {

@@ -12,15 +12,34 @@ Deno.serve(async (req) => {
     const { review_id, data } = body;
 
     if (!data || !data.reviewer_staff_id || !data.fiscal_year) {
+      console.log('[savePeerReview] Missing fields:', { hasData: !!data, reviewer: data?.reviewer_staff_id, fy: data?.fiscal_year });
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const sr = base44.asServiceRole;
+
     // Verify the requesting user owns this reviewer_staff_id
-    if (user.linked_staff_id !== data.reviewer_staff_id && user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    // Support both linked_staff_id on User and email-based matching
+    let authorized = false;
+    if (user.role === 'admin' || user.role === 'management') {
+      authorized = true;
+    } else if (user.linked_staff_id === data.reviewer_staff_id) {
+      authorized = true;
+    } else {
+      // Fallback: check if the user's email matches the staff record
+      const staffMatches = await sr.entities.Staff.filter({ bubble_id: data.reviewer_staff_id }, 'id', 1);
+      if (staffMatches.length > 0) {
+        const staff = staffMatches[0];
+        if (staff.linked_user_email === user.email || staff.work_email === user.email || staff.business_email === user.email) {
+          authorized = true;
+        }
+      }
     }
 
-    const sr = base44.asServiceRole;
+    if (!authorized) {
+      console.log('[savePeerReview] Forbidden: user', user.email, 'linked_staff_id', user.linked_staff_id, 'vs reviewer', data.reviewer_staff_id);
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     let savedRecord;
     if (review_id) {
@@ -47,7 +66,6 @@ Deno.serve(async (req) => {
       }, '-created_date', 1);
 
       if (dupes.length > 0) {
-        // Update existing instead of creating duplicate
         const existingId = dupes[0].id;
         if (dupes[0].status === 'submitted') {
           return Response.json({ error: 'Cannot edit submitted review' }, { status: 400 });
@@ -59,9 +77,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('[savePeerReview] OK:', data.reviewer_staff_id, '->', data.reviewee_staff_id, 'status:', data.status);
     return Response.json({ review: savedRecord });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[savePeerReview] Error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
