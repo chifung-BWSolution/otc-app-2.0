@@ -79,15 +79,27 @@ export default function AnnualReview() {
     setLoading(false);
   };
 
-  const handleOpenReview = (review) => {
+  const handleOpenReview = async (review) => {
     if (review.status === "draft") {
       openDraftForm(review.fiscal_year);
     } else if (review.status === "peer_review_pending") {
       setActiveReview(review);
       setView("peer-review");
     } else {
-      setActiveReview(review);
+      // Fetch full review data (list only returns lightweight version)
+      setFormLoading(true);
       setView("readonly");
+      try {
+        const res = await base44.functions.invoke('loadOrCreateReviewDraft', {
+          staff_id: user.linked_staff_id,
+          fiscal_year: review.fiscal_year,
+        });
+        setActiveReview(res.data.review);
+      } catch {
+        // Fallback to lightweight data if fetch fails
+        setActiveReview(review);
+      }
+      setFormLoading(false);
     }
   };
 
@@ -191,7 +203,15 @@ export default function AnnualReview() {
     return <PostSubmitPeerReview staffRec={staffRec} fiscalYear={activeReview?.fiscal_year} onBack={handleBack} />;
   }
 
-  if (view === "readonly" && activeReview) {
+  if (view === "readonly") {
+    if (formLoading || !activeReview) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-gray-400" size={32} />
+          <span className="ml-2 text-sm text-gray-400">載入評估表...</span>
+        </div>
+      );
+    }
     return <AnnualReviewReadonly review={activeReview} staffRec={staffRec} user={user} onBack={handleBack} />;
   }
 
