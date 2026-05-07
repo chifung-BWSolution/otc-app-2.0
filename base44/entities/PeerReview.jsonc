@@ -97,7 +97,18 @@
     "status"
   ],
   "rls": {
-    "create": true,
+    "create": {
+      "$or": [
+        {
+          "data.reviewer_staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "read": {
       "$or": [
         {
