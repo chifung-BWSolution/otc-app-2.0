@@ -24,25 +24,15 @@ export default function SubordinateReviews({ staffRec, user, onLeaderScored }) {
 
   const loadData = async () => {
     setLoading(true);
-    const allStaff = await base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000);
-    const myId = staffRec?.bubble_id;
-
-    // Only show staff whose team_leader field directly matches this user's bubble_id
-    const subs = allStaff.filter(s => {
-      if (s.bubble_id === myId) return false;
-      return s.team_leader === myId;
-    });
-
-    setSubordinates(subs);
-
-    if (subs.length > 0) {
-      const subIds = subs.map(s => s.bubble_id).filter(Boolean);
-      // Load all annual reviews for these staff (we can't filter by array of staff_id easily, so load all and filter)
-      const allReviews = await base44.entities.AnnualReview.filter({}, "-created_date", 2000);
-      const subReviews = allReviews.filter(r => subIds.includes(r.staff_id) && r.fiscal_year === fy);
-      setReviews(subReviews);
+    try {
+      const res = await base44.functions.invoke('listSubordinateReviews', { fiscal_year: fy });
+      setSubordinates(res.data.subordinates || []);
+      setReviews(res.data.reviews || []);
+    } catch (err) {
+      console.error("[SubordinateReviews] Failed to load:", err);
+      setSubordinates([]);
+      setReviews([]);
     }
-
     setLoading(false);
   };
 
