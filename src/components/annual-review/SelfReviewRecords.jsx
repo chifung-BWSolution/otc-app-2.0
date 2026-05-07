@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Award, AlertTriangle, Calendar, Clock, Coffee } from "lucide-react";
+import { Loader2, Calendar, Clock, Coffee, AlertTriangle } from "lucide-react";
 
 
 
@@ -36,41 +36,6 @@ export default function SelfReviewRecords({ staffId, fiscalYear }) {
 
   return (
     <div className="space-y-5">
-      {/* Merits & Demerits */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-amber-50 px-5 py-4 border-b border-amber-100">
-          <h3 className="font-bold text-base text-amber-800">🏅 功過紀錄（{fiscalYear}）</h3>
-          <p className="text-sm text-amber-600 mt-0.5">以下為你在本年度的功過紀錄，僅供參考。</p>
-        </div>
-        <div className="p-5">
-          {meritRecords.length === 0 ? (
-            <div className="text-center py-4 text-gray-400 text-sm">本年度暫無功過紀錄</div>
-          ) : (
-            <div className="space-y-2">
-              {meritRecords.map((r, i) => {
-                const isMerit = (r.type || "").includes("優") || (r.type || "").includes("功") || (r.type || "").toLowerCase().includes("merit");
-                const isDemerit = !isMerit;
-                return (
-                  <div key={r.id || i} className={`flex items-start gap-3 rounded-lg px-4 py-3 border ${isDemerit ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isDemerit ? "bg-red-100" : "bg-green-100"}`}>
-                      {isDemerit ? <AlertTriangle size={15} className="text-red-500" /> : <Award size={15} className="text-green-600" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${isDemerit ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{r.type || (isDemerit ? "過" : "功")}</span>
-                        {r.event_date && <span className="text-xs text-gray-400">{new Date(r.event_date).toLocaleDateString("zh-HK")}</span>}
-                      </div>
-                      {r.brief_description && <div className="text-sm font-medium text-gray-800 mt-1">{r.brief_description}</div>}
-                      {r.detailed_description && <div className="text-sm text-gray-600 mt-0.5 leading-relaxed">{r.detailed_description}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Attendance */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-slate-50 px-5 py-4 border-b border-slate-200">

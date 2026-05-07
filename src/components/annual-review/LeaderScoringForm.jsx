@@ -10,18 +10,20 @@ const SCORE_COLORS = {
   1: { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", active: "bg-red-500" },
 };
 
-function parseContribution(note) {
-  if (!note) return "";
+function ContributionPoints({ note }) {
+  if (!note) return null;
   try {
     const arr = JSON.parse(note);
     if (Array.isArray(arr)) {
-      return arr.map(pt => {
-        if (typeof pt === "object" && pt.type) return `[${pt.type}] ${pt.text}`;
-        return typeof pt === "string" ? pt : pt.text || "";
-      }).filter(Boolean).join("；");
+      const items = arr.map((pt, i) => {
+        if (typeof pt === "object" && pt.type) return <li key={i}><span className="font-semibold text-gray-700">[{pt.type}]</span> {pt.text}</li>;
+        const text = typeof pt === "string" ? pt : pt.text || "";
+        return text.trim() ? <li key={i}>{text}</li> : null;
+      }).filter(Boolean);
+      if (items.length > 0) return <ul className="list-disc list-inside space-y-1">{items}</ul>;
     }
   } catch {}
-  return note;
+  return <p>{note}</p>;
 }
 
 export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
@@ -155,7 +157,7 @@ export default function LeaderScoringForm({ review, onBack, onSubmitted }) {
                 </div>
                 {p.contribution_note && (
                   <div className="text-sm text-gray-600 mt-2 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
-                    {parseContribution(p.contribution_note)}
+                    <ContributionPoints note={p.contribution_note} />
                   </div>
                 )}
               </div>
