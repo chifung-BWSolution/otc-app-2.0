@@ -47,10 +47,10 @@ export default function PeerReview() {
     // Load existing reviews by this user
     if (myRec?.bubble_id) {
       try {
-        const myReviews = await base44.entities.PeerReview.filter(
-          { reviewer_staff_id: myRec.bubble_id, fiscal_year: fiscalYear },
-          "-created_date", 200
-        );
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: myRec.bubble_id, fiscal_year: fiscalYear,
+        });
+        const myReviews = res.data.reviews || [];
         console.log("[PeerReview] Found", myReviews.length, "reviews for", myRec.display_name);
         setReviews(myReviews);
       } catch (err) {
@@ -71,11 +71,13 @@ export default function PeerReview() {
     // Check local state AND DB for existing record to prevent duplicates
     let existing = existingReviewFor(selectedColleague.bubble_id);
     if (!existing) {
-      const dbRecords = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: myStaff.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 1
-      );
-      if (dbRecords.length > 0) existing = dbRecords[0];
+      try {
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: myStaff.bubble_id, fiscal_year: fiscalYear,
+        });
+        const match = (res.data.reviews || []).find(r => r.reviewee_staff_id === selectedColleague.bubble_id);
+        if (match) existing = match;
+      } catch {}
     }
     const data = {
       ...formData,
@@ -114,11 +116,13 @@ export default function PeerReview() {
     // Check local state AND DB for existing record to prevent duplicates
     let existing = existingReviewFor(selectedColleague.bubble_id);
     if (!existing) {
-      const dbRecords = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: myStaff.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 1
-      );
-      if (dbRecords.length > 0) existing = dbRecords[0];
+      try {
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: myStaff.bubble_id, fiscal_year: fiscalYear,
+        });
+        const match = (res.data.reviews || []).find(r => r.reviewee_staff_id === selectedColleague.bubble_id);
+        if (match) existing = match;
+      } catch {}
     }
     const data = {
       reviewer_staff_id: myStaff.bubble_id,

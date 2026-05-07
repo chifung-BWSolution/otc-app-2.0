@@ -28,11 +28,15 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
       setColleagues(staffList.filter(s => s.team_group === staffRec.team_group));
     }
     if (staffRec?.bubble_id) {
-      const myReviews = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: staffRec.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 200
-      );
-      setReviews(myReviews);
+      try {
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: staffRec.bubble_id, fiscal_year: fiscalYear,
+        });
+        setReviews(res.data.reviews || []);
+      } catch (err) {
+        console.error("[PostSubmitPeerReview] Failed to load reviews:", err);
+        setReviews([]);
+      }
     }
     setLoading(false);
   };
@@ -45,11 +49,13 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
     // Check local state AND DB for existing record to prevent duplicates
     let existing = existingReviewFor(selectedColleague.bubble_id);
     if (!existing) {
-      const dbRecords = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: staffRec.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 1
-      );
-      if (dbRecords.length > 0) existing = dbRecords[0];
+      try {
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: staffRec.bubble_id, fiscal_year: fiscalYear,
+        });
+        const match = (res.data.reviews || []).find(r => r.reviewee_staff_id === selectedColleague.bubble_id);
+        if (match) existing = match;
+      } catch {}
     }
     const data = {
       ...formData,
@@ -86,11 +92,13 @@ export default function PostSubmitPeerReview({ staffRec, fiscalYear: propFiscalY
     // Check local state AND DB for existing record to prevent duplicates
     let existing = existingReviewFor(selectedColleague.bubble_id);
     if (!existing) {
-      const dbRecords = await base44.entities.PeerReview.filter(
-        { reviewer_staff_id: staffRec.bubble_id, reviewee_staff_id: selectedColleague.bubble_id, fiscal_year: fiscalYear },
-        "-created_date", 1
-      );
-      if (dbRecords.length > 0) existing = dbRecords[0];
+      try {
+        const res = await base44.functions.invoke('listMyPeerReviews', {
+          staff_id: staffRec.bubble_id, fiscal_year: fiscalYear,
+        });
+        const match = (res.data.reviews || []).find(r => r.reviewee_staff_id === selectedColleague.bubble_id);
+        if (match) existing = match;
+      } catch {}
     }
     const data = {
       reviewer_staff_id: staffRec.bubble_id,
