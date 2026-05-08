@@ -16,14 +16,22 @@ export default function UserManagement() {
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState(null);
 
+  const [accessDenied, setAccessDenied] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
-    const [usersRes, staffList] = await Promise.all([
-      base44.functions.invoke("listUsersAdmin", {}),
-      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
-    ]);
-    setUsers(usersRes.data.users || []);
-    setStaff(staffList);
+    try {
+      const [usersRes, staffList] = await Promise.all([
+        base44.functions.invoke("listUsersAdmin", {}),
+        base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
+      ]);
+      setUsers(usersRes.data.users || []);
+      setStaff(staffList);
+    } catch (err) {
+      if (err?.response?.status === 403 || err?.status === 403) {
+        setAccessDenied(true);
+      }
+    }
     setLoading(false);
   };
 
@@ -117,6 +125,16 @@ export default function UserManagement() {
     leader: "bg-blue-100 text-blue-700",
     user: "bg-gray-100 text-gray-600",
   };
+
+  if (accessDenied) {
+    return (
+      <div className="text-center py-20 text-gray-400">
+        <Users size={40} className="mx-auto mb-3 opacity-40" />
+        <p className="text-sm font-semibold text-gray-600">無權限訪問</p>
+        <p className="text-xs mt-1">此頁面僅限管理員使用。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-5xl">
