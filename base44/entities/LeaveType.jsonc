@@ -14,6 +14,10 @@
       "type": "string",
       "title": "\u5b8c\u6574\u6a19\u7c64"
     },
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble Leave Type ID"
+    },
     "default_entitlement": {
       "type": "number",
       "title": "\u9810\u8a2d\u984d\u5ea6",
