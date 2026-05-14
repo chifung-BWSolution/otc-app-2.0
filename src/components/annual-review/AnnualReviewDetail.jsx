@@ -343,7 +343,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         leaderComment: r.leader_comment || "", leaderExpectation: r.leader_next_year_expectation || "",
         gpFields: bossGpFields, tenderFields: bossTenderFields, gpDisabled, tenderDisabled,
         skillScores, bossGpScore, staffBu: r.staff_bu, teamGroup: staffTeamGroup,
-        workDays: attendanceStats?.workDays || 0,
+        workDays: attendanceStats?.workDays || r.attendance_work_days || 0,
       };
 
       const newReport = await base44.entities.AppraisalReport.create({
@@ -546,6 +546,10 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         start: toLocalDate(l.start_date_time),
       })),
     });
+    // Persist workDays to AnnualReview for report display (avoid recalculation)
+    if (clockinDates.size > 0 && r.attendance_work_days !== clockinDates.size) {
+      base44.entities.AnnualReview.update(r.id, { attendance_work_days: clockinDates.size }).catch(() => {});
+    }
     setLoading(false);
   };
 
@@ -799,6 +803,9 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Section 6: Company Feedback */}
+      <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {/* Section 6: Peer Review Results */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

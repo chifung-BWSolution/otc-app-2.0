@@ -16,7 +16,7 @@ function parseContributionPoints(points) {
   }).filter(s => s.trim());
 }
 
-export default function ReportContentDisplay({ content, staffName, staffId, fiscalYear }) {
+export default function ReportContentDisplay({ content, staffName, staffId, fiscalYear, annualReview: arProp }) {
   // Try to parse as structured JSON; fallback to markdown
   let data = null;
   try {
@@ -40,7 +40,8 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
     );
   }
 
-  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu, teamGroup, workDays } = data;
+  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu, teamGroup, workDays: reportWorkDays } = data;
+  const workDays = reportWorkDays || arProp?.attendance_work_days || 0;
 
   return (
     <div className="space-y-4">
@@ -217,7 +218,7 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
             <h3 className="font-bold text-base text-indigo-800">👥 同事互評結果</h3>
           </div>
           <div className="p-4">
-            <PeerReviewResultSection staffId={staffId} fiscalYear={fiscalYear} />
+            <PeerReviewResultSection staffId={staffId} fiscalYear={fiscalYear} hidePrivateNotes />
           </div>
         </div>
       )}

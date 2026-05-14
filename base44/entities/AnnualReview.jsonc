@@ -242,6 +242,11 @@
       "title": "\u9644\u52a0\u6b04\u4f4d II \u4e0d\u9069\u7528",
       "default": false
     },
+    "attendance_work_days": {
+      "type": "number",
+      "title": "\u5e74\u5ea6\u6253\u5361\u65e5\u6578",
+      "description": "\u8a72\u54e1\u5de5\u5728\u8ca1\u653f\u5e74\u5ea6\u5167\u7684\u6253\u5361\u65e5\u6578\uff0c\u7528\u65bc\u8a08\u7b97\u61c9\u5de5\u6642"
+    },
     "status": {
       "type": "string",
       "title": "\u72c0\u614b",

@@ -149,7 +149,7 @@ export default function AppraisalReportDetail({ report, onBack, onUpdated }) {
       </div>
 
       {/* Report content — structured display */}
-      <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} />
+      <ReportContentDisplay content={r.report_content} staffName={r.staff_name} staffId={r.staff_id} fiscalYear={r.fiscal_year} annualReview={annualReview} />
 
       {/* GP & Tender fields — editable before confirm */}
       {!r.is_final && (

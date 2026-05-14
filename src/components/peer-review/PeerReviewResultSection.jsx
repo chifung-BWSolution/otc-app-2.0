@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, Ban, ChevronDown, ChevronUp } from "lucide-react";
 import { DIMENSIONS, DIMENSION_COLORS } from "./PeerReviewQuestions";
 
-export default function PeerReviewResultSection({ staffId, fiscalYear }) {
+export default function PeerReviewResultSection({ staffId, fiscalYear, hidePrivateNotes = false }) {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
   const [showComments, setShowComments] = useState(false);
@@ -148,8 +148,8 @@ export default function PeerReviewResultSection({ staffId, fiscalYear }) {
           )}
         </div>
       )}
-      {/* Private notes (visible to admin/management via RLS) */}
-      {reviewsWithPrivateNotes.length > 0 && (
+      {/* Private notes (visible to admin/management via RLS, hidden in report view) */}
+      {!hidePrivateNotes && reviewsWithPrivateNotes.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-2">
           <div className="text-sm font-bold text-amber-800 mb-2">🔒 告訴公司的事（不公開予同事）</div>
           <div className="space-y-2">

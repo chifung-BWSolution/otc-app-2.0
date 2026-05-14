@@ -185,7 +185,9 @@ Deno.serve(async (req) => {
       sectionTitle("項目工作摘要");
       setCJK(9);
       doc.setTextColor(50, 50, 50);
-      doc.text(`總參與項目：${data.summary.projectCount}    總工時：${data.summary.totalHours}h    總任務數：${data.summary.totalTasks}`, margin, y);
+      const workDays = data.workDays || annualReview?.attendance_work_days || 0;
+      const hoursDisplay = workDays > 0 ? `${data.summary.totalHours}h / ${workDays * 8}h` : `${data.summary.totalHours}h`;
+      doc.text(`總參與項目：${data.summary.projectCount}    總工時：${hoursDisplay}    總任務數：${data.summary.totalTasks}`, margin, y);
       y += 5;
       if (data.summary.totalSales > 0) {
         doc.text(`總銷售額：$${data.summary.totalSales.toLocaleString()}`, margin, y);
