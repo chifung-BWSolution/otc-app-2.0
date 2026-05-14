@@ -40,7 +40,7 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
     );
   }
 
-  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu, teamGroup } = data;
+  const { summary, projects, extras, challenges, challengesSolution, goals, commitment, leaderComment, leaderExpectation, gpFields, tenderFields, gpDisabled, tenderDisabled, skillScores, bossGpScore, staffBu, teamGroup, workDays } = data;
 
   return (
     <div className="space-y-4">
@@ -52,7 +52,7 @@ export default function ReportContentDisplay({ content, staffName, staffId, fisc
         <div className="p-4">
           <div className="flex gap-3 mb-4">
             <StatBadge color="blue" value={summary.projectCount} label="參與項目" />
-            <StatBadge color="green" value={`${summary.totalHours}h`} label="總工時" />
+            <StatBadge color="green" value={workDays > 0 ? `${summary.totalHours}h / ${workDays * 8}h` : `${summary.totalHours}h`} label={workDays > 0 ? `總工時 / 應工時（${workDays}日×8h）` : "總工時"} />
             <StatBadge color="purple" value={summary.totalTasks} label="總任務數" />
             {summary.totalSales > 0 && <StatBadge color="yellow" value={`$${summary.totalSales.toLocaleString()}`} label="銷售額" />}
           </div>

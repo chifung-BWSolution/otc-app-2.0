@@ -343,6 +343,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         leaderComment: r.leader_comment || "", leaderExpectation: r.leader_next_year_expectation || "",
         gpFields: bossGpFields, tenderFields: bossTenderFields, gpDisabled, tenderDisabled,
         skillScores, bossGpScore, staffBu: r.staff_bu, teamGroup: staffTeamGroup,
+        workDays: attendanceStats?.workDays || 0,
       };
 
       const newReport = await base44.entities.AppraisalReport.create({
@@ -619,7 +620,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           )}
           <div className="flex gap-3 mb-4">
             <StatBadge color="blue" value={allProjects.length} label="參與項目" />
-            <StatBadge color="green" value={`${Math.round(totalHours)}h`} label="總工時" />
+            <StatBadge color="green" value={attendanceStats ? `${Math.round(totalHours)}h / ${attendanceStats.workDays * 8}h` : `${Math.round(totalHours)}h`} label={attendanceStats ? `總工時 / 應工時（${attendanceStats.workDays}日×8h）` : "總工時"} />
             <StatBadge color="purple" value={totalTasks} label="總任務數" />
             {totalSales > 0 && <StatBadge color="yellow" value={`$${totalSales.toLocaleString()}`} label="銷售額" />}
           </div>
@@ -798,9 +799,6 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           </div>
         </div>
       </div>
-
-      {/* Section 6: Company Feedback */}
-      <SectionCard color="purple" icon="💬" title="對公司的意見" content={r.company_feedback} />
 
       {/* Section 6: Peer Review Results */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
