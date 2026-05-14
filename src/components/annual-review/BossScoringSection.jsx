@@ -53,17 +53,24 @@ export default function BossScoringSection({ review, onUpdated }) {
                     scoredExtras.every(e => extraScores[e._idx] > 0);
 
   const handleSave = async () => {
-    if (!allScored) { alert("請先為所有項目評分"); return; }
     setSaving(true);
 
-    const updatedProjects = (review.project_contributions || []).map((p, i) => ({
-      ...p,
-      boss_score: projectScores[i] || p.boss_score || null,
-    }));
-    const updatedExtras = (review.extra_contributions || []).map((e, i) => ({
-      ...e,
-      boss_score: extraScores[i] || e.boss_score || null,
-    }));
+    // For items without boss score, use average of self + leader scores
+    const updatedProjects = (review.project_contributions || []).map((p, i) => {
+      const bossScore = projectScores[i] || p.boss_score || null;
+      if (bossScore) return { ...p, boss_score: bossScore };
+      // Auto-fill: average of available self + leader scores
+      const available = [p.self_score, p.leader_score].filter(s => s && s > 0);
+      const autoScore = available.length > 0 ? Math.round((available.reduce((a, b) => a + b, 0) / available.length) * 10) / 10 : null;
+      return { ...p, boss_score: autoScore };
+    });
+    const updatedExtras = (review.extra_contributions || []).map((e, i) => {
+      const bossScore = extraScores[i] || e.boss_score || null;
+      if (bossScore) return { ...e, boss_score: bossScore };
+      const available = [e.self_score, e.leader_score].filter(s => s && s > 0);
+      const autoScore = available.length > 0 ? Math.round((available.reduce((a, b) => a + b, 0) / available.length) * 10) / 10 : null;
+      return { ...e, boss_score: autoScore };
+    });
 
     await base44.entities.AnnualReview.update(review.id, {
       project_contributions: updatedProjects,
@@ -115,7 +122,7 @@ export default function BossScoringSection({ review, onUpdated }) {
     <div className="bg-white rounded-xl border-2 border-purple-200 shadow-sm overflow-hidden">
       <div className="bg-purple-50 px-4 py-3 border-b border-purple-200">
         <h3 className="font-bold text-base text-purple-800">👑 老闆評分</h3>
-        <p className="text-sm text-purple-600 mt-0.5">以下為有自評分數的項目，請逐項評分。</p>
+        <p className="text-sm text-purple-600 mt-0.5">以下為有自評分數的項目，可逐項評分。未評分的項目將自動取平均值。</p>
       </div>
       <div className="p-4 space-y-4">
         {/* Project items */}
@@ -217,14 +224,14 @@ export default function BossScoringSection({ review, onUpdated }) {
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={saving || !allScored}
+          disabled={saving}
           className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md disabled:opacity-50"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           {saving ? "儲存中..." : "儲存老闆評分"}
         </button>
         {!allScored && (
-          <p className="text-xs text-center text-amber-600">請先為所有項目評分後才能儲存</p>
+          <p className="text-xs text-center text-gray-500">未評分的項目將自動以員工自評和Leader評分的平均值計算</p>
         )}
       </div>
     </div>

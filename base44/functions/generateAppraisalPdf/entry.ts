@@ -397,28 +397,26 @@ Deno.serve(async (req) => {
         y += 6;
       }
 
-      // Comments from peers
+      // Comments from peers (anonymous — do not show reviewer names)
       const reviewsWithComments = peerReviews.filter(r => r.comment?.trim());
       if (reviewsWithComments.length > 0) {
         y += 2;
-        labelText("同事額外補充：");
-        for (const r of reviewsWithComments) {
-          y = checkPage(doc, y, 8, pageH, margin);
-          setCJK(8);
-          doc.setTextColor(80, 80, 80);
-          doc.text(`${r.reviewer_name}：`, margin + 3, y);
-          y += 4;
+        labelText("同事鼓勵說話（不記名）：");
+        for (let ci = 0; ci < reviewsWithComments.length; ci++) {
+          const r = reviewsWithComments[ci];
+          y = checkPage(doc, y, 6, pageH, margin);
           setCJK(8);
           doc.setTextColor(60, 60, 60);
-          const lines = wrapText(doc, r.comment, cW - 8);
+          const lines = wrapText(doc, `${ci + 1}. ${r.comment}`, cW - 8);
           for (const line of lines) {
             y = checkPage(doc, y, 4, pageH, margin);
-            doc.text(line, margin + 6, y);
+            doc.text(line, margin + 4, y);
             y += 4;
           }
           y += 2;
         }
       }
+      // Note: private_note (告訴公司的事) is intentionally excluded from PDF
       y += 3;
     }
 
