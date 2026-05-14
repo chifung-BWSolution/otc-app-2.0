@@ -225,6 +225,40 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         return valid.length > 0 ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : null;
       };
 
+      // Auto-fill missing boss scores with average of self + leader, then save
+      const updatedProjects = (r.project_contributions || []).map((p, i) => {
+        const bossScore = bossProjectScores[i] || p.boss_score || null;
+        if (bossScore) return { ...p, boss_score: bossScore };
+        const available = [p.self_score, p.leader_score].filter(s => s && s > 0);
+        const autoScore = available.length > 0 ? Math.round((available.reduce((a, b) => a + b, 0) / available.length) * 10) / 10 : null;
+        return { ...p, boss_score: autoScore };
+      });
+      const updatedExtras = (r.extra_contributions || []).map((e, i) => {
+        const bossScore = bossExtraScores[i] || e.boss_score || null;
+        if (bossScore) return { ...e, boss_score: bossScore };
+        const available = [e.self_score, e.leader_score].filter(s => s && s > 0);
+        const autoScore = available.length > 0 ? Math.round((available.reduce((a, b) => a + b, 0) / available.length) * 10) / 10 : null;
+        return { ...e, boss_score: autoScore };
+      });
+
+      // Save auto-filled scores + boss settings before creating report
+      await base44.entities.AnnualReview.update(r.id, {
+        project_contributions: updatedProjects,
+        extra_contributions: updatedExtras,
+        boss_score_adjustment: bossAdjustment,
+        boss_dept_goals: bossDeptGoals.filter(g => g.trim()),
+        boss_personal_goals: bossPersonalGoals.filter(g => g.trim()),
+        boss_extra_notes: bossExtraNotes,
+        boss_adjustment_note: bossAdjustmentNote,
+        boss_gp_fields: bossGpFields,
+        boss_tender_fields: bossTenderFields,
+        boss_gp_disabled: gpDisabled,
+        boss_tender_disabled: tenderDisabled,
+        skill_scores: skillScores,
+        boss_gp_score: bossGpScore,
+        boss_gp_comment: bossGpComment,
+      });
+
       // Project contributions — show averages only, no individual scores
       sections.push("## 📊 項目工作摘要\n");
       sections.push(`- 總參與項目：${allProjects.length}`);
@@ -232,7 +266,9 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       if (totalSales > 0) sections.push(`- 總銷售額：$${totalSales.toLocaleString()}`);
       sections.push("");
       
-      for (const p of contributedProjects) {
+      // Use auto-filled projects for report
+      const contributedUpdatedProjects = updatedProjects.filter(hasContribution);
+      for (const p of contributedUpdatedProjects) {
         let line = `### ${p.project_name}\n`;
         line += `- 工時：${p.hours}h · 任務數：${p.tasks}`;
         if (p.sales_amount > 0) line += ` · 銷售額：$${p.sales_amount.toLocaleString()}`;
@@ -291,7 +327,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
       // Build structured report data JSON for rich display
       const reportData = {
         summary: { projectCount: allProjects.length, totalHours: Math.round(totalHours), totalTasks, totalSales },
-        projects: contributedProjects.map(p => {
+        projects: contributedUpdatedProjects.map(p => {
           const pAvg = avg(p.self_score, p.leader_score, p.boss_score);
           let points = [];
           if (p.contribution_note) {
@@ -299,7 +335,7 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
           }
           return { name: p.project_name, hours: p.hours, tasks: p.tasks, sales: p.sales_amount || 0, avgScore: pAvg, points };
         }),
-        extras: extras.filter(e => e.description?.trim()).map(e => ({
+        extras: updatedExtras.filter(e => e.description?.trim()).map(e => ({
           description: e.description, avgScore: avg(e.self_score, e.leader_score, e.boss_score),
         })),
         challenges: r.challenges || "", challengesSolution: r.challenges_solution || "",
@@ -961,33 +997,34 @@ export default function AnnualReviewDetail({ review: initialReview, onBack }) {
         </div>
       )}
 
-      {/* Create Report Button — only show when boss has scored all scorable items */}
-      {(() => {
-        const scorableProjects = allProjects.filter(p => p.self_score > 0);
-        const allProjectsScored = scorableProjects.every((p, i) => {
-          const origIdx = allProjects.indexOf(p);
-          return (bossProjectScores[origIdx] || p.boss_score) > 0;
-        });
-        const scorableExtras = extras.filter(e => e.self_score > 0);
-        const allExtrasScored = scorableExtras.every((e, i) => {
-          const origIdx = extras.indexOf(e);
-          return (bossExtraScores[origIdx] || e.boss_score) > 0;
-        });
-        const allScored = allProjectsScored && allExtrasScored && (scorableProjects.length > 0 || scorableExtras.length > 0);
-        if (!allScored) return null;
-        return (
-          <div className="flex justify-center pt-2 pb-2">
-            <button
-              onClick={handleCreateReport}
-              disabled={creatingReport}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
-            >
-              {creatingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-              {creatingReport ? "建立報告中..." : "整合面談報告"}
-            </button>
-          </div>
-        );
-      })()}
+      {/* Create Report Button — show when boss can score, missing scores auto-fill with averages */}
+      {canBossScore && (
+        <div className="flex flex-col items-center gap-2 pt-2 pb-2">
+          <button
+            onClick={handleCreateReport}
+            disabled={creatingReport}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
+          >
+            {creatingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+            {creatingReport ? "建立報告中..." : "整合面談報告"}
+          </button>
+          {(() => {
+            const scorableProjects = allProjects.filter(p => p.self_score > 0);
+            const unscoredProjects = scorableProjects.filter((p) => {
+              const origIdx = allProjects.indexOf(p);
+              return !(bossProjectScores[origIdx] || p.boss_score);
+            });
+            const scorableExtras = extras.filter(e => e.self_score > 0);
+            const unscoredExtras = scorableExtras.filter((e) => {
+              const origIdx = extras.indexOf(e);
+              return !(bossExtraScores[origIdx] || e.boss_score);
+            });
+            const total = unscoredProjects.length + unscoredExtras.length;
+            if (total === 0) return null;
+            return <p className="text-xs text-gray-500">有 {total} 個項目未評分，將自動以員工自評和Leader評分的平均值計算</p>;
+          })()}
+        </div>
+      )}
 
       {/* Meta */}
       {r.submitted_at && (
