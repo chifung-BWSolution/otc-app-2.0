@@ -4,11 +4,10 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Check if a value is truly empty (null, undefined, empty string, empty array, 0, false)
+// Check if a value is truly empty (null, undefined, empty string, empty array)
+// Note: 0 and false are valid values, not empty
 function isEmpty(val) {
   if (val === null || val === undefined || val === "") return true;
-  if (val === 0) return true;
-  if (val === false) return true;
   if (Array.isArray(val) && val.length === 0) return true;
   return false;
 }

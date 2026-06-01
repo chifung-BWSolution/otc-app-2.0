@@ -30,42 +30,68 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    // Fetch all staff from Bubble
     const bubbleStaff = await bubbleFetchAll('Staff');
     console.log(`Bubble staff: ${bubbleStaff.length}`);
 
-    // Build bubble_id → AL Quota map
-    const quotaMap = {};
+    // Build bubble_id → { al_quota, no_clockin } map
+    const bubbleMap = {};
+    let bubbleAlCount = 0;
+    let bubbleNoClockinCount = 0;
     for (const s of bubbleStaff) {
-      if (s['AL Quota'] != null) {
-        quotaMap[s['_id']] = s['AL Quota'];
-      }
+      bubbleMap[s['_id']] = {
+        al_quota: s['AL Quota'] != null ? s['AL Quota'] : null,
+        no_clockin: s['No Clockin'] === true,
+      };
+      if (s['AL Quota'] != null) bubbleAlCount++;
+      if (s['No Clockin'] === true) bubbleNoClockinCount++;
     }
-    console.log(`Bubble staff with AL Quota: ${Object.keys(quotaMap).length}`);
+    console.log(`Bubble AL Quota count: ${bubbleAlCount}, No Clockin count: ${bubbleNoClockinCount}`);
 
-    // Fetch all local staff
     const localStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
     console.log(`Local staff: ${localStaff.length}`);
 
-    let fixed = 0;
+    let fixedAl = 0;
+    let fixedNoClockin = 0;
     let skipped = 0;
+
     for (const staff of localStaff) {
-      if (!staff.bubble_id || quotaMap[staff.bubble_id] === undefined) {
+      if (!staff.bubble_id || !bubbleMap[staff.bubble_id]) {
         skipped++;
         continue;
       }
-      const bubbleQuota = quotaMap[staff.bubble_id];
-      if (staff.al_quota !== bubbleQuota) {
-        await base44.asServiceRole.entities.Staff.update(staff.id, { al_quota: bubbleQuota });
-        fixed++;
-        console.log(`Fixed ${staff.display_name}: ${staff.al_quota} → ${bubbleQuota}`);
-        await sleep(500);
+      const bubble = bubbleMap[staff.bubble_id];
+      const updates = {};
+
+      // Fix AL Quota
+      if (bubble.al_quota !== null && staff.al_quota !== bubble.al_quota) {
+        updates.al_quota = bubble.al_quota;
+        fixedAl++;
+      }
+
+      // Fix No Clockin
+      const localNoClockin = staff.no_clockin === true;
+      if (localNoClockin !== bubble.no_clockin) {
+        updates.no_clockin = bubble.no_clockin;
+        fixedNoClockin++;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await base44.asServiceRole.entities.Staff.update(staff.id, updates);
+        console.log(`Fixed ${staff.display_name}: ${JSON.stringify(updates)}`);
+        await sleep(300);
       } else {
         skipped++;
       }
     }
 
-    return Response.json({ success: true, bubble_with_quota: Object.keys(quotaMap).length, fixed, skipped });
+    return Response.json({
+      success: true,
+      bubble_al_quota_count: bubbleAlCount,
+      bubble_no_clockin_count: bubbleNoClockinCount,
+      fixed_al_quota: fixedAl,
+      fixed_no_clockin: fixedNoClockin,
+      skipped,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
