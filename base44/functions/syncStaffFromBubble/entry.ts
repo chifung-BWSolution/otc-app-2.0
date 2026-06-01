@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const forceUpdate = body.forceUpdate === true;
+
     // 1. Fetch all related lookup tables in parallel
     console.log('Fetching lookup tables...');
     const [staffList, teamList, buList, teamRoleList] = await Promise.all([
@@ -143,7 +146,7 @@ Deno.serve(async (req) => {
       if (existingMap[bid]) {
         const bubbleMod = s['Modified Date'] || '';
         const localMod = existingModifiedMap[bid] || '';
-        if (bubbleMod !== localMod) {
+        if (forceUpdate || bubbleMod !== localMod) {
           toUpdate.push({ id: existingMap[bid], data: record });
         }
       } else {
