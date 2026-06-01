@@ -12,6 +12,9 @@ function isEmpty(val) {
   return false;
 }
 
+// For boolean fields where only `true` counts as "filled"
+const TRUE_ONLY_FIELDS = new Set(['is_smoking', 'no_working_experience']);
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -61,9 +64,10 @@ Deno.serve(async (req) => {
       if (['id', 'created_date', 'updated_date', 'created_by'].includes(key)) continue;
 
       let filledCount = 0;
+      const trueOnly = TRUE_ONLY_FIELDS.has(key);
       for (const rec of allRecords) {
         const val = rec[key];
-        if (!isEmpty(val)) filledCount++;
+        if (trueOnly ? val === true : !isEmpty(val)) filledCount++;
       }
 
       fieldStats[key] = {
