@@ -15,6 +15,7 @@ const BUBBLE_TYPE_MAP = {
   "BubbleProject": "project",
   "BubbleStaffKPI": "man_hour_month",
   "BubbleStaffKPIMonth": "staff_kpi_month",
+  "StaffInformation": "Staff Information",
 };
 
 // Known Bubble display field names per entity (used when we can't discover them from full scan)

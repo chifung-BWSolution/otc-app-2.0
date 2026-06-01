@@ -6,6 +6,7 @@ import ImportBubbleModal from "@/components/bubble/ImportBubbleModal";
 
 const ENTITIES = [
   { name: "Staff", label: "Staff（員工）" },
+  { name: "StaffInformation", label: "Staff Information（員工個人資料）" },
   { name: "BubbleOT", label: "OT（加班）" },
   { name: "BubbleLeave", label: "Leave（假期）" },
   { name: "BubbleClockin", label: "Clockin（打卡）" },

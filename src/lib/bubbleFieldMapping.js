@@ -197,6 +197,28 @@ const FIELD_MAPS = {
     "Company Comment": "company_comment",
     "Company Point": "company_point",
   },
+  StaffInformation: {
+    "Staff": "staff_id",
+    "Chinese Name": "chinese_name",
+    "English Name": "english_name",
+    "Nickname": "nickname",
+    "Birthday": "birthday",
+    "Phone": "phone",
+    "Email1": "email1",
+    "Email2": "email2",
+    "Identity Card Number": "identity_card_number",
+    "Bank Card Number": "bank_card_number",
+    "New Bank Card Number": "new_bank_card_number",
+    "Bank Card Name": "bank_card_name",
+    "Bank Card Owner": "bank_card_owner",
+    "Chinese Mailing Address": "chinese_mailing_address",
+    "English Mailing Address": "english_mailing_address",
+    "Native Place": "native_place",
+    "Residential Area": "residential_area",
+    "Marital Status": "marital_status",
+    "Commuting Time": "commuting_time",
+    "Is Active": "is_active",
+  },
 };
 
 // Build merged field list: returns array of { bubbleName, dbName, bubbleStats, dbStats }

@@ -14,6 +14,7 @@ const BUBBLE_TYPE_MAP = {
   "BubbleProject": "project",
   "BubbleStaffKPI": "man_hour_month",
   "BubbleStaffKPIMonth": "staff_kpi_month",
+  "StaffInformation": "Staff Information",
 };
 
 Deno.serve(async (req) => {
