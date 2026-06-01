@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
         email1: r['Email1'] || '',
         email2: r['Email2'] || '',
         identity_card_number: r['Identity Card Number'] || '',
-        bank_card_number: r['Bank Card Number'] != null ? String(r['Bank Card Number']) : '',
         new_bank_card_number: r['New Bank Card Number'] || '',
         bank_card_name: r['Bank Card Name'] || '',
         bank_card_owner: r['Bank Card Owner'] || '',

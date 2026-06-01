@@ -59,13 +59,9 @@
       "type": "string",
       "title": "\u56de\u9109\u8b49\u865f\u78bc"
     },
-    "bank_card_number": {
-      "type": "string",
-      "title": "\u9280\u884c\u5361\u865f\u78bc"
-    },
     "new_bank_card_number": {
       "type": "string",
-      "title": "\u65b0\u9280\u884c\u5361\u865f\u78bc"
+      "title": "\u9280\u884c\u5361\u865f\u78bc"
     },
     "bank_card_name": {
       "type": "string",

@@ -6,13 +6,12 @@ import {
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import LeaderSelect from "@/components/staff/LeaderSelect";
-import StaffInformationTab from "@/components/staff/StaffInformationTab";
+import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 
 const TABS = [
   { key: "overview", label: "概覽" },
   { key: "personal", label: "個人資料" },
-  { key: "staff_info", label: "Staff Information" },
-  { key: "bank", label: "銀行資料" },
+  { key: "bank", label: "銀行/證件" },
   { key: "emergency", label: "緊急聯絡" },
   { key: "education", label: "學歷" },
   { key: "experience", label: "工作經驗" },
@@ -95,6 +94,7 @@ export default function StaffProfilePage() {
     setEditMode(false);
   };
 
+  const { staffInfo } = useStaffInformation(profile?.bubble_id);
   const [leaderOptions, setLeaderOptions] = useState([]);
 
   useEffect(() => {
@@ -308,6 +308,13 @@ export default function StaffProfilePage() {
                         {renderInfoRow("個人電郵", profile.personal_email)}
                       </>
                     )}
+                    {staffInfo && (
+                      <>
+                        {renderInfoRow("住宅電話", staffInfo.residential_telephone)}
+                        {renderInfoRow("Email 1 (Bubble)", staffInfo.email1)}
+                        {renderInfoRow("Email 2 (Bubble)", staffInfo.email2)}
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -354,7 +361,16 @@ export default function StaffProfilePage() {
                      {renderInfoRow("性別", profile.gender)}
                      {renderInfoRow("出生日期", profile.date_of_birth)}
                      {renderInfoRow("國籍", profile.nationality)}
-                     {renderInfoRow("婚姻狀況", profile.marital_status)}
+                     {renderInfoRow("婚姻狀況", profile.marital_status || staffInfo?.marital_status)}
+                     {staffInfo && (
+                       <>
+                         {renderInfoRow("暱稱", staffInfo.nickname)}
+                         {renderInfoRow("籍貫", staffInfo.native_place)}
+                         {renderInfoRow("通勤時間", staffInfo.commuting_time)}
+                         {renderInfoRow("吸煙", staffInfo.is_smoking ? "是" : "否")}
+                         {renderInfoRow("無工作經驗", staffInfo.no_working_experience ? "是" : "否")}
+                       </>
+                     )}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡及其他</h3>
@@ -362,15 +378,16 @@ export default function StaffProfilePage() {
                     {renderInfoRow("手機", profile.mobile)}
                     {renderInfoRow("個人電郵", profile.personal_email)}
                     {renderInfoRow("住址", profile.address)}
+                    {staffInfo && (
+                      <>
+                        {renderInfoRow("中文通訊地址", staffInfo.chinese_mailing_address)}
+                        {renderInfoRow("英文通訊地址", staffInfo.english_mailing_address)}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
             </div>
-          )}
-
-          {/* STAFF INFORMATION */}
-          {activeTab === "staff_info" && (
-            <StaffInformationTab staffBubbleId={profile.bubble_id} />
           )}
 
           {/* BANK */}
@@ -389,11 +406,30 @@ export default function StaffProfilePage() {
                   {renderEditInput("帳戶名稱", "bank_account_holder")}
                 </div>
               ) : (
-                <div className="max-w-lg">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
-                  {renderInfoRow("銀行名稱", profile.bank_name)}
-                   {renderInfoRow("帳戶號碼", isPrivileged ? profile.bank_account_number : (profile.bank_account_number ? '•••• ' + profile.bank_account_number.slice(-4) : null))}
-                   {renderInfoRow("帳戶名稱", profile.bank_account_holder)}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
+                    {renderInfoRow("銀行名稱", profile.bank_name)}
+                    {renderInfoRow("帳戶號碼", isPrivileged ? profile.bank_account_number : (profile.bank_account_number ? '•••• ' + profile.bank_account_number.slice(-4) : null))}
+                    {renderInfoRow("帳戶名稱", profile.bank_account_holder)}
+                    {staffInfo && (
+                      <>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 mt-6">Bubble 銀行資料</h3>
+                        {renderInfoRow("銀行卡號碼", isPrivileged ? staffInfo.new_bank_card_number : (staffInfo.new_bank_card_number ? '•••• ' + staffInfo.new_bank_card_number.slice(-4) : null))}
+                        {renderInfoRow("銀行名稱", staffInfo.bank_card_name)}
+                        {renderInfoRow("銀行卡持有人", staffInfo.bank_card_owner)}
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    {staffInfo && isPrivileged && (
+                      <>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">證件資料</h3>
+                        {renderInfoRow("身份證號碼", staffInfo.identity_card_number)}
+                        {renderInfoRow("回鄉證號碼", staffInfo.mainland_travel_permit_number)}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

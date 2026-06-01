@@ -209,7 +209,6 @@ const FIELD_MAPS = {
     "Email2": "email2",
     "Identity Card Number": "identity_card_number",
     "Mainland Travel Permit Number": "mainland_travel_permit_number",
-    "Bank Card Number": "bank_card_number",
     "New Bank Card Number": "new_bank_card_number",
     "Bank Card Name": "bank_card_name",
     "Bank Card Owner": "bank_card_owner",
