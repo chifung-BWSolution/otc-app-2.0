@@ -41,8 +41,10 @@ export default function NotificationBell({ currentUser }) {
 
   const markAllRead = async () => {
     const unread = notifications.filter(n => !n.is_read);
-    await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { is_read: true })));
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    for (const n of unread) {
+      await base44.entities.Notification.update(n.id, { is_read: true });
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
