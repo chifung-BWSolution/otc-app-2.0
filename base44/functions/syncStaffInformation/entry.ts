@@ -28,7 +28,12 @@ async function bubbleFetchAll(dataType) {
 
 function toDateStr(val) {
   if (!val) return null;
-  try { return new Date(val).toISOString().split('T')[0]; } catch { return null; }
+  try {
+    const d = new Date(val);
+    // Use HK timezone (GMT+8) to extract the correct local date
+    const parts = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Hong_Kong' });
+    return parts; // returns YYYY-MM-DD format
+  } catch { return null; }
 }
 
 Deno.serve(async (req) => {
