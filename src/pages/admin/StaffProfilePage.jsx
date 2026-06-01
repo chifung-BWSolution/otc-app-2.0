@@ -6,10 +6,12 @@ import {
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import LeaderSelect from "@/components/staff/LeaderSelect";
+import StaffInformationTab from "@/components/staff/StaffInformationTab";
 
 const TABS = [
   { key: "overview", label: "概覽" },
   { key: "personal", label: "個人資料" },
+  { key: "staff_info", label: "Staff Information" },
   { key: "bank", label: "銀行資料" },
   { key: "emergency", label: "緊急聯絡" },
   { key: "education", label: "學歷" },
@@ -364,6 +366,11 @@ export default function StaffProfilePage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* STAFF INFORMATION */}
+          {activeTab === "staff_info" && (
+            <StaffInformationTab staffBubbleId={profile.bubble_id} />
           )}
 
           {/* BANK */}
