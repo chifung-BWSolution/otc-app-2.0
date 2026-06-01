@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 const BUBBLE_TYPE_MAP = {
   "Staff": "staff",
