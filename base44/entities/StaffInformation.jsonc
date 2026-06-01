@@ -39,6 +39,10 @@
       "type": "string",
       "title": "\u96fb\u8a71"
     },
+    "residential_telephone": {
+      "type": "string",
+      "title": "\u4f4f\u5b85\u96fb\u8a71"
+    },
     "email1": {
       "type": "string",
       "title": "Email 1"
@@ -50,6 +54,10 @@
     "identity_card_number": {
       "type": "string",
       "title": "\u8eab\u4efd\u8b49\u865f\u78bc"
+    },
+    "mainland_travel_permit_number": {
+      "type": "string",
+      "title": "\u56de\u9109\u8b49\u865f\u78bc"
     },
     "bank_card_number": {
       "type": "string",
@@ -95,6 +103,16 @@
       "type": "boolean",
       "title": "\u555f\u7528",
       "default": true
+    },
+    "is_smoking": {
+      "type": "boolean",
+      "title": "\u5438\u7159",
+      "default": false
+    },
+    "no_working_experience": {
+      "type": "boolean",
+      "title": "\u7121\u5de5\u4f5c\u7d93\u9a57",
+      "default": false
     },
     "bubble_created_date": {
       "type": "string",

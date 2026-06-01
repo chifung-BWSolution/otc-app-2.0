@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch just 1 record to get total count + all field names
-      const url = `${baseUrl}/${bubbleType}?limit=1&cursor=0`;
+      const url = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=1&cursor=0`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` }
       });
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       if (totalRows > 500) cursors.push(Math.floor(totalRows * 0.8));
 
       for (const c of cursors) {
-        const sampleUrl = `${baseUrl}/${bubbleType}?limit=20&cursor=${c}`;
+        const sampleUrl = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=20&cursor=${c}`;
         const sampleRes = await fetch(sampleUrl, {
           headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` }
         });

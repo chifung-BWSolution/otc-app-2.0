@@ -204,9 +204,11 @@ const FIELD_MAPS = {
     "Nickname": "nickname",
     "Birthday": "birthday",
     "Phone": "phone",
+    "Residential Telephone": "residential_telephone",
     "Email1": "email1",
     "Email2": "email2",
     "Identity Card Number": "identity_card_number",
+    "Mainland Travel Permit Number": "mainland_travel_permit_number",
     "Bank Card Number": "bank_card_number",
     "New Bank Card Number": "new_bank_card_number",
     "Bank Card Name": "bank_card_name",
@@ -218,6 +220,8 @@ const FIELD_MAPS = {
     "Marital Status": "marital_status",
     "Commuting Time": "commuting_time",
     "Is Active": "is_active",
+    "Is Smoking": "is_smoking",
+    "No Working Experience": "no_working_experience",
   },
 };
 

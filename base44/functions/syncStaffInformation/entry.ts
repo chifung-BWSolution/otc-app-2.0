@@ -39,6 +39,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const forceUpdate = body.forceUpdate === true;
+
     console.log('Fetching Bubble Staff Information...');
     const bubbleRecords = await bubbleFetchAll('Staff Information');
     console.log(`Bubble Staff Information: ${bubbleRecords.length} records`);
@@ -99,6 +102,10 @@ Deno.serve(async (req) => {
         marital_status: r['Marital Status'] || '',
         commuting_time: r['Commuting Time'] || '',
         is_active: r['Is Active'] === true,
+        is_smoking: r['Is Smoking'] === true,
+        no_working_experience: r['No Working Experience'] === true,
+        residential_telephone: r['Residential Telephone'] != null ? String(r['Residential Telephone']) : '',
+        mainland_travel_permit_number: r['Mainland Travel Permit Number'] || '',
       };
 
       if (!staffInfo) noStaffMatch++;
@@ -107,7 +114,7 @@ Deno.serve(async (req) => {
       if (existingMap[bid]) {
         const bubbleMod = r['Modified Date'] || '';
         const localMod = existingModMap[bid] || '';
-        if (bubbleMod !== localMod) {
+        if (forceUpdate || bubbleMod !== localMod) {
           toUpdate.push({ id: existingMap[bid], data: record });
         }
       } else {

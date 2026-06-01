@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const baseUrl = BUBBLE_API_URL.replace(/\/$/, '');
 
     // Step 1: Get total count
-    const countUrl = `${baseUrl}/${bubbleType}?limit=1&cursor=0`;
+    const countUrl = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=1&cursor=0`;
     const countRes = await fetch(countUrl, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
     if (!countRes.ok) throw new Error(`Bubble API error: ${countRes.status}`);
     const countJson = await countRes.json();
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       const allRecords = [];
       let cursor = 0;
       while (true) {
-        const url = `${baseUrl}/${bubbleType}?limit=100&cursor=${cursor}`;
+        const url = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=100&cursor=${cursor}`;
         const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
         if (!res.ok) throw new Error(`Bubble API error: ${res.status}`);
         const json = await res.json();
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     const fieldSet = new Set();
     const samplePositions = [0, Math.floor(totalRows / 3), Math.floor(totalRows * 2 / 3)];
     for (const pos of samplePositions) {
-      const url = `${baseUrl}/${bubbleType}?limit=30&cursor=${pos}`;
+      const url = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=30&cursor=${pos}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
       if (res.ok) {
         const json = await res.json();
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     const fieldStats = {};
     for (const field of fields) {
       const constraints = JSON.stringify([{ key: field, constraint_type: "is_not_empty" }]);
-      const url = `${baseUrl}/${bubbleType}?limit=1&cursor=0&constraints=${encodeURIComponent(constraints)}`;
+      const url = `${baseUrl}/${encodeURIComponent(bubbleType)}?limit=1&cursor=0&constraints=${encodeURIComponent(constraints)}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${BUBBLE_API_TOKEN}` } });
       if (!res.ok) {
         console.log(`Failed to count field "${field}": ${res.status}`);
