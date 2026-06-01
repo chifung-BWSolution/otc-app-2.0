@@ -1,8 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const BUBBLE_API_URL = Deno.env.get("BUBBLE_API_URL");
-const BUBBLE_API_TOKEN = Deno.env.get("BUBBLE_API_TOKEN");
-
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 const BUBBLE_TYPE_MAP = {
@@ -18,7 +15,6 @@ const BUBBLE_TYPE_MAP = {
   "StaffInformation": "Staff Information",
 };
 
-// Known Bubble display field names per entity (used when we can't discover them from full scan)
 const KNOWN_FIELDS = {
   "BubbleManHourTask": [
     "Asana Link", "Work Hour", "Images", "Keywords", "Meeting Topic",
@@ -44,6 +40,9 @@ const KNOWN_FIELDS = {
 
 Deno.serve(async (req) => {
   try {
+    const BUBBLE_API_URL = Deno.env.get("BUBBLE_API_URL");
+    const BUBBLE_API_TOKEN = Deno.env.get("BUBBLE_API_TOKEN");
+
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (user?.role !== 'admin') {
@@ -52,8 +51,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const entityName = body.entityName;
+
+    console.log(`bubbleFieldStats called for entity: "${entityName}"`);
+
     if (!entityName || !BUBBLE_TYPE_MAP[entityName]) {
-      return Response.json({ error: 'entityName is required and must be a valid Bubble entity' }, { status: 400 });
+      console.log(`Invalid entity: "${entityName}", valid entities: ${Object.keys(BUBBLE_TYPE_MAP).join(', ')}`);
+      return Response.json({ error: `entityName "${entityName}" is not valid. Valid: ${Object.keys(BUBBLE_TYPE_MAP).join(', ')}` }, { status: 400 });
     }
 
     const bubbleType = BUBBLE_TYPE_MAP[entityName];
@@ -68,12 +71,11 @@ Deno.serve(async (req) => {
     const totalRows = countResults.length + (countJson.response?.remaining || 0);
     console.log(`Total rows: ${totalRows}`);
 
-    // Step 2: For small entities (<5000), do full scan as before
+    // Step 2: For small entities (<5000), do full scan
     // For large entities, use constraint-based counting per field
     const FULL_SCAN_LIMIT = 5000;
 
     if (totalRows <= FULL_SCAN_LIMIT) {
-      // Full scan approach
       const allRecords = [];
       let cursor = 0;
       while (true) {
@@ -119,7 +121,6 @@ Deno.serve(async (req) => {
     // Step 3: Large entity — discover fields from samples, then count each via constraints
     console.log("Large entity mode: constraint-based counting");
 
-    // Discover field names from a few sample records
     const fieldSet = new Set();
     const samplePositions = [0, Math.floor(totalRows / 3), Math.floor(totalRows * 2 / 3)];
     for (const pos of samplePositions) {
@@ -134,7 +135,6 @@ Deno.serve(async (req) => {
       await sleep(100);
     }
 
-    // Also add known fields for this entity
     if (KNOWN_FIELDS[entityName]) {
       for (const f of KNOWN_FIELDS[entityName]) fieldSet.add(f);
     }
@@ -143,7 +143,6 @@ Deno.serve(async (req) => {
     const fields = [...fieldSet].filter(f => !builtIn.has(f)).sort();
     console.log(`Discovered ${fields.length} fields, counting each...`);
 
-    // Count non-empty values per field using Bubble constraints
     const fieldStats = {};
     for (const field of fields) {
       const constraints = JSON.stringify([{ key: field, constraint_type: "is_not_empty" }]);
