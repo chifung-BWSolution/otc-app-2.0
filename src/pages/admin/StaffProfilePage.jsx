@@ -11,7 +11,6 @@ import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 const TABS = [
   { key: "overview", label: "概覽" },
   { key: "personal", label: "個人資料" },
-  { key: "bank", label: "銀行/證件" },
   { key: "emergency", label: "緊急聯絡" },
   { key: "education", label: "學歷" },
   { key: "experience", label: "工作經驗" },
@@ -308,13 +307,6 @@ export default function StaffProfilePage() {
                         {renderInfoRow("個人電郵", profile.personal_email)}
                       </>
                     )}
-                    {staffInfo && (
-                      <>
-                        {renderInfoRow("住宅電話", staffInfo.residential_telephone)}
-                        {renderInfoRow("Email 1 (Bubble)", staffInfo.email1)}
-                        {renderInfoRow("Email 2 (Bubble)", staffInfo.email2)}
-                      </>
-                    )}
                   </>
                 )}
               </div>
@@ -330,105 +322,80 @@ export default function StaffProfilePage() {
                   <p>僅限本人或管理員查看</p>
                 </div>
               ) : editMode ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                <div className="space-y-8">
                   <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">基本資料</h3>
-                    {renderEditInput("顯示名稱", "display_name")}
-                    {renderEditInput("中文姓名", "chinese_name")}
-                    {renderEditInput("英文姓名", "full_name")}
-                    {renderEditSelect("性別", "gender", ["Male","Female","Other"])}
-                    {renderEditInput("出生日期", "date_of_birth", "date")}
-                    {renderEditInput("國籍", "nationality", "text", "Hong Kong")}
-                    {renderEditSelect("婚姻狀況", "marital_status", ["Single","Married","Divorced","Widowed"])}
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">入職資料</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                      <div>
+                        {renderEditInput("中文姓名", "chinese_name")}
+                        {renderEditInput("英文姓名", "full_name")}
+                        {renderEditInput("顯示名稱", "display_name")}
+                        {renderEditInput("出生日期", "date_of_birth", "date")}
+                        {renderEditInput("手機", "mobile", "tel")}
+                        {renderEditSelect("婚姻狀況", "marital_status", ["Single","Married","Divorced","Widowed"])}
+                        {renderEditInput("身份證", "hkid", "text", "A123456(7)")}
+                      </div>
+                      <div>
+                        {renderEditInput("國籍", "nationality", "text", "Hong Kong")}
+                        {renderEditSelect("性別", "gender", ["Male","Female","Other"])}
+                        {renderEditInput("個人電郵", "personal_email", "email")}
+                        <div className="py-1.5">
+                          <span className="text-gray-400 text-xs block mb-0.5">住址</span>
+                          <textarea className={inputCls + " resize-none"} rows={2} value={form.address || ""} onChange={e => set("address", e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡及其他</h3>
-                    {renderEditInput("身份證", "hkid", "text", "A123456(7)")}
-                    {renderEditInput("手機", "mobile", "tel")}
-                    {renderEditInput("個人電郵", "personal_email", "email")}
-                    <div className="py-1.5">
-                      <span className="text-gray-400 text-xs block mb-0.5">住址</span>
-                      <textarea className={inputCls + " resize-none"} rows={2} value={form.address || ""} onChange={e => set("address", e.target.value)} />
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">支薪戶口</h3>
+                    <div className="max-w-lg">
+                      {renderEditInput("銀行名稱", "bank_name", "text", "例：滙豐銀行")}
+                      {renderEditInput("帳戶號碼", "bank_account_number")}
+                      {renderEditInput("帳戶名稱", "bank_account_holder")}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                <div className="space-y-8">
+                  {/* 入職資料 */}
                   <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">基本資料</h3>
-                    {renderInfoRow("中文姓名", profile.chinese_name)}
-                     {renderInfoRow("英文姓名", profile.full_name)}
-                     {renderInfoRow("性別", profile.gender)}
-                     {renderInfoRow("出生日期", profile.date_of_birth)}
-                     {renderInfoRow("國籍", profile.nationality)}
-                     {renderInfoRow("婚姻狀況", profile.marital_status || staffInfo?.marital_status)}
-                     {staffInfo && (
-                       <>
-                         {renderInfoRow("暱稱", staffInfo.nickname)}
-                         {renderInfoRow("籍貫", staffInfo.native_place)}
-                         {renderInfoRow("通勤時間", staffInfo.commuting_time)}
-                         {renderInfoRow("吸煙", staffInfo.is_smoking ? "是" : "否")}
-                         {renderInfoRow("無工作經驗", staffInfo.no_working_experience ? "是" : "否")}
-                       </>
-                     )}
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">入職資料</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                      <div>
+                        {renderInfoRow("中文姓名", profile.chinese_name || staffInfo?.chinese_name)}
+                        {renderInfoRow("英文姓名", profile.full_name || staffInfo?.english_name)}
+                        {renderInfoRow("暱稱", staffInfo?.nickname)}
+                        {renderInfoRow("出生日期", profile.date_of_birth || staffInfo?.birthday)}
+                        {renderInfoRow("聯絡電話", profile.mobile || staffInfo?.phone)}
+                        {renderInfoRow("住宅電話", staffInfo?.residential_telephone)}
+                        {renderInfoRow("婚姻狀況", profile.marital_status || staffInfo?.marital_status)}
+                      </div>
+                      <div>
+                        {renderInfoRow("籍貫", staffInfo?.native_place)}
+                        {renderInfoRow("身份證號碼", isPrivileged ? (profile.hkid || staffInfo?.identity_card_number) : ((profile.hkid || staffInfo?.identity_card_number) ? '••••••••' : null))}
+                        {renderInfoRow("居住地區", staffInfo?.residential_area)}
+                        {renderInfoRow("通勤時間", staffInfo?.commuting_time)}
+                        {renderInfoRow("個人電子郵箱", profile.personal_email || staffInfo?.email1)}
+                        {renderInfoRow("郵寄地址(中)", profile.address || staffInfo?.chinese_mailing_address)}
+                        {renderInfoRow("郵寄地址(英)", staffInfo?.english_mailing_address)}
+                        {renderInfoRow("是否吸煙", staffInfo?.is_smoking != null ? (staffInfo.is_smoking ? "是" : "否") : null)}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">聯絡及其他</h3>
-                    {renderInfoRow("身份證", isPrivileged ? profile.hkid : (profile.hkid ? '••••••••' : null))}
-                    {renderInfoRow("手機", profile.mobile)}
-                    {renderInfoRow("個人電郵", profile.personal_email)}
-                    {renderInfoRow("住址", profile.address)}
-                    {staffInfo && (
-                      <>
-                        {renderInfoRow("中文通訊地址", staffInfo.chinese_mailing_address)}
-                        {renderInfoRow("英文通訊地址", staffInfo.english_mailing_address)}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* BANK */}
-          {activeTab === "bank" && (
-            <div>
-              {!isPrivileged && !isOwnProfile ? (
-                <div className="text-center text-gray-400 py-12">
-                  <CreditCard size={40} className="mx-auto mb-3 opacity-30" />
-                  <p>僅限本人或管理員查看</p>
-                </div>
-              ) : editMode ? (
-                <div className="max-w-lg">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
-                  {renderEditInput("銀行名稱", "bank_name", "text", "例：滙豐銀行")}
-                  {renderEditInput("帳戶號碼", "bank_account_number")}
-                  {renderEditInput("帳戶名稱", "bank_account_holder")}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+                  {/* 支薪戶口 */}
                   <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">銀行帳戶資料</h3>
-                    {renderInfoRow("銀行名稱", profile.bank_name)}
-                    {renderInfoRow("帳戶號碼", isPrivileged ? profile.bank_account_number : (profile.bank_account_number ? '•••• ' + profile.bank_account_number.slice(-4) : null))}
-                    {renderInfoRow("帳戶名稱", profile.bank_account_holder)}
-                    {staffInfo && (
-                      <>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 mt-6">Bubble 銀行資料</h3>
-                        {renderInfoRow("銀行卡號碼", isPrivileged ? staffInfo.new_bank_card_number : (staffInfo.new_bank_card_number ? '•••• ' + staffInfo.new_bank_card_number.slice(-4) : null))}
-                        {renderInfoRow("銀行名稱", staffInfo.bank_card_name)}
-                        {renderInfoRow("銀行卡持有人", staffInfo.bank_card_owner)}
-                      </>
-                    )}
-                  </div>
-                  <div>
-                    {staffInfo && isPrivileged && (
-                      <>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">證件資料</h3>
-                        {renderInfoRow("身份證號碼", staffInfo.identity_card_number)}
-                        {renderInfoRow("回鄉證號碼", staffInfo.mainland_travel_permit_number)}
-                      </>
-                    )}
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">支薪戶口</h3>
+                    <div className="max-w-lg">
+                      {renderInfoRow("銀行名稱", profile.bank_name || staffInfo?.bank_card_name)}
+                      {renderInfoRow("持有人名稱", profile.bank_account_holder || staffInfo?.bank_card_owner)}
+                      {renderInfoRow("戶口號碼", isPrivileged
+                        ? (profile.bank_account_number || staffInfo?.new_bank_card_number)
+                        : ((profile.bank_account_number || staffInfo?.new_bank_card_number)
+                          ? '•••• ' + (profile.bank_account_number || staffInfo?.new_bank_card_number).slice(-4)
+                          : null)
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
