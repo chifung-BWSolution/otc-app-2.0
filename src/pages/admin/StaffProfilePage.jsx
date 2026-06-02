@@ -475,24 +475,15 @@ export default function StaffProfilePage() {
               </h3>
 
               {/* Bubble education records */}
-              {bubbleEducation.filter(e => e.graduation_school || e.education_background || e.graduation_major).length > 0 && (
+              {bubbleEducation.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {bubbleEducation
-                    .filter(e => e.graduation_school || e.education_background || e.graduation_major)
-                    .map((e) => (
-                    <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
-                      <div className="font-bold text-gray-800">{e.graduation_school || e.education_background || '(未填寫學校)'}</div>
-                      {(e.education_background || e.graduation_major) && (
-                        <div className="text-sm text-gray-600">
-                          {e.education_background}{e.graduation_major && ` · ${e.graduation_major}`}
-                        </div>
-                      )}
-                      {e.graduation_end_date && (
-                        <div className="text-xs text-gray-400">{e.graduation_end_date}</div>
-                      )}
-                      {e.is_business && (
-                        <span className="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">商科</span>
-                      )}
+                  {bubbleEducation.map((e) => (
+                    <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-100">
+                      {renderInfoRow("學校/機構", e.graduation_school)}
+                      {renderInfoRow("學位/資格", e.education_background)}
+                      {renderInfoRow("主修", e.graduation_major)}
+                      {renderInfoRow("畢業日期", e.graduation_end_date)}
+                      {renderInfoRow("商科", e.is_business != null ? (e.is_business ? "是" : "否") : null)}
                     </div>
                   ))}
                 </div>
