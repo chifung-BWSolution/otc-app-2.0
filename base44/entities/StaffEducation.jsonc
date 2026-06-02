@@ -1,0 +1,89 @@
+{
+  "name": "StaffEducation",
+  "type": "object",
+  "properties": {
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID"
+    },
+    "staff_information_id": {
+      "type": "string",
+      "title": "Staff Information (Bubble ID)"
+    },
+    "staff_bubble_id": {
+      "type": "string",
+      "title": "Staff (Bubble ID)"
+    },
+    "graduation_school": {
+      "type": "string",
+      "title": "\u5b78\u6821/\u6a5f\u69cb"
+    },
+    "education_background": {
+      "type": "string",
+      "title": "\u5b78\u4f4d/\u8cc7\u683c"
+    },
+    "graduation_major": {
+      "type": "string",
+      "title": "\u4e3b\u4fee"
+    },
+    "graduation_end_date": {
+      "type": "string",
+      "title": "\u7562\u696d\u65e5\u671f",
+      "format": "date"
+    },
+    "is_business": {
+      "type": "boolean",
+      "title": "\u5546\u79d1",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    },
+    "bubble_created_date": {
+      "type": "string",
+      "title": "Bubble \u5efa\u7acb\u65e5\u671f",
+      "format": "date-time"
+    },
+    "bubble_modified_date": {
+      "type": "string",
+      "title": "Bubble \u4fee\u6539\u65e5\u671f",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "bubble_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

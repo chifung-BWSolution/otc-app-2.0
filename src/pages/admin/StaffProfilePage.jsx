@@ -9,6 +9,7 @@ import LeaderSelect from "@/components/staff/LeaderSelect";
 import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 import { useDistrictMap } from "@/hooks/useDistrictMap";
 import { useStaffContacts } from "@/hooks/useStaffContacts";
+import { useStaffEducation } from "@/hooks/useStaffEducation";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -98,6 +99,7 @@ export default function StaffProfilePage() {
   const { staffInfo } = useStaffInformation(profile?.bubble_id);
   const { districtMap } = useDistrictMap();
   const { contacts: emergencyContacts } = useStaffContacts(profile?.bubble_id);
+  const { education: bubbleEducation } = useStaffEducation(profile?.bubble_id);
   const [leaderOptions, setLeaderOptions] = useState([]);
 
   useEffect(() => {
@@ -467,12 +469,37 @@ export default function StaffProfilePage() {
 
           {/* EDUCATION */}
           {activeTab === "education" && (
-            <div>
+            <div className="space-y-6">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                 <BookOpen size={13} /> 學歷記錄
               </h3>
+
+              {/* Bubble education records */}
+              {bubbleEducation.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {bubbleEducation.map((e) => (
+                    <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
+                      <div className="font-bold text-gray-800">{e.graduation_school}</div>
+                      <div className="text-sm text-gray-600">
+                        {e.education_background}{e.graduation_major && ` · ${e.graduation_major}`}
+                      </div>
+                      {e.graduation_end_date && (
+                        <div className="text-xs text-gray-400">{e.graduation_end_date}</div>
+                      )}
+                      {e.is_business && (
+                        <span className="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">商科</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Manual education records (editable) */}
               {editMode ? (
                 <div className="space-y-3">
+                  {bubbleEducation.length > 0 && (
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">手動輸入學歷</h4>
+                  )}
                   {(form.education || []).map((edu, i) => (
                     <div key={i} className="border border-blue-100 rounded-xl p-4 relative bg-blue-50/30">
                       <button onClick={() => removeArr("education", i)} className="absolute top-3 right-3 text-red-400 hover:text-red-600"><Trash2 size={13} /></button>
@@ -491,19 +518,26 @@ export default function StaffProfilePage() {
                   </button>
                 </div>
               ) : (
-                (profile.education || []).length === 0 ? (
-                  <div className="text-gray-400 text-center py-10">暫無學歷記錄</div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {(profile.education || []).map((e, i) => (
-                      <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
-                        <div className="font-bold text-gray-800">{e.institution}</div>
-                        <div className="text-sm text-gray-600">{e.degree}{e.field && ` · ${e.field}`}</div>
-                        <div className="text-xs text-gray-400">{e.from_year}{e.to_year && ` – ${e.to_year}`}</div>
-                      </div>
-                    ))}
+                (profile.education || []).length > 0 && (
+                  <div>
+                    {bubbleEducation.length > 0 && (
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">其他學歷</h4>
+                    )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {(profile.education || []).map((e, i) => (
+                        <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
+                          <div className="font-bold text-gray-800">{e.institution}</div>
+                          <div className="text-sm text-gray-600">{e.degree}{e.field && ` · ${e.field}`}</div>
+                          <div className="text-xs text-gray-400">{e.from_year}{e.to_year && ` – ${e.to_year}`}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )
+              )}
+
+              {!editMode && bubbleEducation.length === 0 && (profile.education || []).length === 0 && (
+                <div className="text-gray-400 text-center py-10">暫無學歷記錄</div>
               )}
             </div>
           )}
