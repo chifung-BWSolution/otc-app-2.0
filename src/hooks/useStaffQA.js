@@ -42,12 +42,19 @@ export function useStaffQA(staffBubbleId) {
         if (!grouped[catKey]) {
           grouped[catKey] = { category: catDisplay, type: category?.type || '', items: [] };
         }
+        const options = [question.option_1, question.option_2, question.option_3, question.option_4].filter(Boolean);
+        // option_point maps inversely: 4 = option 1, 3 = option 2, etc.
+        const selectedIndex = (ans.option_point != null && options.length > 0)
+          ? options.length - ans.option_point
+          : -1;
+
         grouped[catKey].items.push({
           question: question.question,
           answer: ans.answer_text,
           option_point: ans.option_point,
           is_option: question.is_option,
-          options: [question.option_1, question.option_2, question.option_3, question.option_4].filter(Boolean),
+          options,
+          selectedIndex,
         });
       }
 

@@ -37,7 +37,7 @@ export default function StaffQASection({ staffBubbleId }) {
                 {item.is_option ? (
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     {item.options.map((opt, oi) => {
-                      const isSelected = item.answer === opt;
+                      const isSelected = oi === item.selectedIndex;
                       return (
                         <span
                           key={oi}
@@ -48,12 +48,12 @@ export default function StaffQASection({ staffBubbleId }) {
                           }`}
                         >
                           {opt}
-                          {isSelected && item.option_point != null && (
-                            <span className="ml-1 text-blue-500">({item.option_point}分)</span>
-                          )}
                         </span>
                       );
                     })}
+                    {item.option_point != null && (
+                      <span className="text-xs text-blue-500 self-center ml-1">({item.option_point}分)</span>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">
