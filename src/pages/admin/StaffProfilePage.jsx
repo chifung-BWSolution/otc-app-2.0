@@ -11,6 +11,7 @@ import { useDistrictMap } from "@/hooks/useDistrictMap";
 import { useStaffContacts } from "@/hooks/useStaffContacts";
 import { useStaffEducation } from "@/hooks/useStaffEducation";
 import { useStaffWorkExperience } from "@/hooks/useStaffWorkExperience.js";
+import StaffQASection from "@/components/staff/StaffQASection";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -659,6 +660,14 @@ export default function StaffProfilePage() {
                   )}
                 </div>
               ))}
+
+              {/* Staff Q&A Answers */}
+              {profile.bubble_id && (
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Staff Q&A 問卷回答</h3>
+                  <StaffQASection staffBubbleId={profile.bubble_id} />
+                </div>
+              )}
             </div>
           )}
         </div>
