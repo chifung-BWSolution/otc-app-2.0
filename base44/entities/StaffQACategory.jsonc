@@ -23,6 +23,10 @@
       "type": "string",
       "title": "Bubble \u5efa\u7acb\u8005 ID"
     },
+    "bubble_modifier": {
+      "type": "string",
+      "title": "Bubble \u4fee\u6539\u8005 ID"
+    },
     "bubble_created_date": {
       "type": "string",
       "title": "Bubble \u5efa\u7acb\u65e5\u671f",

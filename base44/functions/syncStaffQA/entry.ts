@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const forceUpdate = body.forceUpdate === true;
+
     const results = {};
 
     // ---- Sync Categories ----
@@ -53,13 +56,14 @@ Deno.serve(async (req) => {
         type: r['Type'] || '',
         is_active: r['Is Active'] !== false,
         bubble_created_by: r['Created By'] || '',
+        bubble_modifier: r['Modifier'] || '',
         bubble_created_date: r['Created Date'] || null,
         bubble_modified_date: r['Modified Date'] || null,
       };
 
       const existing = catMap[r['_id']];
       if (existing) {
-        if ((r['Modified Date'] || '') !== (existing.bubble_modified_date || '')) {
+        if (forceUpdate || (r['Modified Date'] || '') !== (existing.bubble_modified_date || '')) {
           catsToUpdate.push({ id: existing.id, data: record });
         }
       } else {
@@ -122,7 +126,7 @@ Deno.serve(async (req) => {
 
       const existing = qMap[r['_id']];
       if (existing) {
-        if ((r['Modified Date'] || '') !== (existing.bubble_modified_date || '')) {
+        if (forceUpdate || (r['Modified Date'] || '') !== (existing.bubble_modified_date || '')) {
           qsToUpdate.push({ id: existing.id, data: record });
         }
       } else {
