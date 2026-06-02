@@ -28,7 +28,7 @@ export function useStaffQA(staffBubbleId) {
       const grouped = {};
       for (const ans of answers) {
         const question = questionMap[ans.question_id];
-        if (!question) continue;
+        if (!question || !question.is_active) continue;
         const category = categoryMap[question.category_id];
         const catKey = category ? category.bubble_id : '_uncategorized';
         const catDisplay = category ? category.display : '其他';
