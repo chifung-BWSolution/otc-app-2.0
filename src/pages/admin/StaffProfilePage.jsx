@@ -10,6 +10,7 @@ import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 import { useDistrictMap } from "@/hooks/useDistrictMap";
 import { useStaffContacts } from "@/hooks/useStaffContacts";
 import { useStaffEducation } from "@/hooks/useStaffEducation";
+import { useStaffWorkExperience } from "@/hooks/useStaffWorkExperience.js";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -100,6 +101,7 @@ export default function StaffProfilePage() {
   const { districtMap } = useDistrictMap();
   const { contacts: emergencyContacts } = useStaffContacts(profile?.bubble_id);
   const { education: bubbleEducation } = useStaffEducation(profile?.bubble_id);
+  const { experience: bubbleExperience } = useStaffWorkExperience(profile?.bubble_id);
   const [leaderOptions, setLeaderOptions] = useState([]);
 
   useEffect(() => {
@@ -547,12 +549,32 @@ export default function StaffProfilePage() {
 
           {/* EXPERIENCE */}
           {activeTab === "experience" && (
-            <div>
+            <div className="space-y-6">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                 <Briefcase size={13} /> 工作經驗
               </h3>
+
+              {/* Bubble work experience records */}
+              {bubbleExperience.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {bubbleExperience.map((e) => (
+                    <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-0 border border-gray-100">
+                      {renderInfoRow("公司", e.company_name)}
+                      {renderInfoRow("職位", e.job_title)}
+                      {renderInfoRow("開始日期", e.job_start_date)}
+                      {renderInfoRow("結束日期", e.job_end_date)}
+                      {e.prove_url && renderInfoRow("證明文件", <a href={e.prove_url.startsWith('//') ? 'https:' + e.prove_url : e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看</a>)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Manual work experience (editable) */}
               {editMode ? (
                 <div className="space-y-3">
+                  {bubbleExperience.length > 0 && (
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">手動輸入工作經驗</h4>
+                  )}
                   {(form.work_experience || []).map((exp, i) => (
                     <div key={i} className="border border-blue-100 rounded-xl p-4 relative bg-blue-50/30">
                       <button onClick={() => removeArr("work_experience", i)} className="absolute top-3 right-3 text-red-400 hover:text-red-600"><Trash2 size={13} /></button>
@@ -575,20 +597,27 @@ export default function StaffProfilePage() {
                   </button>
                 </div>
               ) : (
-                (profile.work_experience || []).length === 0 ? (
-                  <div className="text-gray-400 text-center py-10">暫無工作經驗記錄</div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {(profile.work_experience || []).map((e, i) => (
-                      <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
-                        <div className="font-bold text-gray-800">{e.company}</div>
-                        <div className="text-sm text-gray-600">{e.role}</div>
-                        <div className="text-xs text-gray-400">{e.from_date}{e.to_date && ` – ${e.to_date}`}</div>
-                        {e.description && <div className="text-sm text-gray-500 mt-1">{e.description}</div>}
-                      </div>
-                    ))}
+                (profile.work_experience || []).length > 0 && (
+                  <div>
+                    {bubbleExperience.length > 0 && (
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">其他工作經驗</h4>
+                    )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {(profile.work_experience || []).map((e, i) => (
+                        <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
+                          <div className="font-bold text-gray-800">{e.company}</div>
+                          <div className="text-sm text-gray-600">{e.role}</div>
+                          <div className="text-xs text-gray-400">{e.from_date}{e.to_date && ` – ${e.to_date}`}</div>
+                          {e.description && <div className="text-sm text-gray-500 mt-1">{e.description}</div>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )
+              )}
+
+              {!editMode && bubbleExperience.length === 0 && (profile.work_experience || []).length === 0 && (
+                <div className="text-gray-400 text-center py-10">暫無工作經驗記錄</div>
               )}
             </div>
           )}
