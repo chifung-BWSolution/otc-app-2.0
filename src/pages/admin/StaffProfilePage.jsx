@@ -492,7 +492,7 @@ export default function StaffProfilePage() {
                         {renderInfoRow("學科類別", categories)}
                         {renderInfoRow("兼讀", e.is_part_time != null ? (e.is_part_time ? "是" : "否") : null)}
                         {renderInfoRow("未完成", e.is_unfinished != null ? (e.is_unfinished ? "是" : "否") : null)}
-                        {e.prove_url && renderInfoRow("證明文件", <a href={e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看</a>)}
+                        {renderInfoRow("證明文件", e.prove_url ? <a href={e.prove_url.startsWith('//') ? 'https:' + e.prove_url : e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看文件 ↗</a> : null)}
                       </div>
                     );
                   })}
@@ -563,7 +563,7 @@ export default function StaffProfilePage() {
                       {renderInfoRow("職位", e.job_title)}
                       {renderInfoRow("開始日期", e.job_start_date)}
                       {renderInfoRow("結束日期", e.job_end_date)}
-                      {e.prove_url && renderInfoRow("證明文件", <a href={e.prove_url.startsWith('//') ? 'https:' + e.prove_url : e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看</a>)}
+                      {renderInfoRow("證明文件", e.prove_url ? <a href={e.prove_url.startsWith('//') ? 'https:' + e.prove_url : e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看文件 ↗</a> : null)}
                     </div>
                   ))}
                 </div>
