@@ -8,6 +8,7 @@ import { base44 } from "@/api/base44Client";
 import LeaderSelect from "@/components/staff/LeaderSelect";
 import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 import { useDistrictMap } from "@/hooks/useDistrictMap";
+import { useStaffContacts } from "@/hooks/useStaffContacts";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -96,6 +97,7 @@ export default function StaffProfilePage() {
 
   const { staffInfo } = useStaffInformation(profile?.bubble_id);
   const { districtMap } = useDistrictMap();
+  const { contacts: emergencyContacts } = useStaffContacts(profile?.bubble_id);
   const [leaderOptions, setLeaderOptions] = useState([]);
 
   useEffect(() => {
@@ -412,19 +414,52 @@ export default function StaffProfilePage() {
                   <Phone size={40} className="mx-auto mb-3 opacity-30" />
                   <p>僅限本人或管理員查看</p>
                 </div>
-              ) : editMode ? (
-                <div className="max-w-lg">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">緊急聯絡人</h3>
-                  {renderEditInput("姓名", "emergency_contact_name")}
-                  {renderEditInput("關係", "emergency_contact_relation", "text", "例：父親")}
-                  {renderEditInput("電話", "emergency_contact_phone", "tel")}
-                </div>
               ) : (
-                <div className="max-w-lg">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">緊急聯絡人</h3>
-                  {renderInfoRow("姓名", profile.emergency_contact_name)}
-                  {renderInfoRow("關係", profile.emergency_contact_relation)}
-                  {renderInfoRow("電話", profile.emergency_contact_phone)}
+                <div className="space-y-6">
+                  {/* Bubble Contact People */}
+                  {emergencyContacts.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">緊急聯絡人</h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {emergencyContacts.map((c, i) => (
+                          <div key={c.id || i} className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-1">
+                            <div className="font-bold text-gray-800">{c.person_name}</div>
+                            <div className="text-sm text-gray-600">{c.relationship}</div>
+                            {c.phone && (
+                              <a href={`tel:${c.phone}`} className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                                <Phone size={12} /> {c.phone}
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual emergency contact (fallback / editable) */}
+                  {editMode ? (
+                    <div className="max-w-lg">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">手動輸入聯絡人</h3>
+                      {renderEditInput("姓名", "emergency_contact_name")}
+                      {renderEditInput("關係", "emergency_contact_relation", "text", "例：父親")}
+                      {renderEditInput("電話", "emergency_contact_phone", "tel")}
+                    </div>
+                  ) : (
+                    (profile.emergency_contact_name || profile.emergency_contact_phone) && (
+                      <div className="max-w-lg">
+                        {emergencyContacts.length > 0 && (
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">其他聯絡人</h3>
+                        )}
+                        {renderInfoRow("姓名", profile.emergency_contact_name)}
+                        {renderInfoRow("關係", profile.emergency_contact_relation)}
+                        {renderInfoRow("電話", profile.emergency_contact_phone)}
+                      </div>
+                    )
+                  )}
+
+                  {!editMode && emergencyContacts.length === 0 && !profile.emergency_contact_name && !profile.emergency_contact_phone && (
+                    <div className="text-gray-400 text-center py-10">暫無緊急聯絡人記錄</div>
+                  )}
                 </div>
               )}
             </div>
