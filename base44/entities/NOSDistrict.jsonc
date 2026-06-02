@@ -1,0 +1,56 @@
+{
+  "name": "NOSDistrict",
+  "type": "object",
+  "properties": {
+    "bubble_id": {
+      "type": "string",
+      "title": "Bubble ID"
+    },
+    "district": {
+      "type": "string",
+      "title": "\u5340\u57df"
+    },
+    "sub_district": {
+      "type": "string",
+      "title": "\u5206\u5340"
+    },
+    "eng_sub_district": {
+      "type": "string",
+      "title": "\u82f1\u6587\u5206\u5340"
+    },
+    "area": {
+      "type": "string",
+      "title": "\u5730\u5340"
+    },
+    "short_form": {
+      "type": "string",
+      "title": "\u7e2e\u5beb"
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "\u555f\u7528",
+      "default": true
+    }
+  },
+  "required": [
+    "bubble_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

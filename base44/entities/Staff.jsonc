@@ -229,29 +229,17 @@
         "role": "admin"
       }
     },
-    "read": {
-      "$or": [
-        {
-          "data.linked_user_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "management"
-          }
-        }
-      ]
-    },
     "update": {
       "user_condition": {
         "role": "admin"
       }
     },
     "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
       "user_condition": {
         "role": "admin"
       }

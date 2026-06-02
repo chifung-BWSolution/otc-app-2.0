@@ -106,11 +106,50 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Sync NOS District
+    console.log('Syncing NOS District...');
+    const districtBubble = await bubbleFetchAll('NOS District');
+    console.log(`Bubble NOS District: ${districtBubble.length} records`);
+
+    const existingDistricts = await base44.asServiceRole.entities.NOSDistrict.list('-created_date', 500);
+    const districtExMap = {};
+    for (const d of existingDistricts) {
+      if (d.bubble_id) districtExMap[d.bubble_id] = d;
+    }
+
+    let districtCreated = 0, districtUpdated = 0;
+    for (const item of districtBubble) {
+      const bid = item['_id'];
+      const mapped = {
+        bubble_id: bid,
+        district: item['District'] || '',
+        sub_district: item['Sub-District'] || '',
+        eng_sub_district: (item['Eng Sub-D'] || '').trim(),
+        area: item['O_Area'] || '',
+        short_form: item['Short Form'] || '',
+        is_active: true,
+      };
+      if (districtExMap[bid]) {
+        const ex = districtExMap[bid];
+        if (ex.district !== mapped.district || ex.sub_district !== mapped.sub_district || ex.area !== mapped.area) {
+          await base44.asServiceRole.entities.NOSDistrict.update(ex.id, mapped);
+          districtUpdated++;
+          await sleep(300);
+        }
+      } else {
+        await base44.asServiceRole.entities.NOSDistrict.create(mapped);
+        districtCreated++;
+        await sleep(300);
+      }
+    }
+    const districtResult = { total: districtBubble.length, created: districtCreated, updated: districtUpdated };
+
     return Response.json({
       success: true,
       bu: buResult,
       team_role: roleResult,
       team: teamResult,
+      district: districtResult,
     });
 
   } catch (error) {

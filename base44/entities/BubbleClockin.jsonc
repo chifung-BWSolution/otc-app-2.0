@@ -157,5 +157,35 @@
       "title": "DingDing Out Attendance ID"
     }
   },
-  "required": []
+  "required": [],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.linked_staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "management"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

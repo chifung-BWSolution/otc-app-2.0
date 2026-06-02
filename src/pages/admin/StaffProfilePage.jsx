@@ -7,6 +7,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import LeaderSelect from "@/components/staff/LeaderSelect";
 import { useStaffInformation } from "@/components/staff/StaffInformationTab";
+import { useDistrictMap } from "@/hooks/useDistrictMap";
 
 const TABS = [
   { key: "overview", label: "概覽" },
@@ -94,6 +95,7 @@ export default function StaffProfilePage() {
   };
 
   const { staffInfo } = useStaffInformation(profile?.bubble_id);
+  const { districtMap } = useDistrictMap();
   const [leaderOptions, setLeaderOptions] = useState([]);
 
   useEffect(() => {
@@ -373,7 +375,7 @@ export default function StaffProfilePage() {
                       <div>
                         {renderInfoRow("籍貫", staffInfo?.native_place)}
                         {renderInfoRow("身份證號碼", isPrivileged ? (profile.hkid || staffInfo?.identity_card_number) : ((profile.hkid || staffInfo?.identity_card_number) ? '••••••••' : null))}
-                        {renderInfoRow("居住地區", staffInfo?.residential_area)}
+                        {renderInfoRow("居住地區", staffInfo?.residential_area ? (districtMap[staffInfo.residential_area] || staffInfo.residential_area) : null)}
                         {renderInfoRow("通勤時間", staffInfo?.commuting_time)}
                         {renderInfoRow("個人電子郵箱", profile.personal_email || staffInfo?.email1)}
                         {renderInfoRow("郵寄地址(中)", profile.address || staffInfo?.chinese_mailing_address)}
