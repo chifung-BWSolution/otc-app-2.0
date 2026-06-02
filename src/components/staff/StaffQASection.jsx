@@ -80,7 +80,10 @@ export default function StaffQASection({ staffBubbleId }) {
 
   const scrollTo = (refs, index) => {
     const el = refs.current[index];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
   };
 
   if (loading) {
