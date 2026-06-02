@@ -119,12 +119,12 @@ export default function StaffProfilePage() {
   }
 
   // Render helpers as plain functions (not components) to avoid remount/focus issues
-  const renderInfoRow = (label, value) => value ? (
+  const renderInfoRow = (label, value) => (
     <div className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
       <span className="text-gray-400 text-sm w-28 shrink-0">{label}</span>
-      <span className="text-gray-800 text-sm font-medium break-all">{String(value)}</span>
+      <span className={`text-sm break-all ${value ? 'text-gray-800 font-medium' : 'text-gray-300'}`}>{value ? String(value) : '—'}</span>
     </div>
-  ) : null;
+  );
 
   const renderEditInput = (label, field, type = "text", placeholder = "") => (
     <div key={field} className="py-1.5 border-b border-blue-50 last:border-0">
