@@ -26,15 +26,53 @@
       "type": "string",
       "title": "\u4e3b\u4fee"
     },
+    "graduation_start_date": {
+      "type": "string",
+      "title": "\u5165\u5b78\u65e5\u671f",
+      "format": "date"
+    },
     "graduation_end_date": {
       "type": "string",
       "title": "\u7562\u696d\u65e5\u671f",
       "format": "date"
     },
+    "is_arts": {
+      "type": "boolean",
+      "title": "\u6587\u79d1",
+      "default": false
+    },
     "is_business": {
       "type": "boolean",
       "title": "\u5546\u79d1",
       "default": false
+    },
+    "is_science": {
+      "type": "boolean",
+      "title": "\u7406\u79d1",
+      "default": false
+    },
+    "is_other": {
+      "type": "boolean",
+      "title": "\u5176\u4ed6\u985e\u5225",
+      "default": false
+    },
+    "is_part_time": {
+      "type": "boolean",
+      "title": "\u517c\u8b80",
+      "default": false
+    },
+    "is_unfinished": {
+      "type": "boolean",
+      "title": "\u672a\u5b8c\u6210",
+      "default": false
+    },
+    "other_subjects": {
+      "type": "string",
+      "title": "\u5176\u4ed6\u79d1\u76ee"
+    },
+    "prove_url": {
+      "type": "string",
+      "title": "\u8b49\u660e\u6587\u4ef6 (URL)"
     },
     "is_active": {
       "type": "boolean",

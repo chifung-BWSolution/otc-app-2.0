@@ -307,12 +307,7 @@ export default function StaffProfilePage() {
                     {renderInfoRow("工作電郵", profile.work_email)}
                     {renderInfoRow("直線電話", profile.direct_phone)}
                     {renderInfoRow("工作手機", profile.work_phone)}
-                    {isPrivileged && (
-                      <>
-                        {renderInfoRow("個人手機", profile.mobile)}
-                        {renderInfoRow("個人電郵", profile.personal_email)}
-                      </>
-                    )}
+
                   </>
                 )}
               </div>
@@ -477,15 +472,28 @@ export default function StaffProfilePage() {
               {/* Bubble education records */}
               {bubbleEducation.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {bubbleEducation.map((e) => (
-                    <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-100">
-                      {renderInfoRow("學校/機構", e.graduation_school)}
-                      {renderInfoRow("學位/資格", e.education_background)}
-                      {renderInfoRow("主修", e.graduation_major)}
-                      {renderInfoRow("畢業日期", e.graduation_end_date)}
-                      {renderInfoRow("商科", e.is_business != null ? (e.is_business ? "是" : "否") : null)}
-                    </div>
-                  ))}
+                  {bubbleEducation.map((e) => {
+                    const categories = [
+                      e.is_arts && "文科",
+                      e.is_business && "商科",
+                      e.is_science && "理科",
+                      e.is_other && "其他",
+                    ].filter(Boolean).join("、");
+                    return (
+                      <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-0 border border-gray-100">
+                        {renderInfoRow("學校/機構", e.graduation_school)}
+                        {renderInfoRow("學位/資格", e.education_background)}
+                        {renderInfoRow("主修", e.graduation_major)}
+                        {renderInfoRow("其他科目", e.other_subjects)}
+                        {renderInfoRow("入學日期", e.graduation_start_date)}
+                        {renderInfoRow("畢業日期", e.graduation_end_date)}
+                        {renderInfoRow("學科類別", categories)}
+                        {renderInfoRow("兼讀", e.is_part_time != null ? (e.is_part_time ? "是" : "否") : null)}
+                        {renderInfoRow("未完成", e.is_unfinished != null ? (e.is_unfinished ? "是" : "否") : null)}
+                        {e.prove_url && renderInfoRow("證明文件", <a href={e.prove_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">查看</a>)}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

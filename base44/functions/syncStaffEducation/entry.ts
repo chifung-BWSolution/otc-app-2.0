@@ -85,8 +85,16 @@ Deno.serve(async (req) => {
         graduation_school: r['Graduation School'] || '',
         education_background: r['Education Background'] || '',
         graduation_major: r['Graduation Major'] || '',
+        graduation_start_date: toDateStr(r['Graduation Start Date']),
         graduation_end_date: toDateStr(r['Graduation End Date']),
+        is_arts: r['Is Arts'] === true,
         is_business: r['Is Business'] === true,
+        is_science: r['Is Science'] === true,
+        is_other: r['Is Other'] === true,
+        is_part_time: r['Is PartTime'] === true,
+        is_unfinished: r['UnFinished'] === true,
+        other_subjects: r['Other Subjects'] || '',
+        prove_url: r['Prove'] || '',
         is_active: r['Is Active'] !== false,
       };
 
