@@ -475,14 +475,18 @@ export default function StaffProfilePage() {
               </h3>
 
               {/* Bubble education records */}
-              {bubbleEducation.length > 0 && (
+              {bubbleEducation.filter(e => e.graduation_school || e.education_background || e.graduation_major).length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {bubbleEducation.map((e) => (
+                  {bubbleEducation
+                    .filter(e => e.graduation_school || e.education_background || e.graduation_major)
+                    .map((e) => (
                     <div key={e.id} className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
-                      <div className="font-bold text-gray-800">{e.graduation_school}</div>
-                      <div className="text-sm text-gray-600">
-                        {e.education_background}{e.graduation_major && ` · ${e.graduation_major}`}
-                      </div>
+                      <div className="font-bold text-gray-800">{e.graduation_school || e.education_background || '(未填寫學校)'}</div>
+                      {(e.education_background || e.graduation_major) && (
+                        <div className="text-sm text-gray-600">
+                          {e.education_background}{e.graduation_major && ` · ${e.graduation_major}`}
+                        </div>
+                      )}
                       {e.graduation_end_date && (
                         <div className="text-xs text-gray-400">{e.graduation_end_date}</div>
                       )}
