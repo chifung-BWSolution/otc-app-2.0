@@ -625,48 +625,9 @@ export default function StaffProfilePage() {
 
           {/* SKILLS */}
           {activeTab === "skills" && (
-            <div className="space-y-6">
-              {[
-                { field: "skills", label: "技能", color: "blue" },
-                { field: "interests", label: "興趣", color: "purple" },
-                { field: "languages", label: "語言能力", color: "green" },
-              ].map(({ field, label, color }) => (
-                <div key={field}>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{label}</h3>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {(editMode ? form[field] : profile[field] || []).map((s, i) => (
-                      <span key={i} className={`flex items-center gap-1 bg-${color}-100 text-${color}-700 text-sm px-3 py-1 rounded-full font-medium`}>
-                        {s}
-                        {editMode && (
-                          <button onClick={() => removeArr(field, i)} className="hover:text-red-500 ml-0.5 text-xs">×</button>
-                        )}
-                      </span>
-                    ))}
-                    {!editMode && (form[field] || []).length === 0 && (
-                      <span className="text-gray-400 text-sm">暫無記錄</span>
-                    )}
-                  </div>
-                  {editMode && (
-                    <input
-                      className="border border-blue-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none w-64"
-                      placeholder={`新增${label}... (Enter 確認)`}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && e.target.value.trim()) {
-                          addArr(field, e.target.value.trim());
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
-
-              {/* Staff Q&A Answers */}
+            <div>
               {profile.bubble_id && (
-                <div className="border-t border-gray-100 pt-6">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Staff Q&A 問卷回答</h3>
-                  <StaffQASection staffBubbleId={profile.bubble_id} />
-                </div>
+                <StaffQASection staffBubbleId={profile.bubble_id} />
               )}
             </div>
           )}

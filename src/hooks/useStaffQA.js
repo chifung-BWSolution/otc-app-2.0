@@ -6,31 +6,25 @@ import { base44 } from "@/api/base44Client";
  * joined with questions and categories.
  */
 export function useStaffQA(staffBubbleId) {
-  const [qaData, setQaData] = useState([]);  // grouped by category
+  const [skillsData, setSkillsData] = useState([]);
+  const [hobbiesData, setHobbiesData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!staffBubbleId) { setLoading(false); return; }
 
     async function load() {
-      // Fetch all 3 entities in parallel
       const [answers, questions, categories] = await Promise.all([
         base44.entities.StaffQAAnswer.filter({ staff_id: staffBubbleId, is_active: true }, '-created_date', 500),
         base44.entities.StaffQAQuestion.filter({ is_active: true }, 'bubble_id', 500),
         base44.entities.StaffQACategory.filter({ is_active: true }, 'bubble_id', 100),
       ]);
 
-      // Build lookup maps
       const questionMap = {};
-      for (const q of questions) {
-        questionMap[q.bubble_id] = q;
-      }
+      for (const q of questions) questionMap[q.bubble_id] = q;
       const categoryMap = {};
-      for (const c of categories) {
-        categoryMap[c.bubble_id] = c;
-      }
+      for (const c of categories) categoryMap[c.bubble_id] = c;
 
-      // Group answers by category
       const grouped = {};
       for (const ans of answers) {
         const question = questionMap[ans.question_id];
@@ -38,12 +32,12 @@ export function useStaffQA(staffBubbleId) {
         const category = categoryMap[question.category_id];
         const catKey = category ? category.bubble_id : '_uncategorized';
         const catDisplay = category ? category.display : '其他';
+        const catType = category?.type || 'Hobbies';
 
         if (!grouped[catKey]) {
-          grouped[catKey] = { category: catDisplay, type: category?.type || '', items: [] };
+          grouped[catKey] = { category: catDisplay, type: catType, items: [] };
         }
         const options = [question.option_1, question.option_2, question.option_3, question.option_4].filter(Boolean);
-        // option_point maps inversely: 4 = option 1, 3 = option 2, etc.
         const selectedIndex = (ans.option_point != null && options.length > 0)
           ? options.length - ans.option_point
           : -1;
@@ -58,12 +52,14 @@ export function useStaffQA(staffBubbleId) {
         });
       }
 
-      setQaData(Object.values(grouped));
+      const all = Object.values(grouped);
+      setSkillsData(all.filter(g => g.type === 'Skills'));
+      setHobbiesData(all.filter(g => g.type !== 'Skills'));
       setLoading(false);
     }
 
     load().catch(() => setLoading(false));
   }, [staffBubbleId]);
 
-  return { qaData, loading };
+  return { skillsData, hobbiesData, loading };
 }
