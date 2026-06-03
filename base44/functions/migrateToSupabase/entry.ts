@@ -222,6 +222,27 @@ const ENTITY_SCHEMAS = {
   ScoreLevel: {
     score:'numeric', label:'text', description:'text', sort_order:'numeric', is_active:'boolean',
   },
+  CourseCategory: {
+    name:'text', description:'text', service_units:'jsonb', icon:'text',
+    color:'text', sort_order:'numeric', is_active:'boolean',
+  },
+  Course: {
+    title:'text', code:'text', category_id:'text', category_name:'text',
+    service_units:'jsonb', description:'text', cover_image:'text',
+    difficulty:'numeric', duration_hours:'numeric', learning_method:'text',
+    objectives:'jsonb', prerequisites:'text', target_audience:'text',
+    instructors:'jsonb', has_assessment:'boolean', passing_score:'numeric',
+    status:'text', tags:'jsonb', created_by_name:'text',
+  },
+  CourseResource: {
+    title:'text', description:'text', course_id:'text', course_name:'text',
+    category:'text', format:'text', url:'text', file_url:'text',
+    content_text:'text', tags:'jsonb', difficulty:'numeric',
+    target_dept:'jsonb', target_role:'text', learning_method:'text',
+    status:'text', reviewed_by:'text', reviewed_at:'timestamptz',
+    review_note:'text', duration_minutes:'numeric',
+    uploaded_by:'text', uploaded_at:'timestamptz',
+  },
 };
 
 function buildCreateTableSQL(tableName, fields) {
@@ -286,15 +307,23 @@ function transformRecord(record, fieldKeys) {
   return row;
 }
 
-async function migrateEntity(base44, entityName, fields) {
+async function migrateEntity(base44, entityName, fields, dropFirst = false) {
   const snakeTable = entityName.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
   const fieldKeys = Object.keys(fields);
   const result = { entity: entityName, table: snakeTable };
 
-  // Create table
+  // Optionally drop table first
+  if (dropFirst) {
+    try { await execSQL(`DROP TABLE IF EXISTS "${snakeTable}" CASCADE`); } catch (_) {}
+  }
+
+  // Create table and refresh PostgREST schema cache
   const sql = buildCreateTableSQL(snakeTable, fields);
   try {
     await execSQL(sql);
+    await execSQL("NOTIFY pgrst, 'reload schema'");
+    // Wait for schema cache to refresh
+    await new Promise(r => setTimeout(r, 3000));
     result.table_created = true;
   } catch (e) {
     result.table_created = false;
@@ -341,13 +370,15 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const entity = body.entity;
 
+    const dropFirst = body.dropFirst === true;
+
     // Single entity mode
     if (entity && entity !== 'ALL') {
       const fields = ENTITY_SCHEMAS[entity];
       if (!fields) {
         return Response.json({ error: `Unknown entity: ${entity}. Available: ${Object.keys(ENTITY_SCHEMAS).join(', ')}` }, { status: 400 });
       }
-      const result = await migrateEntity(base44, entity, fields);
+      const result = await migrateEntity(base44, entity, fields, dropFirst);
       return Response.json(result);
     }
 
