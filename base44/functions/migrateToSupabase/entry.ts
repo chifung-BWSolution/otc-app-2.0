@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -331,27 +331,46 @@ async function migrateEntity(base44, entityName, fields, dropFirst = false) {
     return result;
   }
 
-  // Fetch data
-  const records = await base44.asServiceRole.entities[entityName].filter({}, '-created_date', 10000);
-  result.total = records.length;
+  // Fetch ALL data using offset-based pagination (skip)
+  // Base44 API returns max 5000 per call
+  const PAGE_SIZE = 5000;
+  const allRecords = [];
+  let skip = 0;
+  let pageNum = 0;
 
-  if (records.length === 0) {
+  while (true) {
+    pageNum++;
+    const batch = await base44.asServiceRole.entities[entityName].list('-created_date', PAGE_SIZE, skip);
+    
+    if (!batch || batch.length === 0) break;
+    
+    allRecords.push(...batch);
+    console.log(`  Page ${pageNum}: fetched ${batch.length}, total so far ${allRecords.length}`);
+    
+    if (batch.length < PAGE_SIZE) break;
+    skip += PAGE_SIZE;
+  }
+
+  result.total = allRecords.length;
+  result.pages = pageNum;
+
+  if (allRecords.length === 0) {
     result.inserted = 0;
     return result;
   }
 
   // Insert in batches
-  const BATCH = 200;
+  const INSERT_BATCH = 200;
   let inserted = 0;
   const errors = [];
-  for (let i = 0; i < records.length; i += BATCH) {
-    const batch = records.slice(i, i + BATCH);
+  for (let i = 0; i < allRecords.length; i += INSERT_BATCH) {
+    const batch = allRecords.slice(i, i + INSERT_BATCH);
     const rows = batch.map(r => transformRecord(r, fieldKeys));
     try {
       await insertBatch(snakeTable, rows);
       inserted += batch.length;
     } catch (e) {
-      errors.push({ batch: Math.floor(i / BATCH), error: e.message });
+      errors.push({ batch: Math.floor(i / INSERT_BATCH), error: e.message });
     }
   }
   result.inserted = inserted;
