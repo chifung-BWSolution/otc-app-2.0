@@ -231,6 +231,49 @@ export default function ImportBubbleModal({ onClose, onDone }) {
       // Step 1: Parse and transform in frontend
       setImportStatus("解析檔案中...");
       const allRows = await getAllParsedRows();
+
+      // Special path for BubbleLeave: send raw rows to dedicated edge function
+      // which handles staff ID matching, date conversion, status derivation server-side
+      if (selectedEntity === "BubbleLeave") {
+        setImportStatus(`解析完成：${allRows.length} 筆記錄，正在匯入（含員工ID匹配）...`);
+        
+        // Send in batches of 100 to avoid timeout
+        const BATCH_SIZE = 100;
+        let totalImported = 0;
+        let totalErrors = 0;
+        let errorSamples = [];
+        
+        for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
+          const batch = allRows.slice(i, i + BATCH_SIZE);
+          setImportStatus(`匯入中... ${i + 1}-${Math.min(i + BATCH_SIZE, allRows.length)} / ${allRows.length}`);
+          
+          const res = await base44.functions.invoke("importBubbleLeaves", {
+            records: batch,
+          });
+          
+          if (res && res.result) {
+            totalImported += (res.result.imported || 0);
+            totalErrors += (res.result.errors || 0);
+            // Collect error samples from first batch that has errors
+            if (res.result.error_samples && res.result.error_samples.length > 0 && errorSamples.length === 0) {
+              errorSamples = res.result.error_samples;
+            }
+          }
+        }
+        
+        setResult({
+          deleted: 0,
+          created: totalImported,
+          totalInFile: allRows.length,
+          transformErrors: 0,
+          insertErrors: totalErrors,
+          failedSamples: errorSamples,
+        });
+        setStep("done");
+        onDone?.();
+        return;
+      }
+
       const transformed = [];
       const transformErrors = [];
       for (let i = 0; i < allRows.length; i++) {
@@ -477,7 +520,10 @@ export default function ImportBubbleModal({ onClose, onDone }) {
                       <div className="font-bold">失敗原因範例：</div>
                       {result.failedSamples.map((s, i) => (
                         <div key={i} className="bg-white/60 rounded px-2 py-1 text-[10px] break-all">
-                          <span className="text-red-600">{s.error}</span>
+                          <span className="text-red-600 font-medium">{s.error}</span>
+                          {s.bubble_id && <span className="text-gray-500 ml-2">ID: {s.bubble_id}</span>}
+                          {s.staff_name && <span className="text-gray-500 ml-2">Staff: {s.staff_name}</span>}
+                          {s.rec_keys && <span className="text-gray-400 ml-2">Keys: {JSON.stringify(s.rec_keys)}</span>}
                         </div>
                       ))}
                     </div>

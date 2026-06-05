@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { Plus, CheckCircle } from "lucide-react";
 
-const sampleReports = [
-  { id: 1, date: "2026-04-03", tasks: "完成客戶A提案設計，參加週會，處理郵件回覆", tomorrow: "修改提案，準備季度報告", issues: "無", status: "已提交" },
-  { id: 2, date: "2026-04-02", tasks: "整理資料庫，更新項目文件，培訓新員工", tomorrow: "客戶A提案設計", issues: "項目延遲，需與主管溝通", status: "已提交" },
-];
-
 export default function DailyReport() {
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -95,20 +90,8 @@ export default function DailyReport() {
       {/* Past Reports */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h3 className="font-bold text-gray-700 mb-3">📊 過往匯報</h3>
-        <div className="space-y-3">
-          {sampleReports.map((r) => (
-            <div key={r.id} className="border border-gray-100 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-sm text-gray-800">📅 {r.date}</span>
-                <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">{r.status}</span>
-              </div>
-              <div className="space-y-1 text-xs text-gray-600">
-                <p><span className="font-medium">今日工作：</span>{r.tasks}</p>
-                <p><span className="font-medium">明日計劃：</span>{r.tomorrow}</p>
-                {r.issues !== "無" && <p className="text-orange-600"><span className="font-medium">問題：</span>{r.issues}</p>}
-              </div>
-            </div>
-          ))}
+        <div className="text-center py-8 text-gray-400 text-sm">
+          暫無過往匯報記錄
         </div>
       </div>
     </div>

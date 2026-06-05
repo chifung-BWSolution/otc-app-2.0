@@ -1,0 +1,2 @@
+ALTER TABLE events ADD COLUMN IF NOT EXISTS rsvp_message TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS materials_list TEXT;

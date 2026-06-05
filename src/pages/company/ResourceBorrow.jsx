@@ -1,25 +1,9 @@
-import { useState } from "react";
-import { Search, Settings, Plus } from "lucide-react";
-
-const categories = [
-  { label: "客戶送禮", count: 3 },
-  { label: "宣傳物資", count: 4 },
-  { label: "攝影工具", count: 4 },
-  { label: "電子設備", count: 16 },
-  { label: "佈置", count: 15 },
-  { label: "工具", count: 31 },
-  { label: "文具", count: 42 },
-  { label: "其他", count: 14 },
-  { label: "清潔用品", count: 1 },
-  { label: "BW 物料", count: 60 },
-  { label: "務絡/拜訪", count: 4 },
-  { label: "客戶用品", count: 3 },
-  { label: "公司活動用品", count: 9 },
-  { label: "電子設備配件", count: 4 },
-  { label: "公司文件", count: 4 },
-  { label: "包裝/消毒用品", count: 14 },
-  { label: "廚業用品", count: 5 },
-];
+import { useState, useEffect } from "react";
+import { Search, Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useRegion } from "@/lib/RegionContext";
+import { useRegionalItems } from "@/lib/useRegionalItems";
+import RegionBadge from "@/components/RegionBadge";
 
 const usageColor = {
   日常辦公: "bg-blue-100 text-blue-700",
@@ -29,205 +13,90 @@ const usageColor = {
   藍迪: "bg-teal-100 text-teal-700",
 };
 
-const resources = [
-  {
-    id: 1,
-    name: "Video call headset 視像會議耳機+麥克風",
-    image: "🎧",
-    location: "香港 > 劣前外面 > T10",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 6,
-    category: "電子設備",
-    value: "$150",
-    usage: "視像會議",
-    user: "只限CFA同事",
-  },
-  {
-    id: 2,
-    name: "V1: 碼: 長碼；木: 瓶碼 V2: 圖碼: 延福碼; 插碼: 煙盒",
-    image: "📦",
-    location: "香港 > sever 房 > V1, V2",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 1,
-    category: "攝影工具",
-    value: "$999",
-    usage: "拍攝",
-    user: "只限CFA同事",
-  },
-  {
-    id: 3,
-    name: "餐天花板；廚房物品",
-    image: "🍳",
-    location: "香港 > sever 房 > V3",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 100,
-    category: "其他",
-    value: "$999",
-    usage: "日常辦公",
-    user: "只限CFA同事",
-  },
-  {
-    id: 4,
-    name: "辦公室裝飾",
-    image: "🌿",
-    location: "香港 > 門口排行處 > R1",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 10,
-    category: "佈置",
-    value: "$100",
-    usage: "佈置",
-    user: "只限CFA同事",
-  },
-  {
-    id: 5,
-    name: "酒房整器插板地布",
-    image: "🔌",
-    location: "香港 > Meeting Room 1 外面 > A1",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 1,
-    category: "佈置",
-    value: "$100",
-    usage: "佈置",
-    user: "只限CFA同事",
-  },
-  {
-    id: 6,
-    name: "辦公室活動Banner",
-    image: "🎌",
-    location: "香港 > Meeting Room 1 外面 > A2",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 1,
-    category: "佈置",
-    value: "$100",
-    usage: "佈置",
-    user: "只限CFA同事",
-  },
-  {
-    id: 7,
-    name: "辦公室節日裝飾",
-    image: "🎄",
-    location: "香港 > Meeting Room 1 外面 > A3",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 1,
-    category: "佈置",
-    value: "$100",
-    usage: "佈置",
-    user: "只限CFA同事",
-  },
-  {
-    id: 8,
-    name: "A5 Notebook 記事簿",
-    image: "📓",
-    location: "香港 > Meeting Room 1 外面 > A4",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 30,
-    category: "文具",
-    value: "$50",
-    usage: "日常辦公",
-    user: "只限CFA同事",
-  },
-  {
-    id: 9,
-    name: "遮塵樓",
-    image: "🧹",
-    location: "香港 > Meeting Room 1 外面 > A2",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 1,
-    category: "工具",
-    value: "$100",
-    usage: "佈置",
-    user: "只限CFA同事",
-  },
-  {
-    id: 10,
-    name: "Franco書",
-    image: "📚",
-    location: "香港 > Meeting Room 1 外面 > A4",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 5,
-    category: "其他",
-    value: "$999",
-    usage: "藍迪",
-    user: "只限CFA同事",
-  },
-  {
-    id: 11,
-    name: "透明卡套（細帶式）、卡套",
-    image: "🗂️",
-    location: "香港 > Meeting Room 1 外面",
-    borrowMethod: "自行取用",
-    returnMethod: "到期歸還",
-    stock: 100,
-    category: "文具",
-    value: "$50",
-    usage: "日常辦公",
-    user: "只限CFA同事",
-  },
-];
-
 export default function ResourceBorrow() {
+  const { regions } = useRegion();
   const [tab, setTab] = useState("概覽");
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("全部");
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
 
-  const filtered = resources.filter(
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "management";
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+    load();
+  }, []);
+
+  const load = async () => {
+    setLoading(true);
+    const data = await base44.entities.ResourceItem.filter({ is_active: true }, "sort_order", 500);
+    setResources(data);
+    setLoading(false);
+  };
+
+  const regional = useRegionalItems(resources);
+
+  // Derive categories from data
+  const categories = [...new Set(regional.map(r => r.category).filter(Boolean))].map(cat => ({
+    label: cat,
+    count: regional.filter(r => r.category === cat).length,
+  }));
+
+  const filtered = regional.filter(
     (r) =>
       (selectedCat === "全部" || r.category === selectedCat) &&
-      (r.name.includes(search) || r.category.includes(search) || r.location.includes(search))
+      (!search || (r.name || "").includes(search) || (r.category || "").includes(search) || (r.location || "").includes(search))
   );
+
+  const handleDelete = async (id) => {
+    if (!confirm("確定刪除此物資？")) return;
+    await base44.entities.ResourceItem.update(id, { is_active: false });
+    load();
+  };
 
   return (
     <div className="space-y-3">
       {/* Header tabs */}
-      <div className="flex items-center gap-3">
-        {["概覽", "借用記錄"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              tab === t ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-blue-300"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          {["概覽", "借用記錄"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                tab === t ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-blue-300"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+          <RegionBadge />
+        </div>
       </div>
 
       {tab === "概覽" && (
         <>
           {/* Filters row */}
           <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex flex-wrap gap-2 items-center">
-            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none">
-              <option>香港</option>
-            </select>
-            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none">
-              <option>域域</option>
-            </select>
-            <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none min-w-32">
-              <option>端號</option>
-            </select>
             <div className="relative flex-1 min-w-40">
               <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-50"
-                placeholder="搜尋..."
+                placeholder="搜尋物資名稱、分類、位置..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors ml-auto">
-              <Plus size={14} /> 新增物資
-            </button>
+            {isAdmin && (
+              <button onClick={() => { setEditItem(null); setShowForm(true); }}
+                className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors ml-auto">
+                <Plus size={14} /> 新增物資
+              </button>
+            )}
           </div>
 
           {/* Category pills */}
@@ -238,7 +107,7 @@ export default function ResourceBorrow() {
                 selectedCat === "全部" ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-300 hover:border-gray-500"
               }`}
             >
-              全部
+              全部({regional.length})
             </button>
             {categories.map((cat) => (
               <button
@@ -254,61 +123,67 @@ export default function ResourceBorrow() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-            <table className="w-full text-sm min-w-[1000px]">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-500 font-semibold bg-gray-50">
-                  <th className="px-3 py-3 text-left w-8">#</th>
-                  <th className="px-3 py-3 text-left">物品</th>
-                  <th className="px-3 py-3 text-left">位置</th>
-                  <th className="px-3 py-3 text-left">借用方式</th>
-                  <th className="px-3 py-3 text-left">歸還方式</th>
-                  <th className="px-3 py-3 text-left">庫存</th>
-                  <th className="px-3 py-3 text-left">分類</th>
-                  <th className="px-3 py-3 text-left">借值</th>
-                  <th className="px-3 py-3 text-left">使用用途</th>
-                  <th className="px-3 py-3 text-left">主要使用者</th>
-                  <th className="px-3 py-3 text-left">動作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((item, idx) => (
-                  <tr key={item.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-colors">
-                    <td className="px-3 py-3 text-xs text-gray-400">{idx + 1}.</td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-start gap-2">
-                        <span className="text-2xl shrink-0">{item.image}</span>
-                        <span className="text-xs text-gray-800 leading-snug max-w-36">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-gray-500 max-w-36 leading-snug">{item.location}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.borrowMethod}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.returnMethod}</td>
-                    <td className="px-3 py-3 text-xs font-bold text-gray-800">{item.stock}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.category}</td>
-                    <td className="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">{item.value}</td>
-                    <td className="px-3 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${usageColor[item.usage] || "bg-gray-100 text-gray-600"}`}>
-                        {item.usage}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{item.user}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex gap-1 flex-wrap">
-                        <button className="px-2 py-1 bg-yellow-400 text-white rounded text-xs font-medium hover:bg-yellow-500 whitespace-nowrap">借用</button>
-                        <button className="px-2 py-1 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600 whitespace-nowrap">查看借用</button>
-                        <button className="px-2 py-1 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 whitespace-nowrap">編輯</button>
-                        <button className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 whitespace-nowrap">刪除</button>
-                      </div>
-                    </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="animate-spin text-gray-400" size={28} />
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+              <table className="w-full text-sm min-w-[1000px]">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500 font-semibold bg-gray-50">
+                    <th className="px-3 py-3 text-left w-8">#</th>
+                    <th className="px-3 py-3 text-left">物品</th>
+                    <th className="px-3 py-3 text-left">位置</th>
+                    <th className="px-3 py-3 text-left">借用方式</th>
+                    <th className="px-3 py-3 text-left">歸還方式</th>
+                    <th className="px-3 py-3 text-left">庫存</th>
+                    <th className="px-3 py-3 text-left">分類</th>
+                    <th className="px-3 py-3 text-left">借值</th>
+                    <th className="px-3 py-3 text-left">使用用途</th>
+                    <th className="px-3 py-3 text-left">主要使用者</th>
+                    {isAdmin && <th className="px-3 py-3 text-left">動作</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {filtered.length === 0 && (
-              <div className="text-center py-10 text-gray-400 text-sm">沒有符合條件的物資</div>
-            )}
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((item, idx) => (
+                    <tr key={item.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-colors">
+                      <td className="px-3 py-3 text-xs text-gray-400">{idx + 1}.</td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-2xl shrink-0">{item.image || "📦"}</span>
+                          <span className="text-xs text-gray-800 leading-snug max-w-36">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-500 max-w-36 leading-snug">{item.location}</td>
+                      <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.borrow_method}</td>
+                      <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.return_method}</td>
+                      <td className="px-3 py-3 text-xs font-bold text-gray-800">{item.stock}</td>
+                      <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{item.category}</td>
+                      <td className="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">{item.value}</td>
+                      <td className="px-3 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${usageColor[item.usage_type] || "bg-gray-100 text-gray-600"}`}>
+                          {item.usage_type}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{item.user_scope}</td>
+                      {isAdmin && (
+                        <td className="px-3 py-3">
+                          <div className="flex gap-1 flex-wrap">
+                            <button onClick={() => { setEditItem(item); setShowForm(true); }} className="px-2 py-1 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 whitespace-nowrap">編輯</button>
+                            <button onClick={() => handleDelete(item.id)} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 whitespace-nowrap">刪除</button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && (
+                <div className="text-center py-10 text-gray-400 text-sm">沒有符合條件的物資</div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -318,6 +193,122 @@ export default function ResourceBorrow() {
           <p>暫無借用記錄</p>
         </div>
       )}
+
+      {/* Form Modal */}
+      {showForm && (
+        <ResourceFormModal
+          item={editItem}
+          regions={regions}
+          onClose={() => { setShowForm(false); setEditItem(null); }}
+          onSaved={load}
+        />
+      )}
+    </div>
+  );
+}
+
+function ResourceFormModal({ item, regions, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name: item?.name || "",
+    image: item?.image || "",
+    location: item?.location || "",
+    borrow_method: item?.borrow_method || "自行取用",
+    return_method: item?.return_method || "到期歸還",
+    stock: item?.stock || 0,
+    category: item?.category || "",
+    value: item?.value || "",
+    usage_type: item?.usage_type || "",
+    user_scope: item?.user_scope || "",
+    region_code: item?.region_code || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    if (item) {
+      await base44.entities.ResourceItem.update(item.id, { ...form, stock: Number(form.stock), is_active: true });
+    } else {
+      await base44.entities.ResourceItem.create({ ...form, stock: Number(form.stock), is_active: true });
+    }
+    setSaving(false);
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-gray-900">{item ? "編輯物資" : "新增物資"}</h3>
+          <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-600">名稱 *</label>
+            <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-600">圖標 (Emoji)</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="📦" value={form.image} onChange={e => setForm(f => ({...f, image: e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-600">庫存</label>
+              <input type="number" className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.stock} onChange={e => setForm(f => ({...f, stock: e.target.value}))} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-600">位置</label>
+            <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="香港 > ..." value={form.location} onChange={e => setForm(f => ({...f, location: e.target.value}))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-600">借用方式</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.borrow_method} onChange={e => setForm(f => ({...f, borrow_method: e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-600">歸還方式</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.return_method} onChange={e => setForm(f => ({...f, return_method: e.target.value}))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-600">分類</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-600">借值</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="$100" value={form.value} onChange={e => setForm(f => ({...f, value: e.target.value}))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-600">使用用途</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.usage_type} onChange={e => setForm(f => ({...f, usage_type: e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-600">主要使用者</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.user_scope} onChange={e => setForm(f => ({...f, user_scope: e.target.value}))} />
+            </div>
+          </div>
+          {regions?.length > 0 && (
+            <div>
+              <label className="text-xs font-bold text-gray-600">地區</label>
+              <select className="w-full border rounded-lg px-3 py-2 text-sm mt-1" value={form.region_code} onChange={e => setForm(f => ({...f, region_code: e.target.value}))}>
+                <option value="">所有地區</option>
+                {regions.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button onClick={handleSave} disabled={saving || !form.name.trim()} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold disabled:opacity-50">
+            {saving ? "儲存中..." : "儲存"}
+          </button>
+          <button onClick={onClose} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-medium">取消</button>
+        </div>
+      </div>
     </div>
   );
 }

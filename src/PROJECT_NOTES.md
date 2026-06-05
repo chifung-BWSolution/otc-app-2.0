@@ -54,7 +54,7 @@
 
 ## Overview
 An internal administrative management system for a medium-sized company (51–200 employees).
-Built with **React + Tailwind CSS** on the **Base44** platform.
+Built with **React + Tailwind CSS** on **Supabase**.
 UI language: **Traditional Chinese (繁體中文)**.
 Visual style: **Vibrant & friendly** — colorful gradients, emoji icons, card-based layouts.
 
@@ -190,20 +190,10 @@ All 3 routes (`/leader/team`, `/leader/training`, `/leader/certification`) — P
 ---
 
 ## Data Layer
-- **All data is currently static/mock** — hardcoded in component files.
-- No entities defined yet in Base44 backend.
-- `base44.auth.me()` is used in `Home.jsx` to fetch the logged-in user's name.
+- **Data is fetched from Supabase** via the data layer in `src/api/base44Client.js`.
+- `base44.auth.me()` calls Supabase auth to fetch the logged-in user.
+- Dev admin bypass available via localStorage `__dev_admin_bypass`.
 
-### Future Entity Candidates
-| Entity | Fields |
-|--------|--------|
-| `CheckInRecord` | user, date, check_in_time, check_out_time |
-| `LeaveApplication` | user, type, from_date, to_date, reason, status |
-| `DailyReport` | user, date, tasks, tomorrow_plan, issues, hours |
-| `ExpenseReport` | user, title, category, amount, date, receipt_url, status |
-| `CompanyNews` | title, category, content, author, urgent, date |
-| `CourseEnrollment` | user, course_id, progress |
-| `ApprovalRequest` | type, requester, dept, detail, status, urgent |
 
 ---
 
@@ -231,16 +221,14 @@ All 3 routes (`/leader/team`, `/leader/training`, `/leader/certification`) — P
 | `react-router-dom` | Client-side routing |
 | `recharts` | Charts (Radar, Bar, Line, Pie) |
 | `lucide-react` | Icons |
-| `@tanstack/react-query` | (Ready, not yet used for data fetching) |
-| `@base44/sdk` | Auth (`base44.auth.me()`), ready for entity CRUD |
+| `@tanstack/react-query` | Data fetching & caching |
+| Supabase JS SDK | Auth, Database, Edge Functions |
 
 ---
 
 ## Known Limitations / TODOs
-1. All data is mock/static — needs Base44 entity integration
-2. 20+ pages are Placeholder stubs awaiting implementation
-3. No role-based access control (RBAC) implemented yet — all pages visible to all users
-4. Check-in uses `setTimeout` simulation — needs real geolocation + entity save
-5. No real file upload for expense receipts
-6. Notification bell is decorative only
-7. User profile button has no action
+1. Some pages still use placeholder stubs awaiting full implementation
+2. Check-in uses `setTimeout` simulation — needs real geolocation + entity save
+3. No real file upload for expense receipts
+4. Notification bell is decorative only
+5. User profile button has no action

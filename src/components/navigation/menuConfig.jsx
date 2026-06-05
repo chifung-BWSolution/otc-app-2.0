@@ -118,6 +118,7 @@ export const menuGroups = [
     border: "border-red-400",
     gradient: "from-red-500 to-rose-500",
     items: [
+      { label: "🎪 活動管理", path: "/admin/events" },
       { label: "✅ 批核申請", path: "/admin/approvals" },
       { label: "🌴 假期審批", path: "/admin/leave-approvals" },
       { label: "📋 考核安排", path: "/admin/assessment-arrangement" },
@@ -132,6 +133,7 @@ export const menuGroups = [
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
       { label: "👤 用戶帳戶管理", path: "/admin/user-management" },
+      { label: "🔄 Bubble數據匯入", path: "/admin/bubble-data" },
     ],
   },
   {

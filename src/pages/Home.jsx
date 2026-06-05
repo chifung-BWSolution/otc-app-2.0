@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import BirthdayWidget from "../components/BirthdayWidget";
+
 
 const modules = [
   {
@@ -148,7 +148,7 @@ export default function Home() {
 
   return (
     <div className="space-y-3 pb-6">
-      <BirthdayWidget />
+
       {visibleModules.map((mod) => (
         <div key={mod.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 pt-4 pb-2">
           <h3 className="text-sm font-bold text-gray-700 mb-3">{mod.icon} {mod.label}</h3>

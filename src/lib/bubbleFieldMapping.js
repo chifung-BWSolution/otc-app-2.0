@@ -24,7 +24,7 @@ const FIELD_MAPS = {
     "New Work Phone": "new_work_phone",
     "No Clockin": "no_clockin",
     "No Man Hour Task": "no_man_hour_task",
-    "O_Base Location": "o_base_location",
+    "O_Base Location": "base_location",
     "O_Probation": "o_probation",
     "O_Status": "o_status",
     "O_Status_Text": "o_status_text",
@@ -38,6 +38,7 @@ const FIELD_MAPS = {
     "Voov ID": "voov_id",
     "Work Email": "work_email",
     "Work Phone": "work_phone",
+    "Chinese Name": "chinese_name",
   },
   BubbleOT: {
     "End Date& Time": "end_date_time",
@@ -53,6 +54,7 @@ const FIELD_MAPS = {
     "Reject Reason": "reject_reason",
   },
   BubbleLeave: {
+    // Display name format - mapped to actual DB columns used by syncBubbleTable
     "-Quota": "quota",
     "Approved": "approved",
     "Approver": "approver_id",
@@ -64,16 +66,42 @@ const FIELD_MAPS = {
     "N_Leave Period": "leave_period",
     "N_Leave Type": "leave_type",
     "Prove": "prove_url",
+
+    "Reason for apply": "application_reason",
     "Send Approval Email": "send_approval_email",
     "Send Email": "send_email",
     "Staff": "staff_id",
     "Start Date & Time": "start_date_time",
+    "status": "status",
     "Reject Reason": "reject_reason",
     "Rejecter": "rejecter_id",
     "Remarks": "remarks",
     "Info-Tech": "info_tech_url",
-    "Application Reason": "application_reason",
     "Reason for Apply": "application_reason",
+    "Application Reason": "application_reason",
+    // Snake_case format (Bubble API may return either format)
+    "_quota_number": "quota",
+    "approved_boolean": "approved",
+    "approver_custom_staff": "approver_id",
+    "count_year_date": "count_year",
+    "display_text": "display_name",
+    "end_date___time_date": "end_date_time",
+    "google_event_id_text": "google_event_id",
+    "info_tech_image": "info_tech_url",
+    "info-tech_image": "info_tech_url",
+    "interview_email_boolean": "interview_email",
+    "n_leave_period_option_os_leave_period": "leave_period",
+    "n_leave_type_custom_nos_leave_type": "leave_type",
+    "prove_image": "prove_url",
+    "reason_for_apply_text": "application_reason",
+    "reject_reason_text": "reject_reason",
+    "rejecter_custom_staff": "rejecter_id",
+    "remarks_text": "remarks",
+    "send_approval_email_boolean": "send_approval_email",
+    "send_email_boolean": "send_email",
+    "staff_custom_staff": "staff_id",
+    "start_date___time_date": "start_date_time",
+    "application_reason_text": "application_reason",
   },
   BubbleClockin: {
     "Accuracy - In": "accuracy_in",
@@ -121,8 +149,10 @@ const FIELD_MAPS = {
     "DingDing Out Attendance Id": "dingding_out_attendance_id",
     "Staff": "staff_id",
     "Tags - in": "tags_in",
+    "Tags - In": "tags_in",
     "Tag - In": "tags_in",
     "Tags - out": "tags_out",
+    "Tags - Out": "tags_out",
     "Tag - Out": "tags_out",
   },
   BubbleManHourDate: {
@@ -224,18 +254,55 @@ const FIELD_MAPS = {
   },
 };
 
-// Build merged field list: returns array of { bubbleName, dbName, bubbleStats, dbStats }
+// Build merged field list: returns array of { bubbleName, dbName, bubbleStats, dbStats, mappingOnly }
 export function buildFieldComparison(entityName, bubbleFields, dbFields) {
   const map = FIELD_MAPS[entityName] || {};
   const result = [];
   const usedDbFields = new Set();
+  const seenBubbleKeys = new Set(); // Track which mapping keys were found in Bubble response
 
   // Go through Bubble fields, find matching DB field
+  // Track which DB fields have already been matched (to avoid duplicates from multiple Bubble keys mapping to same DB field)
+  const dbFieldBestMatch = {}; // dbName -> { bubbleName, bStats, filled }
+
   for (const [bubbleName, bStats] of Object.entries(bubbleFields)) {
     const dbName = map[bubbleName] || null;
-    const dStats = dbName ? dbFields[dbName] || null : null;
-    if (dbName) usedDbFields.add(dbName);
-    result.push({ bubbleName, dbName, bubbleStats: bStats, dbStats: dStats });
+    if (dbName) {
+      seenBubbleKeys.add(bubbleName);
+      usedDbFields.add(dbName);
+      const filled = bStats?.filledCount || 0;
+      // Keep the Bubble key with the highest fill count for each DB field
+      if (!dbFieldBestMatch[dbName] || filled > (dbFieldBestMatch[dbName].filled || 0)) {
+        dbFieldBestMatch[dbName] = { bubbleName, bStats, filled };
+      }
+    } else {
+      // No mapping - show as unmatched Bubble field
+      result.push({ bubbleName, dbName: null, bubbleStats: bStats, dbStats: null, mappingOnly: false });
+    }
+  }
+
+  // Now add the best match for each DB field
+  for (const [dbName, match] of Object.entries(dbFieldBestMatch)) {
+    const dStats = dbFields[dbName] || null;
+    result.push({ bubbleName: match.bubbleName, dbName, bubbleStats: match.bStats, dbStats: dStats, mappingOnly: false });
+  }
+
+  // Add mapping-defined fields that were NOT found in Bubble sample
+  // Only show Display Name format keys (skip snake_case duplicates) for cleaner display
+  const mappingDefinedDbFields = new Set(); // track which db fields are already shown from mapping
+  for (const [dbName] of Object.entries(dbFieldBestMatch)) {
+    mappingDefinedDbFields.add(dbName);
+  }
+  for (const [bubbleKey, dbName] of Object.entries(map)) {
+    if (seenBubbleKeys.has(bubbleKey)) continue; // Already matched from Bubble response
+    if (mappingDefinedDbFields.has(dbName)) continue; // Another Bubble key already matched this DB field
+    // Prefer showing Display Name format (has spaces or uppercase) over snake_case duplicates
+    const isDisplayFormat = /[A-Z\s&\-]/.test(bubbleKey);
+    if (!isDisplayFormat) continue; // Skip snake_case variants to avoid duplicates
+    mappingDefinedDbFields.add(dbName);
+    usedDbFields.add(dbName);
+    const dStats = dbFields[dbName] || null;
+    result.push({ bubbleName: bubbleKey, dbName, bubbleStats: null, dbStats: dStats, mappingOnly: true });
   }
 
   // Add any DB fields not matched
@@ -243,16 +310,16 @@ export function buildFieldComparison(entityName, bubbleFields, dbFields) {
     if (usedDbFields.has(dbName)) continue;
     // Skip bubble_id as it's our internal linking field
     if (dbName === "bubble_id") continue;
-    result.push({ bubbleName: null, dbName, bubbleStats: null, dbStats: dStats });
+    result.push({ bubbleName: null, dbName, bubbleStats: null, dbStats: dStats, mappingOnly: false });
   }
 
-  // Sort: matched first (by bubble filled desc), then bubble-only, then db-only
+  // Sort: matched first (by bubble filled desc), then mapping-only, then bubble-only, then db-only
   result.sort((a, b) => {
-    const aMatched = a.bubbleName && a.dbName ? 1 : 0;
-    const bMatched = b.bubbleName && b.dbName ? 1 : 0;
-    if (aMatched !== bMatched) return bMatched - aMatched;
-    const aFilled = a.bubbleStats?.estimatedFilled || a.dbStats?.filled || 0;
-    const bFilled = b.bubbleStats?.estimatedFilled || b.dbStats?.filled || 0;
+    const aScore = a.bubbleName && a.dbName && !a.mappingOnly ? 3 : a.mappingOnly ? 2 : a.bubbleName ? 1 : 0;
+    const bScore = b.bubbleName && b.dbName && !b.mappingOnly ? 3 : b.mappingOnly ? 2 : b.bubbleName ? 1 : 0;
+    if (aScore !== bScore) return bScore - aScore;
+    const aFilled = a.bubbleStats?.filledCount || a.dbStats?.filled || 0;
+    const bFilled = b.bubbleStats?.filledCount || b.dbStats?.filled || 0;
     return bFilled - aFilled;
   });
 

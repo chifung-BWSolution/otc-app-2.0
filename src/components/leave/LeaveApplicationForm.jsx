@@ -75,16 +75,20 @@ export default function LeaveApplicationForm({ user, userRole, leaveTypes, allUs
     const delegate = form.delegate_email
       ? (allUsers || []).find(u => (u.work_email || u.email) === form.delegate_email)
       : null;
-    await base44.entities.LeaveRequest.create({
+    await base44.entities.BubbleLeave.create({
       user_email: selectedUser?.email || user.email,
       user_name: selectedUser?.full_name || user.full_name,
+      staff_name: selectedUser?.full_name || user.full_name,
       dept: selectedUser?.department || "未設定",
       leave_type: form.leave_type,
       from_date: form.from_date,
       to_date: form.to_date,
+      start_date_time: form.from_date,
+      end_date_time: form.to_date,
       time_slot: form.time_slot,
       days,
       reason: form.reason,
+      application_reason: form.reason,
       delegate_email: form.delegate_email || "",
       delegate_name: delegate?.display_name || delegate?.full_name || "",
       status: "審查中",

@@ -18,10 +18,21 @@ export function RegionProvider({ children }) {
   const load = async () => {
     setLoading(true);
     try {
-      const [regionList, me] = await Promise.all([
-        base44.entities.Region.filter({ is_active: true }, "sort_order", 50),
-        base44.auth.me().catch(() => null),
-      ]);
+      let regionList = [];
+      let me = null;
+      
+      try {
+        regionList = await base44.entities.Region.filter({ is_active: true }, "sort_order", 50);
+      } catch (e) {
+        console.warn("Region load failed", e);
+      }
+      
+      try {
+        me = await base44.auth.me();
+      } catch (e) {
+        // Not authenticated - that's fine
+      }
+      
       setRegions(regionList);
 
       let baseLocation = "";

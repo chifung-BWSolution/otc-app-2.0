@@ -1,26 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Phone, Mail, MessageCircle, Plus, Edit2 } from "lucide-react";
-import { staffList } from "../../data/staffData";
+import { base44 } from "@/api/base44Client";
 
-const offices = ["全部", "CFA HK"];
-const teams = ["全部", ...Array.from(new Set(staffList.map((s) => s.team)))];
 const roles = ["全部", "Director", "Team Leader", "Assistant Team Leader", "Team Member"];
 const statuses = ["全部", "Active", "Inactive"];
 
 export default function Directory() {
+  const [staffList, setStaffList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [officeFilter, setOfficeFilter] = useState("全部");
   const [teamFilter, setTeamFilter] = useState("全部");
   const [roleFilter, setRoleFilter] = useState("全部");
   const [tab, setTab] = useState("職員外表");
 
+  useEffect(() => {
+    base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000)
+      .then(list => setStaffList(list))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const teams = useMemo(() => ["全部", ...Array.from(new Set(staffList.map((s) => s.team_name).filter(Boolean)))], [staffList]);
+  const offices = useMemo(() => ["全部", ...Array.from(new Set(staffList.map((s) => s.office).filter(Boolean)))], [staffList]);
+
   const filtered = staffList.filter((s) =>
     (officeFilter === "全部" || s.office === officeFilter) &&
-    (teamFilter === "全部" || s.team === teamFilter) &&
-    (roleFilter === "全部" || s.role === roleFilter) &&
-    (s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.nameZh.includes(search) ||
-      s.team.includes(search))
+    (teamFilter === "全部" || s.team_name === teamFilter) &&
+    (roleFilter === "全部" || s.team_role_name === roleFilter) &&
+    ((s.display_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (s.full_name || "").includes(search) ||
+      (s.team_name || "").includes(search))
   );
 
   return (
@@ -45,11 +55,11 @@ export default function Directory() {
           <div className="text-xs text-gray-500 mt-0.5">職員 {staffList.length}</div>
         </div>
         <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
-          <div className="text-2xl font-bold text-green-600">{staffList.filter(s => s.status === "正式員工").length}</div>
-          <div className="text-xs text-gray-500 mt-0.5">正式員工</div>
+          <div className="text-2xl font-bold text-green-600">{staffList.filter(s => s.o_status === "Active").length}</div>
+          <div className="text-xs text-gray-500 mt-0.5">在職員工</div>
         </div>
         <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-100">
-          <div className="text-2xl font-bold text-purple-600">{Array.from(new Set(staffList.map(s => s.team))).length}</div>
+          <div className="text-2xl font-bold text-purple-600">{Array.from(new Set(staffList.map(s => s.team_name).filter(Boolean))).length}</div>
           <div className="text-xs text-gray-500 mt-0.5">團隊數量</div>
         </div>
       </div>
@@ -117,43 +127,47 @@ export default function Directory() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s) => (
+                {loading ? (
+                  <tr><td colSpan={15} className="text-center py-10 text-gray-400 text-sm">載入中...</td></tr>
+                ) : filtered.map((s) => (
                   <tr key={s.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
-                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.office}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.office || "—"}</td>
                     <td className="px-3 py-3">
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">{s.status}</span>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">{s.o_status || "—"}</span>
                     </td>
-                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.seniority}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{s.seniority || "—"}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 ${s.color} rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0`}>{s.avatar}</div>
+                        <div className="w-7 h-7 bg-blue-400 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {(s.display_name || s.full_name || "?").charAt(0)}
+                        </div>
                         <div>
-                          <div className="font-semibold text-gray-900 text-xs whitespace-nowrap">{s.name}</div>
-                          <div className="text-xs text-gray-400">{s.nameZh}</div>
+                          <div className="font-semibold text-gray-900 text-xs whitespace-nowrap">{s.display_name || s.full_name || "—"}</div>
+                          <div className="text-xs text-gray-400">{s.full_name || ""}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{s.team}</td>
-                    <td className="px-3 py-3 text-xs text-blue-500 whitespace-nowrap">{s.leader || "—"}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.bu}</td>
+                    <td className="px-3 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{s.team_name || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-blue-500 whitespace-nowrap">{s.leader_name || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.bu_name || "—"}</td>
                     <td className="px-3 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${
-                        s.role === "Director" ? "bg-red-100 text-red-700" :
-                        s.role.includes("Leader") ? "bg-blue-100 text-blue-700" :
+                        (s.team_role_name || "").includes("Director") ? "bg-red-100 text-red-700" :
+                        (s.team_role_name || "").includes("Leader") ? "bg-blue-100 text-blue-700" :
                         "bg-gray-100 text-gray-600"
-                      }`}>{s.role}</span>
+                      }`}>{s.team_role_name || "—"}</span>
                     </td>
                     <td className="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
                       {s.mobile ? <a href={`tel:${s.mobile}`} className="hover:text-blue-600 flex items-center gap-1"><Phone size={11} className="shrink-0" />{s.mobile}</a> : "—"}
                     </td>
-                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap max-w-32 truncate">{s.directLine || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap max-w-32 truncate">{s.direct_line || "—"}</td>
                     <td className="px-3 py-3 text-xs text-gray-600 max-w-40 truncate">
-                      {s.gmail !== "N/A" ? <a href={`mailto:${s.gmail}`} className="hover:text-blue-600 flex items-center gap-1 truncate"><Mail size={11} className="shrink-0" />{s.gmail}</a> : "N/A"}
+                      {s.linked_user_email ? <a href={`mailto:${s.linked_user_email}`} className="hover:text-blue-600 flex items-center gap-1 truncate"><Mail size={11} className="shrink-0" />{s.linked_user_email}</a> : "—"}
                     </td>
                     <td className="px-3 py-3 text-xs text-gray-500 max-w-36 truncate">
-                      {s.workEmail !== "N/A" ? <a href={`mailto:${s.workEmail}`} className="hover:text-blue-600 truncate">{s.workEmail}</a> : "N/A"}
+                      {s.work_email ? <a href={`mailto:${s.work_email}`} className="hover:text-blue-600 truncate">{s.work_email}</a> : "—"}
                     </td>
-                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.region}</td>
+                    <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">{s.staff_region || "—"}</td>
                     <td className="px-3 py-3">
                       {s.mobile && (
                         <a href={`https://wa.me/852${s.mobile}`} target="_blank" rel="noreferrer" className="p-1.5 bg-emerald-50 rounded-lg text-emerald-500 hover:bg-emerald-100 transition-colors inline-flex">

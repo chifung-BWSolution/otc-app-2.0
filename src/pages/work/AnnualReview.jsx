@@ -42,39 +42,47 @@ export default function AnnualReview() {
   useEffect(() => { initList(); }, []);
 
   const refreshReviews = async () => {
-    const res = await base44.functions.invoke('listMyAnnualReviews', {});
-    setReviews(res.data.reviews || []);
+    try {
+      const res = await base44.functions.invoke('listMyAnnualReviews', {});
+      setReviews(res.data?.reviews || []);
+    } catch (err) {
+      console.warn('refreshReviews failed:', err.message);
+    }
   };
 
   const initList = async () => {
     setLoading(true);
-    const me = await base44.auth.me();
-    setUser(me);
-    if (!me.linked_staff_id) { setLoading(false); return; }
+    try {
+      const me = await base44.auth.me();
+      setUser(me);
+      if (!me.linked_staff_id) { setLoading(false); return; }
 
-    const [staffList, reviewsRes, allStaff] = await Promise.all([
-      base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1),
-      base44.functions.invoke('listMyAnnualReviews', {}),
-      base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
-    ]);
-    const myStaff = staffList[0] || null;
-    setStaffRec(myStaff);
-    setReviews(reviewsRes.data.reviews || []);
+      const [staffList, reviewsRes, allStaff] = await Promise.all([
+        base44.entities.Staff.filter({ bubble_id: me.linked_staff_id }, "id", 1),
+        base44.functions.invoke('listMyAnnualReviews', {}),
+        base44.entities.Staff.filter({ o_status: "Active" }, "display_name", 2000),
+      ]);
+      const myStaff = staffList[0] || null;
+      setStaffRec(myStaff);
+      setReviews(reviewsRes.data?.reviews || []);
 
-    if (myStaff) {
-      const myId = myStaff.bubble_id;
-      const subs = allStaff.filter(s => s.bubble_id !== myId && s.team_leader === myId);
-      setIsLeader(subs.length > 0);
-      if (subs.length > 0) {
-        const fy = getLastFY().label;
-        const subIds = subs.map(s => s.bubble_id).filter(Boolean);
-        const allReviews = await base44.entities.AnnualReview.filter({ fiscal_year: fy, status: "pending_leader" }, "-created_date", 500);
-        setPendingLeaderCount(allReviews.filter(r => subIds.includes(r.staff_id)).length);
+      if (myStaff) {
+        const myId = myStaff.bubble_id;
+        const subs = allStaff.filter(s => s.bubble_id !== myId && s.team_leader === myId);
+        setIsLeader(subs.length > 0);
+        if (subs.length > 0) {
+          const fy = getLastFY().label;
+          const subIds = subs.map(s => s.bubble_id).filter(Boolean);
+          const allReviews = await base44.entities.AnnualReview.filter({ fiscal_year: fy, status: "pending_leader" }, "-created_date", 500).catch(() => []);
+          setPendingLeaderCount(allReviews.filter(r => subIds.includes(r.staff_id)).length);
+        }
       }
-    }
-    if (myStaff?.team_leader) {
-      const leader = allStaff.find(s => s.bubble_id === myStaff.team_leader);
-      if (leader) setLeaderName(leader.display_name);
+      if (myStaff?.team_leader) {
+        const leader = allStaff.find(s => s.bubble_id === myStaff.team_leader);
+        if (leader) setLeaderName(leader.display_name);
+      }
+    } catch (err) {
+      console.warn('AnnualReview initList failed:', err.message);
     }
     setLoading(false);
   };

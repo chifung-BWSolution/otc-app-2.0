@@ -49,7 +49,7 @@ export default function LeaveApplication() {
 
   const loadAllData = async () => {
     const [allRecords, allBalances] = await Promise.all([
-      base44.entities.LeaveRequest.list("-created_date", 500),
+      base44.entities.BubbleLeave.list("-created_date", 500),
       base44.entities.LeaveBalance.list("user_email", 500),
     ]);
     setRecords(allRecords);

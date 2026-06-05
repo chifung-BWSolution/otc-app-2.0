@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -56,10 +56,13 @@ import PeerReviewAdmin from './pages/admin/PeerReviewAdmin';
 import AppraisalReportPage from './pages/admin/AppraisalReportPage';
 import UserManagement from './pages/admin/UserManagement';
 import { RegionProvider } from '@/lib/RegionContext';
+import Login from './pages/Login';
+import EventManagement from './pages/admin/EventManagement';
+import EventRegistrationPublic from './pages/events/EventRegistrationPublic';
 
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -75,9 +78,13 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
+      return <Navigate to="/login" replace />;
     }
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   // Render the main app
@@ -130,6 +137,7 @@ const AuthenticatedApp = () => {
         <Route path="/leader/training" element={<Placeholder title="安排培訓" icon="🎯" description="為團隊安排培訓計劃" />} />
         <Route path="/leader/certification" element={<KnowledgeCertification />} />
         {/* 行政跟進 */}
+        <Route path="/admin/events" element={<EventManagement />} />
         <Route path="/admin/approvals" element={<Approvals />} />
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />
         <Route path="/admin/assessment-arrangement" element={<AssessmentArrangement />} />
@@ -169,12 +177,18 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <RegionProvider>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </RegionProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register/:slug" element={<EventRegistrationPublic />} />
+            <Route path="/*" element={
+              <RegionProvider>
+                <AuthenticatedApp />
+              </RegionProvider>
+            } />
+          </Routes>
+        </Router>
+        <Toaster />
       </QueryClientProvider>
     </AuthProvider>
   )

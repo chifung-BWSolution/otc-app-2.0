@@ -1,39 +1,55 @@
-**Welcome to your Base44 project** 
+# 企業管理系統 (Enterprise Management System)
 
-**About**
+An internal administrative management system for a medium-sized company (51–200 employees).
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Tech Stack
 
-This project contains everything you need to run your app locally.
+- **Frontend**: React + Vite + Tailwind CSS
+- **UI Library**: shadcn/ui
+- **Backend**: Supabase (Auth, Database, Edge Functions)
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **Data Fetching**: @tanstack/react-query
 
-**Edit the code in your local development environment**
+## Getting Started
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+### Prerequisites
 
-**Prerequisites:** 
+- Node.js 18+
+- npm
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+4. Run the dev server:
+   ```bash
+   npm run dev
+   ```
+
+## Project Structure
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+src/
+├── api/          # Supabase data layer (entity CRUD operations)
+├── components/   # Reusable UI components
+├── hooks/        # Custom React hooks
+├── lib/          # Utilities, auth context, configs
+├── pages/        # Route pages
+└── types/        # TypeScript type definitions
 ```
 
-Run the app: `npm run dev`
+## Features
 
-**Publish your changes**
-
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+- 🏢 Company info & news
+- ⏰ Attendance & leave management
+- 📊 Work reporting (daily/KPI)
+- 🎓 Course & training management
+- 💼 Business development (tenders)
+- 👑 Leadership & peer reviews
+- ⚙️ Admin approvals & settings
+- 📈 Analytics & reports

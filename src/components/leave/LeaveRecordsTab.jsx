@@ -5,8 +5,11 @@ import { canApproveReject, canEditCancel, filterRecordsByRole } from "@/lib/leav
 
 const STATUS_CONFIG = {
   "審查中": { icon: Clock, color: "bg-yellow-100 text-yellow-700", iconColor: "text-yellow-500" },
+  "pending": { icon: Clock, color: "bg-yellow-100 text-yellow-700", iconColor: "text-yellow-500" },
   "已批核": { icon: CheckCircle, color: "bg-green-100 text-green-700", iconColor: "text-green-500" },
+  "approved": { icon: CheckCircle, color: "bg-green-100 text-green-700", iconColor: "text-green-500" },
   "不批核": { icon: XCircle, color: "bg-red-100 text-red-700", iconColor: "text-red-500" },
+  "rejected": { icon: XCircle, color: "bg-red-100 text-red-700", iconColor: "text-red-500" },
 };
 
 export default function LeaveRecordsTab({ records, loading, user, userRole, userDept, onRefresh }) {
@@ -17,13 +20,16 @@ export default function LeaveRecordsTab({ records, loading, user, userRole, user
 
   const filtered = filterRecordsByRole(records, userRole, user?.email, userDept);
   const displayed = filtered.filter(r => {
-    const matchSearch = !search || r.user_name?.includes(search) || r.leave_type?.includes(search) || r.dept?.includes(search);
-    const matchStatus = statusFilter === "全部" || r.status === statusFilter;
+    const matchSearch = !search || r.user_name?.includes(search) || r.staff_name?.includes(search) || r.leave_type?.includes(search) || r.dept?.includes(search);
+    const matchStatus = statusFilter === "全部" || r.status === statusFilter || 
+      (statusFilter === "審查中" && r.status === "pending") ||
+      (statusFilter === "已批核" && r.status === "approved") ||
+      (statusFilter === "不批核" && r.status === "rejected");
     return matchSearch && matchStatus;
   });
 
   const handleApprove = async (record, action) => {
-    await base44.entities.LeaveRequest.update(record.id, {
+    await base44.entities.BubbleLeave.update(record.id, {
       status: action,
       approver_email: user.email,
       approver_name: user.full_name,
@@ -36,11 +42,11 @@ export default function LeaveRecordsTab({ records, loading, user, userRole, user
   };
 
   const handleCancel = async (record) => {
-    await base44.entities.LeaveRequest.delete(record.id);
+    await base44.entities.BubbleLeave.delete(record.id);
     onRefresh?.();
   };
 
-  const pendingCount = filtered.filter(r => r.status === "審查中").length;
+  const pendingCount = filtered.filter(r => r.status === "審查中" || r.status === "pending").length;
 
   return (
     <div className="space-y-4">
@@ -51,11 +57,11 @@ export default function LeaveRecordsTab({ records, loading, user, userRole, user
           <div className="text-xs text-gray-500">審查中</div>
         </div>
         <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
-          <div className="text-xl font-bold text-green-600">{filtered.filter(r => r.status === "已批核").length}</div>
+          <div className="text-xl font-bold text-green-600">{filtered.filter(r => r.status === "已批核" || r.status === "approved").length}</div>
           <div className="text-xs text-gray-500">已批核</div>
         </div>
         <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-          <div className="text-xl font-bold text-red-600">{filtered.filter(r => r.status === "不批核").length}</div>
+          <div className="text-xl font-bold text-red-600">{filtered.filter(r => r.status === "不批核" || r.status === "rejected").length}</div>
           <div className="text-xs text-gray-500">不批核</div>
         </div>
       </div>
@@ -102,9 +108,9 @@ export default function LeaveRecordsTab({ records, loading, user, userRole, user
                     </div>
                     <div className="text-sm text-gray-700 mt-1">{r.leave_type}</div>
                     <div className="text-xs text-gray-500 mt-0.5">
-                      {r.from_date} {r.from_date !== r.to_date ? `至 ${r.to_date}` : ""} · {r.time_slot || "全日"} · {r.days}天
+                      {r.from_date || r.start_date_time} {(r.from_date || r.start_date_time) !== (r.to_date || r.end_date_time) ? `至 ${r.to_date || r.end_date_time}` : ""} · {r.time_slot || r.leave_period || "全日"} · {r.days || r.quota || ""}天
                     </div>
-                    {r.reason && <p className="text-xs text-gray-500 mt-1">原因：{r.reason}</p>}
+                    {(r.reason || r.application_reason) && <p className="text-xs text-gray-500 mt-1">原因：{r.reason || r.application_reason}</p>}
                     {r.approver_name && (
                       <p className="text-xs text-gray-400 mt-1">審批人：{r.approver_name} · {r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString("zh-HK") : ""}</p>
                     )}
