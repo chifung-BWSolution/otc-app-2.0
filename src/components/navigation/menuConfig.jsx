@@ -110,6 +110,19 @@ export const menuGroups = [
     ],
   },
   {
+    key: "events",
+    label: "活動管理",
+    icon: "🎪",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    border: "border-amber-400",
+    gradient: "from-amber-500 to-orange-500",
+    items: [
+      { label: "🎫 參加活動", path: "/events/join" },
+      { label: "🎪 活動管理", path: "/admin/events" },
+    ],
+  },
+  {
     key: "adminfollow",
     label: "行政跟進",
     icon: "⚙️",
@@ -118,7 +131,6 @@ export const menuGroups = [
     border: "border-red-400",
     gradient: "from-red-500 to-rose-500",
     items: [
-      { label: "🎪 活動管理", path: "/admin/events" },
       { label: "✅ 批核申請", path: "/admin/approvals" },
       { label: "🌴 假期審批", path: "/admin/leave-approvals" },
       { label: "📋 考核安排", path: "/admin/assessment-arrangement" },

@@ -79,8 +79,8 @@ export default function AttendanceList({ eventId }) {
     if (registrations.length === 0) return;
     const header = ["姓名", "電郵", "場次", "出席", "簽到時間"];
     const rows = registrations.map((r) => [
-      r.form_data?.name || "",
-      r.form_data?.email || "",
+      r.form_data?.name || r.form_data?.姓名 || "",
+      r.form_data?.email || r.form_data?.電郵 || "",
       r.event_sections?.name || "",
       attendanceMap[r.id]?.attended ? "是" : "否",
       attendanceMap[r.id]?.check_in_time
@@ -144,9 +144,9 @@ export default function AttendanceList({ eventId }) {
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        {reg.form_data?.name || "-"}
+                        {reg.form_data?.name || reg.form_data?.姓名 || "-"}
                       </TableCell>
-                      <TableCell>{reg.form_data?.email || "-"}</TableCell>
+                      <TableCell>{reg.form_data?.email || reg.form_data?.電郵 || "-"}</TableCell>
                       <TableCell>{reg.event_sections?.name || "-"}</TableCell>
                       <TableCell className="text-xs">
                         {record?.check_in_time

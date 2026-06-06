@@ -27,13 +27,13 @@ const FIELD_TYPES = [
 ];
 
 const DEFAULT_FIELDS = [
-  { key: "name", label: "姓名", type: "text", required: true },
-  { key: "department", label: "部門", type: "text", required: false },
-  { key: "position", label: "職位", type: "text", required: false },
-  { key: "email", label: "電郵", type: "email", required: true },
-  { key: "phone", label: "電話", type: "tel", required: false },
-  { key: "dietary", label: "飲食偏好", type: "select", options: ["葷", "素", "清真", "無特別"], required: false },
-  { key: "special_request", label: "特別要求", type: "textarea", required: false },
+  { key: "姓名", label: "姓名", type: "text", required: true },
+  { key: "部門", label: "部門", type: "text", required: false },
+  { key: "職位", label: "職位", type: "text", required: false },
+  { key: "電郵", label: "電郵", type: "email", required: true },
+  { key: "電話", label: "電話", type: "tel", required: false },
+  { key: "飲食偏好", label: "飲食偏好", type: "select", options: ["葷", "素", "清真", "無特別"], required: false },
+  { key: "特別要求", label: "特別要求", type: "textarea", required: false },
 ];
 
 function generateSlug() {
@@ -253,10 +253,22 @@ export default function FormBuilder({ eventId, onFormCreated }) {
     ]);
   };
 
+  // Generate a safe key from label (Chinese characters become pinyin-like slug)
+  const generateKeyFromLabel = (label) => {
+    if (!label) return "";
+    // Use the label directly as key (supports Chinese) - trim whitespace
+    return label.trim().replace(/\s+/g, "_").toLowerCase();
+  };
+
   const updateField = (index, key, value) => {
     setFields((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [key]: value };
+      // Auto-update the field key when label changes (use label as key directly)
+      if (key === "label" && value) {
+        const fieldKey = generateKeyFromLabel(value);
+        updated[index] = { ...updated[index], label: value, key: fieldKey };
+      }
       return updated;
     });
   };
@@ -560,12 +572,15 @@ export default function FormBuilder({ eventId, onFormCreated }) {
               {fields.map((field, idx) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex gap-2 items-center">
-                    <Input
-                      className="flex-1 bg-white border-slate-300"
-                      value={field.label}
-                      onChange={(e) => updateField(idx, "label", e.target.value)}
-                      placeholder="欄位名稱"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        className="bg-white border-slate-300"
+                        value={field.label}
+                        onChange={(e) => updateField(idx, "label", e.target.value)}
+                        placeholder="欄位名稱"
+                      />
+                      <span className="text-[10px] text-muted-foreground ml-1">key: {field.key}</span>
+                    </div>
                     <Select
                       value={field.type}
                       onValueChange={(v) => {

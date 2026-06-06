@@ -150,7 +150,7 @@ export default function EventDetail({ eventId, onBack }) {
           </p>
         </div>
         <div className="flex gap-2">
-          {activeForm && (
+          {activeForm && event.registration_mode !== "multi_section" && (
             <Button variant="outline" size="sm" onClick={() => copyLink(`${window.location.origin}/register/${activeForm.slug}`)}>
               <Copy className="w-4 h-4 mr-1" />
               複製報名連結

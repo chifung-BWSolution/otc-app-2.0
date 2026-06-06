@@ -1779,6 +1779,7 @@ export type Database = {
       event_registrations: {
         Row: {
           event_id: string | null
+          followed_by: string | null
           form_data: Json | null
           form_id: string | null
           guest_count: number | null
@@ -1794,6 +1795,7 @@ export type Database = {
         }
         Insert: {
           event_id?: string | null
+          followed_by?: string | null
           form_data?: Json | null
           form_id?: string | null
           guest_count?: number | null
@@ -1809,6 +1811,7 @@ export type Database = {
         }
         Update: {
           event_id?: string | null
+          followed_by?: string | null
           form_data?: Json | null
           form_id?: string | null
           guest_count?: number | null

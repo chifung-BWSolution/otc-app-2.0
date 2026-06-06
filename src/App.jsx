@@ -59,6 +59,7 @@ import { RegionProvider } from '@/lib/RegionContext';
 import Login from './pages/Login';
 import EventManagement from './pages/admin/EventManagement';
 import EventRegistrationPublic from './pages/events/EventRegistrationPublic';
+import JoinEvents from './pages/events/JoinEvents';
 
 
 const AuthenticatedApp = () => {
@@ -137,6 +138,7 @@ const AuthenticatedApp = () => {
         <Route path="/leader/training" element={<Placeholder title="安排培訓" icon="🎯" description="為團隊安排培訓計劃" />} />
         <Route path="/leader/certification" element={<KnowledgeCertification />} />
         {/* 行政跟進 */}
+        <Route path="/events/join" element={<JoinEvents />} />
         <Route path="/admin/events" element={<EventManagement />} />
         <Route path="/admin/approvals" element={<Approvals />} />
         <Route path="/admin/leave-approvals" element={<LeaveApprovals />} />

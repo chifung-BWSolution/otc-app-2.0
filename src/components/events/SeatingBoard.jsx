@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Plus, Minus, Users, X } from "lucide-react";
+import { Download, Plus, Minus, Users, X, Filter, Link2, Search } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function SeatingBoard({ eventId }) {
@@ -26,14 +27,81 @@ export default function SeatingBoard({ eventId }) {
   const [seatsPerTable, setSeatsPerTable] = useState(8);
   const [draggedPerson, setDraggedPerson] = useState(null);
   const [dragSource, setDragSource] = useState(null); // 'unassigned' | 'table'
+  const [groupAssign, setGroupAssign] = useState(true); // group companions together
+  const [filterField, setFilterField] = useState("all"); // filter: all | inviter
+  const [filterValue, setFilterValue] = useState("");
+  const [staffMap, setStaffMap] = useState({});
+  const [seatSearchOpen, setSeatSearchOpen] = useState(null); // { tableNum, seatNum } or null
+  const [seatSearchQuery, setSeatSearchQuery] = useState("");
+  const seatSearchInputRef = useRef(null);
+  const [formFields, setFormFields] = useState([]); // all form fields from registration_forms
 
   useEffect(() => {
     fetchSections();
+    fetchStaffMap();
+    fetchFormFields();
   }, [eventId]);
 
   useEffect(() => {
     fetchData();
   }, [eventId, selectedSectionId]);
+
+  const fetchStaffMap = async () => {
+    const map = {};
+    // Try staff table
+    const { data } = await supabase
+      .from("staff")
+      .select("id, bubble_id, chinese_name, display_name, full_name, work_email");
+    if (data) {
+      data.forEach((s) => {
+        const name = s.chinese_name || s.display_name || s.full_name || s.id;
+        if (s.id) map[String(s.id).trim()] = name;
+        if (s.bubble_id) map[String(s.bubble_id).trim()] = name;
+        if (s.work_email) map[s.work_email.toLowerCase().trim()] = name;
+      });
+    }
+    // Also try publicStaffList edge function
+    try {
+      const res = await supabase.functions.invoke("publicStaffList");
+      let staffList = [];
+      if (res.data) {
+        let parsed = res.data;
+        if (typeof parsed === "string") {
+          try { parsed = JSON.parse(parsed); } catch (_) { /* ignore */ }
+        }
+        if (Array.isArray(parsed)) staffList = parsed;
+        else if (parsed?.data && Array.isArray(parsed.data)) staffList = parsed.data;
+      }
+      staffList.forEach((s) => {
+        const name = s.name_zh || s.name_en || s.id;
+        if (s.id) map[String(s.id).trim()] = name;
+      });
+    } catch (e) {
+      console.warn("publicStaffList fallback failed:", e);
+    }
+    setStaffMap(map);
+  };
+
+  const fetchFormFields = async () => {
+    const { data } = await supabase
+      .from("registration_forms")
+      .select("fields_config")
+      .eq("event_id", eventId);
+    if (data) {
+      // Collect unique fields from all forms
+      const seen = new Set();
+      const allFields = [];
+      data.forEach((form) => {
+        (form.fields_config || []).forEach((f) => {
+          if (!seen.has(f.key)) {
+            seen.add(f.key);
+            allFields.push(f);
+          }
+        });
+      });
+      setFormFields(allFields);
+    }
+  };
 
   const fetchSections = async () => {
     const { data } = await supabase
@@ -155,15 +223,16 @@ export default function SeatingBoard({ eventId }) {
     return null;
   };
 
-  const assignSeat = async (person, tableNumber, seatNumber) => {
+  const assignSeat = (person, tableNumber, seatNumber) => {
     const regId = person.repId;
     const guestIndex = person.guestIndex;
     const seatKey = person.seatKey;
-    const existing = getPersonSeat(person);
     const sectionId = selectedSectionId !== "all" ? selectedSectionId : null;
+    const existing = seating[seatKey];
 
+    // Fire DB call (non-blocking)
     if (existing?.id) {
-      await supabase
+      supabase
         .from("seating_arrangements")
         .update({
           table_number: tableNumber,
@@ -171,28 +240,30 @@ export default function SeatingBoard({ eventId }) {
           section_id: sectionId,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", existing.id);
+        .eq("id", existing.id)
+        .then(() => {});
     } else {
-      await supabase.from("seating_arrangements").insert({
+      supabase.from("seating_arrangements").insert({
         event_id: eventId,
         registration_id: regId,
         guest_index: guestIndex,
         section_id: sectionId,
         table_number: tableNumber,
         seat_number: seatNumber,
-      });
+      }).then(() => {});
     }
-    // Update local state immediately
-    const newSeating = { ...seating };
-    delete newSeating[seatKey];
-    newSeating[seatKey] = {
-      ...(seating[seatKey] || {}),
-      registration_id: regId,
-      guest_index: guestIndex,
-      table_number: tableNumber,
-      seat_number: seatNumber,
-    };
-    setSeating(newSeating);
+
+    // Update local state immediately using functional updater to avoid stale state
+    setSeating((prev) => ({
+      ...prev,
+      [seatKey]: {
+        ...(prev[seatKey] || {}),
+        registration_id: regId,
+        guest_index: guestIndex,
+        table_number: tableNumber,
+        seat_number: seatNumber,
+      },
+    }));
   };
 
   const removeSeat = async (person) => {
@@ -232,6 +303,50 @@ export default function SeatingBoard({ eventId }) {
     }
 
     assignSeat(draggedPerson, String(tableNumber), String(seatNumber));
+
+    // Group assign: move companions together (both for first assignment and table-to-table moves)
+    if (groupAssign) {
+      // Find all group members (same repId) that should move together
+      let groupMembers = [];
+      if (!draggedPerson.isCompanion) {
+        // Dragging the main registrant: move all their companions
+        groupMembers = personList.filter(
+          (p) => p.isCompanion && p.repId === draggedPerson.repId && p.key !== draggedPerson.key
+        );
+      } else {
+        // Dragging a companion: move the main registrant + all other companions
+        groupMembers = personList.filter(
+          (p) => p.repId === draggedPerson.repId && p.key !== draggedPerson.key
+        );
+      }
+
+      if (groupMembers.length > 0) {
+        let nextSeat = parseInt(seatNumber);
+        const occupiedSeats = new Set();
+        // Mark currently occupied seats at this table (excluding the group members being moved)
+        const groupKeys = new Set([draggedPerson.key, ...groupMembers.map(m => m.key)]);
+        personList.forEach((p) => {
+          const seat = getPersonSeat(p);
+          if (seat && seat.table_number === String(tableNumber) && !groupKeys.has(p.key)) {
+            occupiedSeats.add(String(seat.seat_number));
+          }
+        });
+        // Also mark the seat we just assigned
+        occupiedSeats.add(String(seatNumber));
+
+        groupMembers.forEach((comp) => {
+          nextSeat++;
+          while (nextSeat <= seatsPerTable && occupiedSeats.has(String(nextSeat))) {
+            nextSeat++;
+          }
+          if (nextSeat <= seatsPerTable) {
+            assignSeat(comp, String(tableNumber), String(nextSeat));
+            occupiedSeats.add(String(nextSeat));
+          }
+        });
+      }
+    }
+
     toast({ title: "座位已分配" });
     setDraggedPerson(null);
     setDragSource(null);
@@ -246,11 +361,91 @@ export default function SeatingBoard({ eventId }) {
   const handleDropOnUnassigned = (e) => {
     e.preventDefault();
     if (!draggedPerson || dragSource === "unassigned") return;
+
+    // Group remove: also remove companions/group members
+    if (groupAssign) {
+      const groupMembers = personList.filter(
+        (p) => p.repId === draggedPerson.repId && p.key !== draggedPerson.key && isPersonAssigned(p)
+      );
+      groupMembers.forEach((comp) => removeSeat(comp));
+    }
+
     removeSeat(draggedPerson);
     toast({ title: "已取消座位分配" });
     setDraggedPerson(null);
     setDragSource(null);
   };
+
+  // Handle click on empty seat to open search popover
+  const handleEmptySeatClick = (tableNum, seatNum) => {
+    setSeatSearchOpen({ tableNum, seatNum });
+    setSeatSearchQuery("");
+    setTimeout(() => seatSearchInputRef.current?.focus(), 100);
+  };
+
+  // Assign person from search to the clicked empty seat
+  const handleSearchAssign = (person) => {
+    if (!seatSearchOpen) return;
+    const { tableNum, seatNum } = seatSearchOpen;
+
+    assignSeat(person, String(tableNum), String(seatNum));
+
+    // Group assign companions
+    if (groupAssign) {
+      let groupMembers = [];
+      if (!person.isCompanion) {
+        groupMembers = personList.filter(
+          (p) => p.isCompanion && p.repId === person.repId && p.key !== person.key
+        );
+      } else {
+        groupMembers = personList.filter(
+          (p) => p.repId === person.repId && p.key !== person.key
+        );
+      }
+
+      if (groupMembers.length > 0) {
+        let nextSeat = parseInt(seatNum);
+        const occupiedSeats = new Set();
+        const groupKeys = new Set([person.key, ...groupMembers.map(m => m.key)]);
+        personList.forEach((p) => {
+          const seat = getPersonSeat(p);
+          if (seat && seat.table_number === String(tableNum) && !groupKeys.has(p.key)) {
+            occupiedSeats.add(String(seat.seat_number));
+          }
+        });
+        occupiedSeats.add(String(seatNum));
+
+        groupMembers.forEach((comp) => {
+          nextSeat++;
+          while (nextSeat <= seatsPerTable && occupiedSeats.has(String(nextSeat))) {
+            nextSeat++;
+          }
+          if (nextSeat <= seatsPerTable) {
+            assignSeat(comp, String(tableNum), String(nextSeat));
+            occupiedSeats.add(String(nextSeat));
+          }
+        });
+      }
+    }
+
+    toast({ title: "座位已分配" });
+    setSeatSearchOpen(null);
+    setSeatSearchQuery("");
+  };
+
+  // Filter unassigned for seat search
+  const seatSearchResults = (() => {
+    if (!seatSearchOpen) return [];
+    const query = seatSearchQuery.toLowerCase().trim();
+    const unassignedPersons = personList.filter((p) => !isPersonAssigned(p));
+    if (!query) return unassignedPersons.slice(0, 20);
+    return unassignedPersons.filter((p) =>
+      p.name.toLowerCase().includes(query) ||
+      (p.companionOf && p.companionOf.toLowerCase().includes(query)) ||
+      (p.registrations[0]?.form_data?.email || p.registrations[0]?.form_data?.電郵 || "").toLowerCase().includes(query) ||
+      (p.registrations[0]?.form_data?.phone || p.registrations[0]?.form_data?.電話 || "").includes(query)
+    ).slice(0, 20);
+  })();
 
   const exportCSV = () => {
     const header = ["姓名", "身份", "所屬報名人", "電郵", "桌號", "座位號"];
@@ -260,7 +455,7 @@ export default function SeatingBoard({ eventId }) {
         p.name,
         p.isCompanion ? "同行人" : "報名人",
         p.isCompanion ? p.companionOf : "",
-        p.registrations[0].form_data?.email || "",
+        p.registrations[0].form_data?.email || p.registrations[0].form_data?.電郵 || "",
         seat?.table_number || "",
         seat?.seat_number || "",
       ];
@@ -279,6 +474,83 @@ export default function SeatingBoard({ eventId }) {
   // Get unassigned / assigned persons
   const unassigned = personList.filter((p) => !isPersonAssigned(p));
   const assigned = personList.filter((p) => isPersonAssigned(p));
+
+  // Filter unassigned by selected field
+  const filteredUnassigned = unassigned.filter((p) => {
+    if (filterField === "all" || !filterValue) return true;
+    const reg = p.registrations[0];
+    if (filterField === "inviter") {
+      const inviter = reg.invited_by_staff_id || "";
+      return String(inviter) === filterValue;
+    }
+    // Filter by form field
+    const fieldVal = String(reg?.form_data?.[filterField] || "").trim();
+    return fieldVal === filterValue;
+  });
+
+  // Get unique values for the currently selected filter field (from form fields)
+  const uniqueFieldValues = (() => {
+    if (filterField === "all" || filterField === "inviter") return [];
+    const valSet = new Set();
+    unassigned.forEach((p) => {
+      const reg = p.registrations[0];
+      const val = String(reg?.form_data?.[filterField] || "").trim();
+      if (val) valSet.add(val);
+    });
+    return [...valSet].sort();
+  })();
+
+  // Get unique inviters for quick filter
+  const uniqueInviters = [...new Set(unassigned.map((p) => {
+    const reg = p.registrations[0];
+    return reg.invited_by_staff_id || "";
+  }).filter(Boolean))];
+
+  // Helper to get inviter display name
+  const getInviterName = (inviterId) => {
+    const id = String(inviterId).trim();
+    return staffMap[id] || staffMap[id.toLowerCase()] || id;
+  };
+
+  // Build a color map for companion groups at the same table
+  const companionGroupColors = (() => {
+    const colors = [
+      "border-purple-400 bg-purple-50",
+      "border-orange-400 bg-orange-50",
+      "border-pink-400 bg-pink-50",
+      "border-cyan-400 bg-cyan-50",
+      "border-yellow-400 bg-yellow-50",
+      "border-indigo-400 bg-indigo-50",
+      "border-rose-400 bg-rose-50",
+      "border-teal-400 bg-teal-50",
+    ];
+    const groupColorMap = {}; // key: `${tableNum}__${repId}` -> color class
+    let colorIdx = 0;
+    // For each table, find groups that have >1 person seated at that table
+    for (let i = 0; i < tableCount; i++) {
+      const tableNum = String(i + 1);
+      const groupCount = {}; // repId -> count of people at this table
+      personList.forEach((p) => {
+        const seat = getPersonSeat(p);
+        if (seat && seat.table_number === tableNum) {
+          groupCount[p.repId] = (groupCount[p.repId] || 0) + 1;
+        }
+      });
+      // Assign colors to groups with more than 1 person
+      Object.entries(groupCount).forEach(([repId, count]) => {
+        if (count > 1) {
+          groupColorMap[`${tableNum}__${repId}`] = colors[colorIdx % colors.length];
+          colorIdx++;
+        }
+      });
+    }
+    return groupColorMap;
+  })();
+
+  // Helper: get companion group color for a person at a table
+  const getGroupColor = (person, tableNum) => {
+    return companionGroupColors[`${tableNum}__${person.repId}`] || "";
+  };
 
   // Build tables
   const tables = Array.from({ length: tableCount }, (_, i) => {
@@ -314,9 +586,9 @@ export default function SeatingBoard({ eventId }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部場次</SelectItem>
-                {sections.map((sec) => (
+                {sections.map((sec, idx) => (
                   <SelectItem key={sec.id} value={sec.id}>
-                    {sec.name}
+                    #{idx + 1} {sec.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -375,7 +647,7 @@ export default function SeatingBoard({ eventId }) {
         ) : (
           <div className="flex gap-6 flex-col lg:flex-row">
             {/* Unassigned guests (drag source & drop target for removing) */}
-            <div className="lg:w-64 shrink-0">
+            <div className="lg:w-72 shrink-0">
               <div
                 className="border rounded-lg p-3"
                 onDrop={handleDropOnUnassigned}
@@ -385,11 +657,70 @@ export default function SeatingBoard({ eventId }) {
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">未分配座位 ({unassigned.length})</span>
                 </div>
+
+                {/* Group assign toggle */}
+                <div className="flex items-center gap-2 mb-2 text-xs">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={groupAssign}
+                      onChange={(e) => setGroupAssign(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded"
+                    />
+                    同行人一齊分配
+                  </label>
+                </div>
+
+                {/* Filter controls */}
+                <div className="flex flex-col gap-1.5 mb-2">
+                  <div className="flex items-center gap-1">
+                    <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Select value={filterField} onValueChange={(v) => { setFilterField(v); setFilterValue(""); }}>
+                      <SelectTrigger className="h-7 text-xs flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部</SelectItem>
+                        <SelectItem value="inviter">按邀請人</SelectItem>
+                        {formFields.map((f) => (
+                          <SelectItem key={f.key} value={f.key}>按{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {filterField === "inviter" && uniqueInviters.length > 0 && (
+                    <Select value={filterValue} onValueChange={setFilterValue}>
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="選擇邀請人" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueInviters.map((inv) => (
+                          <SelectItem key={inv} value={inv}>{getInviterName(inv)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {filterField !== "all" && filterField !== "inviter" && uniqueFieldValues.length > 0 && (
+                    <Select value={filterValue} onValueChange={setFilterValue}>
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder={`選擇${formFields.find(f => f.key === filterField)?.label || filterField}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueFieldValues.map((val) => (
+                          <SelectItem key={val} value={val}>{val}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
                 <div className="space-y-1 max-h-[500px] overflow-y-auto">
-                  {unassigned.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-2">全部已分配 ✓</p>
+                  {filteredUnassigned.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      {unassigned.length === 0 ? "全部已分配 ✓" : "無符合篩選條件"}
+                    </p>
                   ) : (
-                    unassigned.map((person) => (
+                    filteredUnassigned.map((person) => (
                       <div
                         key={person.key}
                         draggable
@@ -425,40 +756,70 @@ export default function SeatingBoard({ eventId }) {
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
-                      {table.seats.map((seat) => (
-                        <div
-                          key={seat.seatNum}
-                          onDrop={(e) => handleDrop(e, table.tableNum, seat.seatNum)}
-                          onDragOver={handleDragOver}
-                          draggable={!!seat.occupantPerson}
-                          onDragStart={(e) => {
-                            if (seat.occupantPerson) {
-                              handleDragStart(e, seat.occupantPerson, "table");
-                            }
-                          }}
-                          className={`relative min-h-[36px] rounded border text-xs flex items-center justify-center px-1 transition-colors ${
-                            seat.occupantPerson
-                              ? "bg-green-50 border-green-300 cursor-grab active:cursor-grabbing"
-                              : "bg-gray-50 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                          }`}
-                        >
-                          {seat.occupantPerson ? (
-                            <div className="flex items-center gap-0.5 w-full">
-                              <span className="truncate font-medium text-[10px] flex-1">
-                                {seat.occupantPerson.name}
-                              </span>
-                              <button
-                                onClick={() => removeSeat(seat.occupantPerson)}
-                                className="shrink-0 text-red-400 hover:text-red-600"
+                      {table.seats.map((seat) => {
+                        const groupColor = seat.occupantPerson ? getGroupColor(seat.occupantPerson, table.tableNum) : "";
+                        const isInGroup = !!groupColor;
+                        return (
+                        <TooltipProvider key={seat.seatNum}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                onDrop={(e) => handleDrop(e, table.tableNum, seat.seatNum)}
+                                onDragOver={handleDragOver}
+                                draggable={!!seat.occupantPerson}
+                                onDragStart={(e) => {
+                                  if (seat.occupantPerson) {
+                                    handleDragStart(e, seat.occupantPerson, "table");
+                                  }
+                                }}
+                                className={`relative min-h-[36px] rounded border-2 text-xs flex items-center justify-center px-1 transition-colors ${
+                                  seat.occupantPerson
+                                    ? (groupColor || "bg-green-50 border-green-300") + " cursor-grab active:cursor-grabbing"
+                                    : "bg-gray-50 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer"
+                                }`}
+                                onClick={() => {
+                                  if (!seat.occupantPerson) {
+                                    handleEmptySeatClick(table.tableNum, seat.seatNum);
+                                  }
+                                }}
                               >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground">{seat.seatNum}</span>
-                          )}
-                        </div>
-                      ))}
+                                {seat.occupantPerson ? (
+                                  <div className="flex items-center gap-0.5 w-full">
+                                    {isInGroup && <Link2 className="w-2.5 h-2.5 shrink-0 text-purple-500" />}
+                                    <span className="truncate font-medium text-[10px] flex-1">
+                                      {seat.occupantPerson.name}
+                                    </span>
+                                    <button
+                                      onClick={() => removeSeat(seat.occupantPerson)}
+                                      className="shrink-0 text-red-400 hover:text-red-600"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                    <Search className="w-2.5 h-2.5" />
+                                    {seat.seatNum}
+                                  </span>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            {seat.occupantPerson && isInGroup && (
+                              <TooltipContent side="top" className="text-xs max-w-[200px]">
+                                <p className="font-medium">{seat.occupantPerson.isCompanion ? `${seat.occupantPerson.companionOf} 的同行人` : "報名人"}</p>
+                                <p className="text-muted-foreground mt-0.5">
+                                  同組成員：{personList.filter(p => p.repId === seat.occupantPerson.repId && getPersonSeat(p)?.table_number === table.tableNum).map(p => p.name).join("、")}
+                                </p>
+                              </TooltipContent>
+                            )}
+                            {!seat.occupantPerson && (
+                              <TooltipContent side="top" className="text-xs">
+                                點擊搜尋並分配座位
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      );})}
                     </div>
                   </div>
                 ))}
@@ -467,6 +828,62 @@ export default function SeatingBoard({ eventId }) {
           </div>
         )}
       </CardContent>
+
+      {/* Search popover for empty seat assignment */}
+      {seatSearchOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setSeatSearchOpen(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-80 max-h-[400px] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-3 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">
+                  分配座位：桌 {seatSearchOpen.tableNum} - 位 {seatSearchOpen.seatNum}
+                </span>
+                <button onClick={() => setSeatSearchOpen(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  ref={seatSearchInputRef}
+                  className="h-8 pl-8 text-sm"
+                  placeholder="搜尋姓名、電郵或電話..."
+                  value={seatSearchQuery}
+                  onChange={(e) => setSeatSearchQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {seatSearchResults.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  {personList.filter(p => !isPersonAssigned(p)).length === 0 ? "全部人已分配座位" : "無符合搜尋結果"}
+                </p>
+              ) : (
+                seatSearchResults.map((person) => (
+                  <button
+                    key={person.key}
+                    onClick={() => handleSearchAssign(person)}
+                    className={`w-full text-left px-2.5 py-2 rounded text-xs hover:bg-blue-50 transition-colors flex items-center gap-2 ${
+                      person.isCompanion ? "bg-purple-50/50" : "bg-gray-50"
+                    }`}
+                  >
+                    <span className="font-medium truncate flex-1">{person.name}</span>
+                    {person.isCompanion && (
+                      <span className="text-[10px] text-purple-500 shrink-0">({person.companionOf}的同行人)</span>
+                    )}
+                    {!person.isCompanion && person.registrations[0]?.guest_count > 0 && (
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                        +{person.registrations[0].guest_count}同行
+                      </Badge>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

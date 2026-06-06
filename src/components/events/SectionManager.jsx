@@ -123,11 +123,14 @@ export default function SectionManager({ eventId }) {
           <p className="text-sm text-muted-foreground">暫無場次，請新增</p>
         ) : (
           <div className="space-y-2">
-            {sections.map((section) => (
+            {sections.map((section, idx) => (
               <div
                 key={section.id}
                 className="flex items-center gap-3 p-3 border rounded-lg"
               >
+                <span className="text-sm font-bold text-muted-foreground w-6 text-center shrink-0">
+                  {idx + 1}
+                </span>
                 <GripVertical className="w-4 h-4 text-muted-foreground" />
                 {editingId === section.id ? (
                   <>

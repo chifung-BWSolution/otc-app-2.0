@@ -170,7 +170,10 @@ function MultiSectionPicker({ value = [], onChange, sections }) {
     onChange(newVal);
   };
 
-  const selectedNames = sections.filter((s) => value.includes(s.id)).map((s) => s.name);
+  const selectedNames = sections.filter((s) => value.includes(s.id)).map((s, idx) => {
+    const sectionIdx = sections.findIndex((sec) => sec.id === s.id);
+    return { label: `#${sectionIdx + 1}`, fullName: s.name };
+  });
 
   return (
     <>
@@ -179,13 +182,13 @@ function MultiSectionPicker({ value = [], onChange, sections }) {
         type="button"
         onClick={handleOpen}
         className="w-full flex items-center gap-1 border border-gray-200 rounded-md px-2 py-1 text-sm text-left focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white min-h-[32px] min-w-0"
-        title={selectedNames.join(", ")}
+        title={selectedNames.map((n) => n.fullName).join(", ")}
       >
         <span className={`flex-1 min-w-0 ${selectedNames.length > 0 ? "text-gray-900" : "text-gray-400"}`}>
           {selectedNames.length > 0 ? (
             <span className="flex flex-wrap gap-0.5">
               {selectedNames.map((n, i) => (
-                <span key={i} className="inline-block bg-blue-50 text-blue-700 text-[10px] px-1 rounded">{n}</span>
+                <span key={i} className="inline-block bg-blue-50 text-blue-700 text-[10px] px-1 rounded" title={n.fullName}>{n.label}</span>
               ))}
             </span>
           ) : "選擇場次"}
@@ -209,7 +212,7 @@ function MultiSectionPicker({ value = [], onChange, sections }) {
           style={{ top: dropdownPos.top, left: dropdownPos.left }}
         >
           <div className="max-h-56 overflow-y-auto p-1">
-            {sections.map((s) => {
+            {sections.map((s, sIdx) => {
               const checked = value.includes(s.id);
               return (
                 <button
@@ -221,7 +224,7 @@ function MultiSectionPicker({ value = [], onChange, sections }) {
                   <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-blue-500 border-blue-500" : "border-gray-300"}`}>
                     {checked && <Check size={12} className="text-white" />}
                   </div>
-                  <span className="text-sm truncate">{s.name}</span>
+                  <span className="text-sm truncate">#{sIdx + 1} {s.name}</span>
                 </button>
               );
             })}
@@ -466,7 +469,10 @@ export default function MaterialManager({ eventId }) {
     const headers = ["名稱", "數量", "負責人", "預算", "狀態", "場次", "備註"];
     const rows = materials.map((m) => {
       const sIds = m.section_ids || [];
-      const secNames = sections.filter((s) => sIds.includes(s.id)).map((s) => s.name).join(", ");
+      const secNames = sections.filter((s) => sIds.includes(s.id)).map((s, idx) => {
+        const sectionIdx = sections.findIndex((sec) => sec.id === s.id);
+        return `#${sectionIdx + 1}`;
+      }).join(", ");
       return [
         m.name,
         m.quantity,
@@ -848,13 +854,13 @@ function BulkSectionDropdown({ sections, onSelect, onClose }) {
         >
           全部場次（清除）
         </button>
-        {sections.map((s) => (
+        {sections.map((s, idx) => (
           <button
             key={s.id}
             onClick={() => onSelect(s.id)}
             className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 border-b border-gray-50"
           >
-            {s.name}
+            #{idx + 1} {s.name}
           </button>
         ))}
       </div>
