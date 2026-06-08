@@ -277,13 +277,6 @@ const authProxy = {
    * me() - get current authenticated user
    */
   async me() {
-    // DEV BYPASS: if dev admin mode is enabled, return fake admin user
-    const devAdmin = localStorage.getItem('__dev_admin_bypass');
-    if (devAdmin) {
-      const parsed = JSON.parse(devAdmin);
-      return parsed;
-    }
-
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       const err = new Error('Not authenticated');
@@ -323,7 +316,6 @@ const authProxy = {
    * logout(redirectUrl) - sign out and optionally redirect
    */
   async logout(redirectUrl) {
-    localStorage.removeItem('__dev_admin_bypass');
     await supabase.auth.signOut();
     if (redirectUrl) {
       window.location.href = redirectUrl;
@@ -334,8 +326,6 @@ const authProxy = {
    * isAuthenticated() - check if user is currently authenticated
    */
   async isAuthenticated() {
-    const devAdmin = localStorage.getItem('__dev_admin_bypass');
-    if (devAdmin) return true;
     const { data: { user } } = await supabase.auth.getUser();
     return !!user;
   },

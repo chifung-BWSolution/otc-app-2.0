@@ -90,11 +90,6 @@ export default function Layout() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setCurrentUser(u);
-      // Dev admin bypass - always show MGT tabs
-      if (u?.id === '00000000-0000-0000-0000-000000000000') {
-        setIsMGT(true);
-        return;
-      }
       // Check if user belongs to MGT team
       if (u?.linked_staff_id) {
         base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)

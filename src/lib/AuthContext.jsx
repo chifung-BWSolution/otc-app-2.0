@@ -96,20 +96,6 @@ export const AuthProvider = ({ children }) => {
       return () => {};
     }
 
-    // Check dev bypass first (sync)
-    const devAdmin = localStorage.getItem('__dev_admin_bypass');
-    if (devAdmin) {
-      try {
-        const parsed = JSON.parse(devAdmin);
-        setUser(parsed);
-        setIsAuthenticated(true);
-        setIsLoadingAuth(false);
-        clearTimeout(safetyTimer);
-        return () => {};
-      } catch (e) {
-        localStorage.removeItem('__dev_admin_bypass');
-      }
-    }
 
     // Use getSession for initial check, then onAuthStateChange for subsequent
     let subscription;
@@ -173,21 +159,6 @@ export const AuthProvider = ({ children }) => {
           try {
             console.debug('[Auth] onAuthStateChange event:', event);
             
-            // Check dev bypass first
-            const devAdmin = localStorage.getItem('__dev_admin_bypass');
-            if (devAdmin) {
-              try {
-                const parsed = JSON.parse(devAdmin);
-                setUser(parsed);
-                setIsAuthenticated(true);
-                authResolved = true;
-                setIsLoadingAuth(false);
-              } catch (e) {
-                // invalid JSON in localStorage
-                localStorage.removeItem('__dev_admin_bypass');
-              }
-              return;
-            }
 
             if (session?.user) {
               // Set login timestamp on sign in
@@ -256,15 +227,6 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Check dev bypass first
-      const devAdmin = localStorage.getItem('__dev_admin_bypass');
-      if (devAdmin) {
-        const parsed = JSON.parse(devAdmin);
-        setUser(parsed);
-        setIsAuthenticated(true);
-        setIsLoadingAuth(false);
-        return;
-      }
 
       // Check current session with timeout
       let session = null;
@@ -327,7 +289,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async (shouldRedirect = true) => {
-    localStorage.removeItem('__dev_admin_bypass');
     localStorage.removeItem('__login_timestamp');
     setUser(null);
     setIsAuthenticated(false);

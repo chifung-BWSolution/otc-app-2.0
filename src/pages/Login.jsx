@@ -21,38 +21,6 @@ const Login = () => {
     return <Navigate to="/" replace />;
   }
 
-  const handleDevAdminLogin = async () => {
-    // Try to fetch real admin user data from DB for better dev experience
-    let fakeAdmin = {
-      id: '00000000-0000-0000-0000-000000000000',
-      email: 'dev-admin@test.local',
-      full_name: 'Dev Admin',
-      role: 'admin',
-      team_role_name: 'MGT Team',
-    };
-    try {
-      const { data: adminUser } = await supabase
-        .from('user')
-        .select('*')
-        .eq('role', 'admin')
-        .limit(1)
-        .maybeSingle();
-      if (adminUser) {
-        fakeAdmin = {
-          id: adminUser.id?.toString() || '00000000-0000-0000-0000-000000000000',
-          email: adminUser.email || 'dev-admin@test.local',
-          full_name: adminUser.full_name || 'Dev Admin',
-          role: adminUser.role || 'admin',
-          linked_staff_id: adminUser.linked_staff_id || null,
-          team_role_name: 'MGT Team',
-        };
-      }
-    } catch (e) {
-      console.warn('Dev admin: could not fetch admin user from DB, using defaults', e);
-    }
-    localStorage.setItem('__dev_admin_bypass', JSON.stringify(fakeAdmin));
-    window.location.href = '/';
-  };
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -228,16 +196,7 @@ const Login = () => {
         </CardContent>
       </Card>
 
-      {/* Dev bypass button */}
-      <div className="mt-4 w-full max-w-md">
-        <Button
-          variant="outline"
-          className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
-          onClick={handleDevAdminLogin}
-        >
-          🛠️ Dev Admin Login (跳過驗證)
-        </Button>
-      </div>
+
     </div>
   );
 };
