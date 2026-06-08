@@ -2615,6 +2615,33 @@ export type Database = {
         }
         Relationships: []
       }
+      page_permissions: {
+        Row: {
+          allowed: boolean | null
+          created_at: string | null
+          id: number
+          page_path: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       peer_review: {
         Row: {
           base44_id: string | null
@@ -3899,6 +3926,36 @@ export type Database = {
           linked_staff_id?: string | null
           password_hint?: string | null
           role?: string | null
+        }
+        Relationships: []
+      }
+      user_page_overrides: {
+        Row: {
+          allowed: boolean | null
+          created_at: string | null
+          id: number
+          page_path: string
+          updated_at: string | null
+          user_email: string | null
+          user_id: number
+        }
+        Insert: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path: string
+          updated_at?: string | null
+          user_email?: string | null
+          user_id: number
+        }
+        Update: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path?: string
+          updated_at?: string | null
+          user_email?: string | null
+          user_id?: number
         }
         Relationships: []
       }

@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder'));
+
 let supabase;
 
 try {
@@ -11,7 +13,7 @@ try {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
       },
       global: {
         fetch: (...args) => fetch(...args).catch(err => {
@@ -32,7 +34,7 @@ try {
   // Create a minimal mock client that won't crash the app
   supabase = {
     from: () => ({
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not initialized' } }), data: null, error: { message: 'Supabase not initialized' } }), is: () => ({ data: null, error: { message: 'Supabase not initialized' } }), order: () => ({ range: () => Promise.resolve({ data: [], error: null }) }), range: () => Promise.resolve({ data: [], error: null }), then: (cb) => cb({ data: [], error: null }) }),
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not initialized' } }), maybeSingle: () => Promise.resolve({ data: null, error: null }), data: null, error: { message: 'Supabase not initialized' } }), is: () => ({ data: null, error: { message: 'Supabase not initialized' } }), order: () => ({ range: () => Promise.resolve({ data: [], error: null }) }), range: () => Promise.resolve({ data: [], error: null }), then: (cb) => cb({ data: [], error: null }) }),
       insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not initialized' } }) }) }),
       update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not initialized' } }) }) }) }),
       delete: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not initialized' } }) }),

@@ -120,6 +120,7 @@ const menuGroups = [
       { label: "📊 功過記錄", path: "/admin/performance-records" },
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
+      { label: "🔐 頁面權限管理", path: "/admin/page-permissions" },
     ],
   },
   {

@@ -2,21 +2,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Home } from "lucide-react";
 import { menuGroups, findGroupByPath } from "./menuConfig";
 
-export default function TopNavBar({ activeKey, setActiveKey, isMGT, userRole }) {
+export default function TopNavBar({ activeKey, setActiveKey, isMGT, userRole, isGroupAllowed, filterAllowedItems }) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentGroup = findGroupByPath(location.pathname);
 
-  const isAdmin = userRole === 'admin' || userRole === 'management';
-
   const isActive = (key) => {
     return activeKey === key || (activeKey == null && currentGroup?.key === key);
-  };
-
-  // Non-admin users can only access "work" group
-  const isGroupEnabled = (key) => {
-    if (isAdmin) return true;
-    return key === "work";
   };
 
   const isHome = location.pathname === "/";
@@ -38,24 +30,25 @@ export default function TopNavBar({ activeKey, setActiveKey, isMGT, userRole }) 
 
         <div className="w-px h-6 bg-gray-200 mx-1" />
 
-        {menuGroups.filter(g => g.key !== "superadmin" || isMGT).map((g) => {
+        {menuGroups.filter(g => {
+          // Hide groups with no allowed items
+          const enabled = isGroupAllowed ? isGroupAllowed(g.key) : true;
+          if (!enabled) return false;
+          return true;
+        }).map((g) => {
           const active = isActive(g.key);
-          const enabled = isGroupEnabled(g.key);
           return (
             <button
               key={g.key}
               onClick={() => {
-                if (!enabled) return;
                 setActiveKey(g.key);
-                if (g.items[0]) navigate(g.items[0].path);
+                const allowedItems = filterAllowedItems ? filterAllowedItems(g.items) : g.items;
+                if (allowedItems[0]) navigate(allowedItems[0].path);
               }}
-              disabled={!enabled}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                !enabled
-                  ? "text-gray-300 cursor-not-allowed"
-                  : active
-                    ? `bg-gradient-to-r ${g.gradient} text-white shadow-md`
-                    : "text-gray-600 hover:bg-gray-100"
+                active
+                  ? `bg-gradient-to-r ${g.gradient} text-white shadow-md`
+                  : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               <span className="text-base">{g.icon}</span>

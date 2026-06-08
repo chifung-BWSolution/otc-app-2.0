@@ -135,8 +135,11 @@ function createEntityProxy(entityName) {
 
       const { data, error } = await query;
       if (error) {
-        console.error(`[SupabaseCompat] filter error on ${table}:`, error);
+        console.error(`[SupabaseCompat] filter error on ${table}:`, error.message, error.code, error.details);
         throw error;
+      }
+      if (!data || data.length === 0) {
+        console.debug(`[SupabaseCompat] filter on ${table} returned empty`, { filterObj, sortStr });
       }
       return data || [];
     },
@@ -287,12 +290,32 @@ const authProxy = {
       err.status = 401;
       throw err;
     }
+    // Fetch role and linked_staff_id from the "user" table in DB
+    let dbRole = null;
+    let linkedStaffId = null;
+    let dbFullName = null;
+    try {
+      const { data: dbUser } = await supabase
+        .from('user')
+        .select('role, linked_staff_id, full_name')
+        .eq('email', user.email)
+        .maybeSingle();
+      if (dbUser) {
+        dbRole = dbUser.role;
+        linkedStaffId = dbUser.linked_staff_id;
+        dbFullName = dbUser.full_name;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch user role from DB:', e);
+    }
     // Return user info in a format compatible with what the app expects
     return {
       id: user.id,
       email: user.email,
-      full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+      full_name: dbFullName || user.user_metadata?.full_name || user.user_metadata?.name || '',
       ...user.user_metadata,
+      role: dbRole,
+      linked_staff_id: linkedStaffId,
     };
   },
 

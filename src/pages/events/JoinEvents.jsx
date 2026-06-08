@@ -60,9 +60,15 @@ export default function JoinEvents() {
 
   useEffect(() => {
     fetchEvents();
-    fetchStaffProfile();
     fetchMyRegistrations();
   }, [user]);
+
+  // Fetch staff profile separately - retry when user enriches with linked_staff_id
+  useEffect(() => {
+    if (!staffProfile) {
+      fetchStaffProfile();
+    }
+  }, [user, staffProfile]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -123,14 +129,84 @@ export default function JoinEvents() {
   };
 
   const fetchStaffProfile = async () => {
-    if (!user?.email) return;
-    const { data } = await supabase
-      .from("staff")
-      .select("id, bubble_id, chinese_name, display_name, full_name, work_email, personal_email, department, o_position, o_team, phone")
-      .or(`work_email.eq.${user.email},personal_email.eq.${user.email}`)
-      .limit(1)
-      .single();
-    if (data) setStaffProfile(data);
+    if (!user) return;
+    
+    console.log("[JoinEvents] fetchStaffProfile called, user:", { email: user.email, linked_staff_id: user.linked_staff_id });
+    
+    // Try by linked_staff_id first (most reliable - linked_staff_id stores bubble_id)
+    if (user.linked_staff_id) {
+      const { data, error } = await supabase
+        .from("staff")
+        .select("id, bubble_id, chinese_name, display_name, full_name, work_email, private_email, bu_name, position, team_name, direct_phone")
+        .eq("bubble_id", user.linked_staff_id)
+        .maybeSingle();
+      console.log("[JoinEvents] linked_staff_id lookup result:", { data, error, linked_staff_id: user.linked_staff_id });
+      if (data) {
+        setStaffProfile(data);
+        return;
+      }
+    }
+    
+    // Fallback: try by email match
+    if (user.email) {
+      // Try work_email first
+      const { data: workData } = await supabase
+        .from("staff")
+        .select("id, bubble_id, chinese_name, display_name, full_name, work_email, private_email, bu_name, position, team_name, direct_phone")
+        .eq("work_email", user.email)
+        .limit(1)
+        .maybeSingle();
+      
+      if (workData) {
+        console.log("[JoinEvents] Found staff by work_email:", workData);
+        setStaffProfile(workData);
+        return;
+      }
+      
+      // Try private_email
+      const { data: personalData } = await supabase
+        .from("staff")
+        .select("id, bubble_id, chinese_name, display_name, full_name, work_email, private_email, bu_name, position, team_name, direct_phone")
+        .eq("private_email", user.email)
+        .limit(1)
+        .maybeSingle();
+      
+      if (personalData) {
+        console.log("[JoinEvents] Found staff by private_email:", personalData);
+        setStaffProfile(personalData);
+        return;
+      }
+
+      // Try business_email
+      const { data: bizData } = await supabase
+        .from("staff")
+        .select("id, bubble_id, chinese_name, display_name, full_name, work_email, private_email, bu_name, position, team_name, direct_phone")
+        .eq("business_email", user.email)
+        .limit(1)
+        .maybeSingle();
+      
+      if (bizData) {
+        console.log("[JoinEvents] Found staff by business_email:", bizData);
+        setStaffProfile(bizData);
+        return;
+      }
+
+      // Try linked_user_email
+      const { data: linkedData } = await supabase
+        .from("staff")
+        .select("id, bubble_id, chinese_name, display_name, full_name, work_email, private_email, bu_name, position, team_name, direct_phone")
+        .eq("linked_user_email", user.email)
+        .limit(1)
+        .maybeSingle();
+      
+      if (linkedData) {
+        console.log("[JoinEvents] Found staff by linked_user_email:", linkedData);
+        setStaffProfile(linkedData);
+        return;
+      }
+      
+      console.warn("[JoinEvents] No staff found for email:", user.email);
+    }
   };
 
   const fetchMyRegistrations = async () => {
@@ -186,11 +262,11 @@ export default function JoinEvents() {
     // Build form_data from staff profile
     const formData = {
       name: staffProfile.chinese_name || staffProfile.display_name || staffProfile.full_name || "",
-      email: staffProfile.work_email || staffProfile.personal_email || user.email || "",
-      department: staffProfile.department || "",
-      position: staffProfile.o_position || "",
-      team: staffProfile.o_team || "",
-      phone: staffProfile.phone || "",
+      email: staffProfile.work_email || staffProfile.private_email || user.email || "",
+      department: staffProfile.bu_name || "",
+      position: staffProfile.position || "",
+      team: staffProfile.team_name || "",
+      phone: staffProfile.direct_phone || "",
     };
 
     try {

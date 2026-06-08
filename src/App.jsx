@@ -55,6 +55,7 @@ import AnnualReviewAdmin from './pages/admin/AnnualReviewAdmin';
 import PeerReviewAdmin from './pages/admin/PeerReviewAdmin';
 import AppraisalReportPage from './pages/admin/AppraisalReportPage';
 import UserManagement from './pages/admin/UserManagement';
+import PagePermissions from './pages/admin/PagePermissions';
 import { RegionProvider } from '@/lib/RegionContext';
 import Login from './pages/Login';
 import EventManagement from './pages/admin/EventManagement';
@@ -161,6 +162,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/peer-reviews" element={<PeerReviewAdmin />} />
         <Route path="/admin/appraisal-reports" element={<AppraisalReportPage />} />
         <Route path="/admin/user-management" element={<UserManagement />} />
+        <Route path="/admin/page-permissions" element={<PagePermissions />} />
         {/* 管理員 */}
         <Route path="/superadmin/analytics" element={<Analytics />} />
         <Route path="/superadmin/directory" element={<Directory />} />

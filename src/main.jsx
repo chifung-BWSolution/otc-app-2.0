@@ -28,8 +28,18 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
     return;
   }
+  // Suppress Supabase not initialized errors
+  if (reason && typeof reason === 'object' && reason.message?.includes('Supabase not initialized')) {
+    event.preventDefault();
+    return;
+  }
   // Suppress generic cross-origin errors that appear as empty reasons
   if (!reason || (typeof reason === 'object' && !reason.message && !reason.stack)) {
+    event.preventDefault();
+    return;
+  }
+  // Suppress any remaining string-type rejections
+  if (typeof reason === 'string' && (reason.includes('Script error') || reason === '')) {
     event.preventDefault();
     return;
   }

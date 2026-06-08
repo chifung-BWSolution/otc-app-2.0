@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, X, Users, Link2, Unlink, Loader2, UserPlus, Send } from "lucide-react";
+import { Search, X, Users, Link2, Unlink, Loader2, UserPlus, Send, Eye } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -17,6 +19,14 @@ export default function UserManagement() {
   const [inviteMsg, setInviteMsg] = useState(null);
 
   const [accessDenied, setAccessDenied] = useState(false);
+
+  const { impersonate, isImpersonating } = useAuth();
+  const navigate = useNavigate();
+
+  const handleImpersonate = (targetUser) => {
+    impersonate(targetUser);
+    navigate("/");
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -308,22 +318,33 @@ export default function UserManagement() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {linked ? (
-                        <button
-                          onClick={() => handleUnlink(u.id)}
-                          disabled={saving}
-                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                        >
-                          <Unlink size={12} /> 取消關聯
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setLinkingUserId(u.id)}
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <Link2 size={12} /> 關聯員工
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {linked ? (
+                          <button
+                            onClick={() => handleUnlink(u.id)}
+                            disabled={saving}
+                            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                          >
+                            <Unlink size={12} /> 取消關聯
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setLinkingUserId(u.id)}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <Link2 size={12} /> 關聯員工
+                          </button>
+                        )}
+                        {!isImpersonating && (
+                          <button
+                            onClick={() => handleImpersonate(u)}
+                            className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 transition-colors ml-1"
+                            title="模擬此用戶登入"
+                          >
+                            <Eye size={12} /> 模擬
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -50,6 +50,7 @@ export const menuGroups = [
       { label: "🚀 主要項目", path: "/work/projects" },
       { label: "✅ 特別批核", path: "/work/special-approval" },
       { label: "📋 年度工作評估", path: "/work/annual-review" },
+      { label: "👥 同事互評", path: "/work/peer-review" },
     ],
   },
   {
@@ -145,6 +146,7 @@ export const menuGroups = [
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
       { label: "👤 用戶帳戶管理", path: "/admin/user-management" },
+      { label: "🔐 頁面權限管理", path: "/admin/page-permissions" },
       { label: "🔄 Bubble數據匯入", path: "/admin/bubble-data" },
     ],
   },

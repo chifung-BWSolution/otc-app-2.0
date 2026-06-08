@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Login = () => {
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,14 +16,40 @@ const Login = () => {
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState('email'); // 'email' or 'verify'
 
-  const handleDevAdminLogin = () => {
-    const fakeAdmin = {
+  // If already authenticated (e.g. onAuthStateChange fired), redirect via React Router
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  const handleDevAdminLogin = async () => {
+    // Try to fetch real admin user data from DB for better dev experience
+    let fakeAdmin = {
       id: '00000000-0000-0000-0000-000000000000',
       email: 'dev-admin@test.local',
       full_name: 'Dev Admin',
       role: 'admin',
       team_role_name: 'MGT Team',
     };
+    try {
+      const { data: adminUser } = await supabase
+        .from('user')
+        .select('*')
+        .eq('role', 'admin')
+        .limit(1)
+        .maybeSingle();
+      if (adminUser) {
+        fakeAdmin = {
+          id: adminUser.id?.toString() || '00000000-0000-0000-0000-000000000000',
+          email: adminUser.email || 'dev-admin@test.local',
+          full_name: adminUser.full_name || 'Dev Admin',
+          role: adminUser.role || 'admin',
+          linked_staff_id: adminUser.linked_staff_id || null,
+          team_role_name: 'MGT Team',
+        };
+      }
+    } catch (e) {
+      console.warn('Dev admin: could not fetch admin user from DB, using defaults', e);
+    }
     localStorage.setItem('__dev_admin_bypass', JSON.stringify(fakeAdmin));
     window.location.href = '/';
   };
@@ -67,12 +96,14 @@ const Login = () => {
 
       if (error) {
         setError(error.message);
+        setLoading(false);
       } else {
-        window.location.href = '/';
+        setSuccess('驗證成功，正在跳轉...');
+        // onAuthStateChange will set isAuthenticated=true, then Navigate will redirect
+        // No need for window.location.href which causes full reload race condition
       }
     } catch (err) {
       setError('驗證時發生錯誤，請稍後再試');
-    } finally {
       setLoading(false);
     }
   };
@@ -152,10 +183,10 @@ const Login = () => {
                 <Input
                   id="otp"
                   type="text"
-                  placeholder="輸入6位數驗證碼"
+                  placeholder="輸入8位數驗證碼"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
+                  maxLength={8}
                   required
                   autoFocus
                   className="text-center text-lg tracking-widest"
@@ -167,7 +198,7 @@ const Login = () => {
               {success && (
                 <p className="text-sm text-green-600">{success}</p>
               )}
-              <Button type="submit" className="w-full" disabled={loading || otp.length < 6}>
+              <Button type="submit" className="w-full" disabled={loading || otp.length < 8}>
                 {loading ? '驗證中...' : '確認登入'}
               </Button>
               <div className="flex items-center justify-between">
