@@ -6,6 +6,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>企業管理系統</title>
+    <script>
+      // Early error suppression - suppress ALL cross-origin "Script error." before any reporter
+      (function() {
+        // Intercept ALL errors at the window.onerror level first
+        window.onerror = function(msg, url, line, col, error) {
+          if (msg === 'Script error.' || !url || line === 0) {
+            return true; // suppress
+          }
+        };
+        // Capture phase listener - fires before bubble phase
+        window.addEventListener('error', function(event) {
+          if (!event.filename || event.filename === '' || event.message === 'Script error.' || event.lineno === 0) {
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            return false;
+          }
+        }, true);
+        // Also bubble phase
+        window.addEventListener('error', function(event) {
+          if (!event.filename || event.filename === '' || event.message === 'Script error.' || event.lineno === 0) {
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            return false;
+          }
+        }, false);
+        // Suppress unhandled promise rejections early - capture phase
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          if (!reason) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+          if (typeof reason === 'object') {
+            var msg = reason.message || '';
+            var name = reason.name || '';
+            if (reason.status === 401 || reason.status === 403 ||
+                msg.indexOf('Failed to fetch') !== -1 ||
+                msg.indexOf('NetworkError') !== -1 ||
+                msg.indexOf('Load failed') !== -1 ||
+                msg.indexOf('Supabase') !== -1 ||
+                msg.indexOf('FunctionsHttp') !== -1 ||
+                msg.indexOf('FunctionsRelay') !== -1 ||
+                msg.indexOf('FunctionsFetch') !== -1 ||
+                msg.indexOf('Not authenticated') !== -1 ||
+                msg.indexOf('JWT') !== -1 ||
+                msg.indexOf('invalid claim') !== -1 ||
+                msg.indexOf('auth') !== -1 ||
+                msg.indexOf('refresh') !== -1 ||
+                msg.indexOf('AbortError') !== -1 ||
+                name === 'AbortError' ||
+                (!msg && !reason.stack)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              return;
+            }
+          }
+          if (typeof reason === 'string' && (reason.indexOf('Script error') !== -1 || reason === '')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+          }
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

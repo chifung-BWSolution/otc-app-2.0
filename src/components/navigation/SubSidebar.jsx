@@ -47,35 +47,83 @@ export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRol
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto py-2">
-          {currentGroup.items
-            .filter((item) => isPathAllowed ? isPathAllowed(item.path) : true)
-            .map((item) => {
-            const active = location.pathname === item.path;
-            const icon = item.label.split(" ")[0];
-            const text = item.label.split(" ").slice(1).join(" ");
-            return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  if (window.innerWidth < 768) setCollapsed(true);
-                }}
-                title={item.label}
-                className={`w-full flex items-center py-2 text-sm transition-all ${
-                  collapsed ? "px-0 justify-center" : "px-4"
-                } ${
-                  active
-                    ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <span className="text-base">{icon}</span>
-                {!collapsed && (
-                  <span className="ml-2 text-left text-xs">{text}</span>
-                )}
-              </button>
-            );
-          })}
+          {currentGroup.sections ? (
+            // Render items grouped by sections
+            currentGroup.sections.map((section, sIdx) => {
+              const filteredItems = section.items.filter(item => isPathAllowed ? isPathAllowed(item.path) : true);
+              if (filteredItems.length === 0) return null;
+              return (
+                <div key={sIdx}>
+                  {!collapsed && (
+                    <div className="px-4 pt-3 pb-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.title}</span>
+                    </div>
+                  )}
+                  {collapsed && sIdx > 0 && (
+                    <div className="mx-2 my-1 border-t border-gray-200" />
+                  )}
+                  {filteredItems.map((item) => {
+                    const active = location.pathname === item.path;
+                    const icon = item.label.split(" ")[0];
+                    const text = item.label.split(" ").slice(1).join(" ");
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          navigate(item.path);
+                          if (window.innerWidth < 768) setCollapsed(true);
+                        }}
+                        title={item.label}
+                        className={`w-full flex items-center py-2 text-sm transition-all ${
+                          collapsed ? "px-0 justify-center" : "px-4"
+                        } ${
+                          active
+                            ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-base">{icon}</span>
+                        {!collapsed && (
+                          <span className="ml-2 text-left text-xs">{text}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          ) : (
+            // Render flat items list
+            currentGroup.items
+              .filter((item) => isPathAllowed ? isPathAllowed(item.path) : true)
+              .map((item) => {
+              const active = location.pathname === item.path;
+              const icon = item.label.split(" ")[0];
+              const text = item.label.split(" ").slice(1).join(" ");
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    if (window.innerWidth < 768) setCollapsed(true);
+                  }}
+                  title={item.label}
+                  className={`w-full flex items-center py-2 text-sm transition-all ${
+                    collapsed ? "px-0 justify-center" : "px-4"
+                  } ${
+                    active
+                      ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="text-base">{icon}</span>
+                  {!collapsed && (
+                    <span className="ml-2 text-left text-xs">{text}</span>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       </aside>
     </>

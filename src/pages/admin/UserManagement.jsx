@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, X, Users, Link2, Unlink, Loader2, UserPlus, Send, Eye } from "lucide-react";
+import { Search, X, Users, Link2, Unlink, Loader2, UserPlus, Send, Eye, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +17,8 @@ export default function UserManagement() {
   const [inviteRole, setInviteRole] = useState("user");
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -99,16 +101,34 @@ export default function UserManagement() {
     setInviting(true);
     setInviteMsg(null);
     try {
-      await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
-      setInviteMsg({ type: "success", text: `已成功邀請 ${inviteEmail.trim()}` });
+      await base44.functions.invoke("createAuthUser", {
+        email: inviteEmail.trim(),
+        full_name: "",
+        role: inviteRole,
+      });
+      setInviteMsg({ type: "success", text: `已成功建立用戶 ${inviteEmail.trim()}，該用戶現可用 OTP 登入` });
       setInviteEmail("");
       setInviteRole("user");
       // Reload after a short delay to allow backend to create the user
-      setTimeout(() => loadData(), 2000);
+      setTimeout(() => loadData(), 1500);
     } catch (err) {
-      setInviteMsg({ type: "error", text: err.message || "邀請失敗" });
+      setInviteMsg({ type: "error", text: err.message || "建立用戶失敗" });
     }
     setInviting(false);
+  };
+
+  const handleSyncAllToAuth = async () => {
+    if (!confirm("將所有用戶表中的帳戶同步到 Supabase Auth（讓他們都可以 OTP 登入），確定？")) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await base44.functions.invoke("syncUsersToAuth", {});
+      setSyncResult(result);
+      setTimeout(() => loadData(), 1500);
+    } catch (err) {
+      setSyncResult({ error: err.message });
+    }
+    setSyncing(false);
   };
 
   const filteredUsers = users.filter(u => {
@@ -153,18 +173,27 @@ export default function UserManagement() {
           <h2 className="text-base font-black text-gray-900">用戶帳戶管理</h2>
           <p className="text-xs text-gray-400">{users.length} 個帳戶 · 可為每個帳戶關聯員工資料</p>
         </div>
-        <button
-          onClick={() => setShowInvite(!showInvite)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
-        >
-          <UserPlus size={14} /> 邀請新用戶
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncAllToAuth}
+            disabled={syncing}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} 同步所有用戶到 Auth
+          </button>
+          <button
+            onClick={() => setShowInvite(!showInvite)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <UserPlus size={14} /> 邀請新用戶
+          </button>
+        </div>
       </div>
 
       {/* Invite User */}
       {showInvite && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-          <h3 className="text-sm font-bold text-blue-800">📩 邀請新用戶</h3>
+          <h3 className="text-sm font-bold text-blue-800">👤 新增用戶帳戶</h3>
           <div className="flex items-end gap-3 flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <label className="text-xs font-semibold text-gray-600 block mb-1">電郵地址</label>
@@ -196,13 +225,24 @@ export default function UserManagement() {
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               {inviting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              發送邀請
+              建立帳戶
             </button>
           </div>
           {inviteMsg && (
             <div className={`text-xs px-3 py-2 rounded-lg ${inviteMsg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
               {inviteMsg.text}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Sync Result */}
+      {syncResult && (
+        <div className={`text-xs px-4 py-3 rounded-xl border ${syncResult.error ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+          {syncResult.error ? (
+            <p>❌ 同步失敗: {syncResult.error}</p>
+          ) : (
+            <p>✅ 同步完成 — 新建: {syncResult.summary?.created || 0} / 已存在: {syncResult.summary?.already_exists || 0} / 錯誤: {syncResult.summary?.errors || 0}</p>
           )}
         </div>
       )}

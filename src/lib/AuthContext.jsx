@@ -289,13 +289,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async (shouldRedirect = true) => {
+    // Clear all local storage/session first
     localStorage.removeItem('__login_timestamp');
+    localStorage.removeItem('__dev_login');
+    sessionStorage.removeItem('__impersonating');
+    
+    // Clear state
     setUser(null);
     setIsAuthenticated(false);
-    await supabase.auth.signOut();
+    setIsImpersonating(false);
+    setRealUser(null);
+    
+    // Only call signOut if there's a real Supabase session (not dev login)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.auth.signOut();
+      }
+    } catch (e) {
+      console.warn('[Auth] signOut error (non-critical):', e);
+    }
     
     if (shouldRedirect) {
-      window.location.href = '/login';
+      // Use replace to prevent back-button returning to authenticated page
+      window.location.replace('/login');
     }
   };
 

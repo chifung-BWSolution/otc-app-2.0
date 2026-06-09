@@ -14,6 +14,7 @@ const ENTITIES = [
   { name: "StaffInformation", label: "Staff Information（員工個人資料）" },
   { name: "BubbleOT", label: "OT（加班）" },
   { name: "BubbleLeave", label: "Leave（假期）" },
+  { name: "BubbleLeaveQuota", label: "Leave Quota（假期配額）" },
   { name: "BubbleClockin", label: "Clockin（打卡）" },
   { name: "BubbleManHourDate", label: "Man Hour Date（工時日期）" },
   { name: "BubbleManHourTask", label: "Man Hour Task（工時任務）" },
@@ -181,6 +182,13 @@ function DeepDiffModal({ entityName, bubbleField, dbColumn, onClose }) {
           {error && <div className="text-red-600 bg-red-50 p-4 rounded-xl">{error}</div>}
           {data && !loading && (
             <div className="space-y-4">
+              {/* Resolved Key Info */}
+              {data._resolvedKey && (
+                <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 font-mono">
+                  <span className="font-bold text-gray-800">解析 Key：</span> {data._resolvedKey.apiKey}
+                  <span className="ml-3 text-gray-400">method: {data._resolvedKey.method}</span>
+                </div>
+              )}
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-purple-50 rounded-xl p-3 text-center">
@@ -347,8 +355,8 @@ function FieldRow({ row, verifiedData, entityName, onDeepDiff }) {
           <span className={`font-medium ${mappingOnly ? (isVerified ? (vExists ? "text-green-700" : "text-red-600") : "text-amber-600 italic") : "text-purple-700"}`}>
             {bubbleName}
             {mappingOnly && !isVerified && <span className="text-[9px] ml-1 text-amber-500">(未偵測)</span>}
-            {mappingOnly && isVerified && vExists && <span className="text-[9px] ml-1 text-green-500">(已驗證 ✓)</span>}
-            {mappingOnly && isVerified && !vExists && <span className="text-[9px] ml-1 text-red-500">(不存在 ✗)</span>}
+            {mappingOnly && isVerified && vExists && <span className="text-[9px] ml-1 text-green-500" title={vData?.method || ""}>(已驗證 ✓)</span>}
+            {mappingOnly && isVerified && !vExists && <span className="text-[9px] ml-1 text-red-500" title={vData?.method || ""}>(不存在 ✗)</span>}
           </span>
         ) : (
           <span className="text-gray-300 italic">—</span>
@@ -356,9 +364,12 @@ function FieldRow({ row, verifiedData, entityName, onDeepDiff }) {
       </div>
 
       {/* Bubble count */}
-      <div className="w-16 shrink-0 text-right font-bold tabular-nums">
+      <div className="w-16 shrink-0 text-right font-bold tabular-nums" title={bubbleStats?.method ? `method: ${bubbleStats.method}` : ""}>
         {bFilled !== null ? (
-          <span className={isVerified ? "text-green-600" : "text-purple-600"}>{bFilled.toLocaleString()}</span>
+          <span className={`${isVerified ? "text-green-600" : "text-purple-600"} ${bubbleStats?.method?.includes("false_positive") ? "line-through opacity-50" : ""}`}>
+            {bFilled.toLocaleString()}
+            {bubbleStats?.method?.includes("false_positive") && <span className="text-[8px] ml-0.5 text-orange-500 no-underline">⚠️</span>}
+          </span>
         ) : mappingOnly ? (
           <span className="text-amber-400 text-[9px]">N/A</span>
         ) : (
@@ -567,6 +578,7 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
         entityName: entity.name,
         verifyFields: undetected,
       });
+      console.log("Verify response:", JSON.stringify(res?.data, null, 2));
       setVerifiedFields(res?.data?.verifiedFields || {});
     } catch (e) {
       console.warn("Failed to verify fields:", e);
@@ -661,7 +673,7 @@ function EntityCard({ entity, bubbleInfo, dbStats, bubbleFieldStats, onExpand, e
               {syncResult.totalErrors === -1 ? (
                 `❌ ${syncResult.errorMsg || "同步失敗"}`
               ) : (
-                `✓ 拉取 ${syncResult.totalFetched?.toLocaleString()} 筆，寫入 ${syncResult.totalUpserted?.toLocaleString()} 筆${syncResult.totalErrors > 0 ? `，失敗 ${syncResult.totalErrors}` : ""}`
+                `✓ 拉取 ${syncResult.totalFetched?.toLocaleString()} 筆，寫入 ${syncResult.totalUpserted?.toLocaleString()} 筆${syncResult.totalDeleted > 0 ? `，刪除 ${syncResult.totalDeleted}` : ""}${syncResult.totalErrors > 0 ? `，失敗 ${syncResult.totalErrors}` : ""}`
               )}
             </span>
             {syncResult.errors && syncResult.errors.length > 0 && (

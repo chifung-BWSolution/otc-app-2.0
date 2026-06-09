@@ -88,9 +88,11 @@ export function usePagePermissions() {
     // "/" is always allowed
     if (path === "/") return true;
 
-    // Safety: admin/management can always access page-permissions and user-management
-    if ((userRole === "admin" || userRole === "management") &&
-        (path === "/admin/page-permissions" || path === "/admin/user-management")) {
+    // If user exists but role is still null (DB role loading), allow all to prevent flash
+    if (user && !user.role) return true;
+
+    // Admin/management always have full access (ignore page_permissions & overrides)
+    if (userRole === "admin" || userRole === "management") {
       return true;
     }
 
@@ -107,9 +109,6 @@ export function usePagePermissions() {
     const rolePerm = rolePermissions.find(p => p.page_path === path) ||
                      rolePermissions.find(p => p.page_path === normalizedPath);
     if (rolePerm) return rolePerm.allowed;
-
-    // 3. Default behavior: admin/management can see all, user can only see some defaults
-    if (userRole === "admin" || userRole === "management") return true;
 
     // Default allowed paths for non-admin (if no permissions configured at all)
     // If we have ANY role permissions configured, then non-listed pages are blocked
@@ -131,7 +130,7 @@ export function usePagePermissions() {
       "/business/tender",
     ];
     return defaultAllowed.includes(path) || defaultAllowed.includes(normalizedPath);
-  }, [rolePermissions, userOverrides, userRole]);
+  }, [rolePermissions, userOverrides, userRole, user]);
 
   /**
    * Check if a menu group should be visible (at least one item allowed)

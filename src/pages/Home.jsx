@@ -13,6 +13,7 @@ const groupColors = {
   leader: "bg-yellow-500",
   events: "bg-amber-500",
   adminfollow: "bg-red-500",
+  settings: "bg-slate-500",
   superadmin: "bg-indigo-500",
 };
 

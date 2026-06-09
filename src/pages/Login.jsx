@@ -22,6 +22,7 @@ const Login = () => {
   }
 
 
+
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -37,13 +38,19 @@ const Login = () => {
       });
 
       if (error) {
-        setError(error.message);
+        if (error.message?.includes('Email rate limit') || error.status === 429) {
+          setError('發送過於頻繁，請稍後再試（每小時限制 4 封）');
+        } else if (error.message?.includes('Signups not allowed') || error.message?.includes('not allowed')) {
+          setError('此電郵未註冊，請聯繫管理員');
+        } else {
+          setError(error.message || '發送驗證碼失敗');
+        }
       } else {
         setSuccess('驗證碼已發送至您的電郵，請查收。');
         setStep('verify');
       }
     } catch (err) {
-      setError('發送驗證碼時發生錯誤，請稍後再試');
+      setError('郵件服務暫時無法使用，請稍後再試或聯繫管理員');
     } finally {
       setLoading(false);
     }
@@ -151,10 +158,10 @@ const Login = () => {
                 <Input
                   id="otp"
                   type="text"
-                  placeholder="輸入8位數驗證碼"
+                  placeholder="輸入6位數驗證碼"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  maxLength={8}
+                  maxLength={6}
                   required
                   autoFocus
                   className="text-center text-lg tracking-widest"
@@ -166,7 +173,7 @@ const Login = () => {
               {success && (
                 <p className="text-sm text-green-600">{success}</p>
               )}
-              <Button type="submit" className="w-full" disabled={loading || otp.length < 8}>
+              <Button type="submit" className="w-full" disabled={loading || otp.length < 6}>
                 {loading ? '驗證中...' : '確認登入'}
               </Button>
               <div className="flex items-center justify-between">

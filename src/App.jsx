@@ -39,7 +39,14 @@ import AssessmentResultRegistry from './pages/admin/AssessmentResultRegistry';
 import AssessmentDashboard from './pages/admin/AssessmentDashboard';
 import StaffDirectory from './pages/admin/StaffDirectory';
 import StaffProfilePage from './pages/admin/StaffProfilePage';
-import OrgSettings from './pages/admin/OrgSettings';
+import OrgStructure from './pages/settings/OrgStructure';
+import WorkSchedule from './pages/settings/WorkSchedule';
+import TeamGroups from './pages/settings/TeamGroups';
+import ContributionTypes from './pages/settings/ContributionTypes';
+import ScoreLevels from './pages/settings/ScoreLevels';
+import ReviewPresets from './pages/settings/ReviewPresets';
+import MeritDemeritTypes from './pages/settings/MeritDemeritTypes';
+import LeaveSettingsPage from './pages/settings/LeaveSettingsPage';
 import BubbleDataOverview from './pages/admin/BubbleDataOverview';
 import OvertimeApplication from './pages/attendance/OvertimeApplication';
 import CourseProfilePage from './pages/course/CourseProfilePage';
@@ -134,6 +141,15 @@ const AuthenticatedApp = () => {
         {/* 業務拓展 */}
 
         <Route path="/business/tender" element={<TenderRegistration />} />
+        {/* 系統設定 */}
+        <Route path="/settings/org-structure" element={<OrgStructure />} />
+        <Route path="/settings/work-schedule" element={<WorkSchedule />} />
+        <Route path="/settings/team-groups" element={<TeamGroups />} />
+        <Route path="/settings/contribution-types" element={<ContributionTypes />} />
+        <Route path="/settings/score-levels" element={<ScoreLevels />} />
+        <Route path="/settings/review-presets" element={<ReviewPresets />} />
+        <Route path="/settings/merit-demerit-types" element={<MeritDemeritTypes />} />
+        <Route path="/settings/leave" element={<LeaveSettingsPage />} />
         {/* 領袖管理 */}
         <Route path="/leader/team" element={<Placeholder title="團隊管理" icon="👥" description="管理團隊成員及績效" />} />
         <Route path="/leader/training" element={<Placeholder title="安排培訓" icon="🎯" description="為團隊安排培訓計劃" />} />
@@ -148,7 +164,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/assessment-dashboard" element={<AssessmentDashboard />} />
         <Route path="/admin/staff" element={<StaffDirectory />} />
         <Route path="/admin/staff/:staffId" element={<StaffProfilePage />} />
-        <Route path="/admin/org-settings" element={<OrgSettings />} />
+        <Route path="/admin/org-settings" element={<Navigate to="/settings/org-structure" replace />} />
         <Route path="/admin/bubble-data" element={<BubbleDataOverview />} />
 
         <Route path="/admin/onboarding" element={<Placeholder title="新同事入職" icon="🎉" description="新員工入職流程管理" />} />

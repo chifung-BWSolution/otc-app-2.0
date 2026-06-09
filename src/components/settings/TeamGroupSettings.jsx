@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Save, RefreshCw, Tag, Plus, X } from "lucide-react";
+import { Loader2, Tag, Plus, X } from "lucide-react";
 
 export default function TeamGroupSettings() {
   const [teams, setTeams] = useState([]);
@@ -8,8 +8,6 @@ export default function TeamGroupSettings() {
   const [newGroup, setNewGroup] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -47,14 +45,6 @@ export default function TeamGroupSettings() {
       return;
     }
     setGroups(prev => prev.filter(x => x !== g));
-  };
-
-  const handleSync = async () => {
-    setSyncing(true);
-    setSyncResult(null);
-    const res = await base44.functions.invoke("populateStaffTeamGroup", {});
-    setSyncResult(res.data);
-    setSyncing(false);
   };
 
   // Group teams by BU for display
@@ -139,27 +129,6 @@ export default function TeamGroupSettings() {
             ))}
           </div>
         ))}
-      </div>
-
-      {/* Sync to staff */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-bold text-indigo-800">🔄 同步 Team 分組到員工</div>
-          <div className="text-xs text-indigo-600 mt-0.5">根據每位員工所屬 Team 自動填寫 team_group 欄位</div>
-          {syncResult && (
-            <div className="text-xs text-indigo-700 mt-1 font-medium">
-              ✅ 完成：共 {syncResult.total} 人，已更新 {syncResult.updated} 人，跳過 {syncResult.skipped} 人
-            </div>
-          )}
-        </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
-        >
-          {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-          {syncing ? "同步中..." : "立即同步"}
-        </button>
       </div>
     </div>
   );

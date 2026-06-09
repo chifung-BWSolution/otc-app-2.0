@@ -249,7 +249,9 @@ const functionsProxy = {
    * Returns just the data (unwrapped from Supabase response)
    */
   async invoke(functionName, params = {}) {
+    // Tempo deploys edge functions with slug "supabase-functions-{folderName}"
     const slug = `supabase-functions-${functionName}`;
+    console.debug(`[SupabaseCompat] Invoking edge function: ${slug}`);
     const { data, error } = await supabase.functions.invoke(slug, {
       body: params,
     });

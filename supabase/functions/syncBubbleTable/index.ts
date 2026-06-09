@@ -12,6 +12,7 @@ const BUBBLE_TYPE_MAP: Record<string, string> = {
   StaffInformation: "Staff Information",
   BubbleOT: "OT",
   BubbleLeave: "Leave",
+  BubbleLeaveQuota: "leavequota",
   BubbleClockin: "Clock-in",
   BubbleManHourDate: "Man Hour Date",
   BubbleManHourTask: "Man Hour Task",
@@ -26,6 +27,7 @@ const TABLE_MAP: Record<string, string> = {
   StaffInformation: "staff_information",
   BubbleOT: "bubble_ot",
   BubbleLeave: "bubble_leave",
+  BubbleLeaveQuota: "bubble_leave_quota",
   BubbleClockin: "bubble_clockin",
   BubbleManHourDate: "bubble_man_hour_date",
   BubbleManHourTask: "bubble_man_hour_task",
@@ -91,24 +93,24 @@ const IMPORT_FIELD_MAPS: Record<string, Record<string, string>> = {
   },
   BubbleLeave: {
     "_id": "bubble_id",
-    "prove_image": "prove_url", "Prove": "prove_url",
+    "prove_image": "prove_url", "Prove": "prove_url", "prove": "prove_url",
     "remarks_text": "remarks", "Remarks": "remarks",
-    "_quota_number": "quota", "-Quota": "quota",
+    "_quota_number": "quota", "-Quota": "quota", "quota_number": "quota",
     "count_year_date": "count_year", "Count Year": "count_year",
     "info_tech_image": "info_tech_url", "info-tech_image": "info_tech_url", "Info-Tech": "info_tech_url", "Info Tech": "info_tech_url",
+    "info_tech": "info_tech_url", "info-tech": "info_tech_url", "Info-tech": "info_tech_url",
+    "info_tech_file": "info_tech_url", "info-tech_file": "info_tech_url",
     "approved_boolean": "approved", "Approved": "approved",
     "display_text": "display_name", "Display Name": "display_name",
     "reject_reason_text": "reject_reason", "Reject Reason": "reject_reason", "Reject reason": "reject_reason",
-    "send_email_boolean": "send_email", "Send Email": "send_email",
+    "reject reason_text": "reject_reason", "reject_reason": "reject_reason",
     "staff_custom_staff": "staff_id", "Staff": "staff_id",
     "end_date___time_date": "end_date_time", "End Date & Time": "end_date_time",
-    "google_event_id_text": "google_event_id", "Google Event ID": "google_event_id",
-    "approver_custom_staff": "approver_id", "Approver": "approver_id",
+    "approver_custom_staff": "approver_id", "Approver": "approver_id", "approver_custom_Staff": "approver_id", "approver": "approver_id",
     "rejecter_custom_staff": "rejecter_id", "Rejecter": "rejecter_id", "rejecter_custom_Staff": "rejecter_id",
+    "rejecter": "rejecter_id", "Rejecter_custom_staff": "rejecter_id",
     "start_date___time_date": "start_date_time", "Start Date & Time": "start_date_time",
     "application_reason_text": "application_reason", "Application Reason": "application_reason", "Reason for Apply": "application_reason", "reason_for_apply_text": "application_reason",
-    "interview_email_boolean": "interview_email", "Interview Email": "interview_email",
-    "send_approval_email_boolean": "send_approval_email", "Send Approval Email": "send_approval_email",
     "n_leave_type_custom_nos_leave_type": "leave_type", "N_Leave Type": "leave_type",
     "n_leave_period_option_os_leave_period": "leave_period", "N_Leave Period": "leave_period",
   },
@@ -249,6 +251,22 @@ const IMPORT_FIELD_MAPS: Record<string, Record<string, string>> = {
     "is_smoking_boolean": "is_smoking", "Is Smoking": "is_smoking",
     "no_working_experience_boolean": "no_working_experience", "No Working Experience": "no_working_experience",
   },
+  BubbleLeaveQuota: {
+    "_id": "bubble_id",
+    "+/- Quota": "plus_minus_quota", "+/_quota_number": "plus_minus_quota", "___quota_number": "plus_minus_quota",
+    "____quota_number": "plus_minus_quota", "_____quota_number": "plus_minus_quota",
+    "+/-_quota_number": "plus_minus_quota", "quota_number": "plus_minus_quota",
+    "Calculation Date": "calculation_date", "calculation_date_date": "calculation_date",
+    "Count Year": "count_year", "count_year_date": "count_year",
+    "Operator (text)": "operator_text", "operator__text__text": "operator_text", "operator_text_text": "operator_text",
+    "operator_(text)_text": "operator_text", "operator___text__text": "operator_text",
+    "Reason": "reason", "reason_text": "reason",
+    "Staff": "staff_id", "staff_custom_staff": "staff_id",
+    "Created Date": "created_date", "Created_Date": "created_date",
+    "Modified Date": "modified_date", "Modified_Date": "modified_date",
+    "Created By": "created_by", "created_by_custom_user": "created_by",
+    "Slug": "slug", "slug_text": "slug",
+  },
 };
 
 const PAGE_SIZE = 100; // Bubble API max per page
@@ -265,9 +283,18 @@ const NON_TEXT_COLUMNS: Record<string, Set<string>> = {
   bubble_project: new Set(["estimated_expense", "estimated_income", "estimated_man_hour", "is_key_project", "brands", "collaborators", "locations", "roles", "sub_projects", "task_types", "teams"]),
 };
 
+// Columns that store a Bubble reference ID (custom_staff, custom_project etc.)
+// When Bubble returns an object for these, we should extract _id
+const REFERENCE_ID_COLUMNS: Set<string> = new Set([
+  "staff_id", "approver_id", "rejecter_id", "clockin_id", "project_id",
+  "pic_id", "staff_kpi_month_id", "team_leader", "n_bu", "n_team", "n_team_role",
+  "leave_type", "leave_period", "ot_type",
+]);
+
 // Serialize a value for DB insertion
 // For non-text columns: keep native types (number, array/object for JSONB)
 // For text columns: convert everything to string
+// For reference ID columns: extract _id from object if Bubble returns object
 function serializeValue(val: unknown, dbCol: string, tableName: string): unknown {
   if (val === null || val === undefined) return null;
   
@@ -283,15 +310,28 @@ function serializeValue(val: unknown, dbCol: string, tableName: string): unknown
     return isNonText ? val : JSON.stringify(val);
   }
   if (typeof val === "object") {
+    // For reference ID columns, extract _id from Bubble object
+    if (REFERENCE_ID_COLUMNS.has(dbCol)) {
+      const obj = val as Record<string, unknown>;
+      if (obj._id) return String(obj._id);
+      if (obj.unique_id) return String(obj.unique_id);
+      // Fallback: stringify
+      return JSON.stringify(val);
+    }
     return isNonText ? val : JSON.stringify(val);
   }
   return String(val);
 }
 
-// Normalize a key: lowercase + replace hyphens/spaces with underscores
-// This allows matching Bubble record keys regardless of case and separator style
+// Normalize a key: lowercase + replace special chars (hyphens, spaces, +, /, (), &, etc.) with underscores
+// Then collapse consecutive underscores into single underscore and trim leading/trailing underscores
+// This allows matching Bubble record keys regardless of case, separator style, and special chars
 function normalizeKey(key: string): string {
-  return key.toLowerCase().replace(/[-\s]+/g, "_");
+  return key
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_") // Replace any non-alphanumeric char(s) with underscore
+    .replace(/_+/g, "_")          // Collapse consecutive underscores
+    .replace(/^_|_$/g, "");       // Trim leading/trailing underscores
 }
 
 // Build a normalized lookup: normalized key → original key in fieldMap
@@ -328,11 +368,16 @@ function mapRecord(record: Record<string, unknown>, fieldMap: Record<string, str
   }
 
   // Strategy 1: Match fieldMap keys against record (exact match)
+  // Prefer non-null values: if a key maps to null but another key maps to a real value, keep the real value
   for (const [bubbleKey, dbCol] of Object.entries(fieldMap)) {
     if (bubbleKey === "_id") continue;
     if (dbCol === "bubble_id") continue;
     if (record[bubbleKey] !== undefined) {
-      row[dbCol] = serializeValue(record[bubbleKey], dbCol, tableName);
+      const serialized = serializeValue(record[bubbleKey], dbCol, tableName);
+      // Only overwrite if we don't have a value yet, or if new value is non-null
+      if (!(dbCol in row) || (serialized !== null && row[dbCol] === null)) {
+        row[dbCol] = serialized;
+      }
     }
   }
 
@@ -350,8 +395,12 @@ function mapRecord(record: Record<string, unknown>, fieldMap: Record<string, str
     }
     if (matchedFieldMapKey) {
       const dbCol = fieldMap[matchedFieldMapKey];
-      if (dbCol && dbCol !== "bubble_id" && !(dbCol in row)) {
-        row[dbCol] = serializeValue(recordVal, dbCol, tableName);
+      if (dbCol && dbCol !== "bubble_id") {
+        const serialized = serializeValue(recordVal, dbCol, tableName);
+        // Allow overriding null values from Strategy 1
+        if (!(dbCol in row) || (serialized !== null && row[dbCol] === null)) {
+          row[dbCol] = serialized;
+        }
       }
     }
   }
@@ -421,7 +470,9 @@ Deno.serve(async (req) => {
         let totalFetched = 0;
         let totalUpserted = 0;
         let totalErrors = 0;
+        let totalDeleted = 0;
         const errors: string[] = [];
+        const allBubbleIds: Set<string> = new Set();
 
         try {
           while (true) {
@@ -446,6 +497,11 @@ Deno.serve(async (req) => {
 
             if (results.length === 0) break;
 
+            // Collect all bubble IDs for orphan deletion later
+            for (const record of results) {
+              if (record["_id"]) allBubbleIds.add(String(record["_id"]));
+            }
+
             totalFetched += results.length;
             send(JSON.stringify({ type: "progress", message: `Fetched ${results.length} records (total: ${totalFetched}, remaining: ${remaining})` }));
 
@@ -466,28 +522,68 @@ Deno.serve(async (req) => {
               // Show sample of first record values for problematic fields
               const sampleValues: Record<string, unknown> = {};
               const targetFields = ["brands_list_text", "o_status_text_text", "no_man_hour_task_boolean", "new_work_phone_text", "clock_in_face_image"];
-              for (const tf of targetFields) {
+              // BubbleLeave specific: check reject/rejecter/info-tech fields
+              const leaveTargetFields = ["reject_reason_text", "Reject Reason", "rejecter_custom_staff", "Rejecter", "rejecter_custom_Staff", "info_tech_image", "info-tech_image", "Info-Tech", "info-tech", "info_tech"];
+              for (const tf of [...targetFields, ...leaveTargetFields]) {
                 if (firstRecord[tf] !== undefined) sampleValues[tf] = firstRecord[tf];
               }
               // Also look for unmatched bubble keys that might contain these
               for (const bk of unmatchedBubbleKeys) {
                 const bkLower = bk.toLowerCase();
-                if (bkLower.includes("brand") || bkLower.includes("status_text") || bkLower.includes("man_hour") || bkLower.includes("work_phone") || bkLower.includes("clock_in_face")) {
+                if (bkLower.includes("brand") || bkLower.includes("status_text") || bkLower.includes("man_hour") || bkLower.includes("work_phone") || bkLower.includes("clock_in_face") || bkLower.includes("reject") || bkLower.includes("rejecter") || bkLower.includes("info") || bkLower.includes("tech")) {
                   sampleValues[`unmatched:${bk}`] = firstRecord[bk];
+                }
+              }
+
+              // Also check normalized matching (our Strategy 2)
+              const normalizedMatches: Record<string, string> = {};
+              for (const bk of unmatchedBubbleKeys) {
+                const nk = normalizeKey(bk);
+                const matchedKey = normalizedLookup.get(nk);
+                if (matchedKey) {
+                  normalizedMatches[bk] = `→ ${matchedKey} → ${fieldMap[matchedKey]}`;
                 }
               }
 
               const debugInfo = {
                 type: "debug",
-                message: `Field matching: ${matchedKeys.length}/${fieldMapKeys.length} map keys found in record. Case-insensitive extra matches: ${caseInsensitiveMatched.length}. Unmatched map keys: [${unmatchedMapKeys.slice(0, 30).join(", ")}]. Bubble keys not in map: [${unmatchedBubbleKeys.slice(0, 30).join(", ")}]`,
+                message: `Field matching: ${matchedKeys.length}/${fieldMapKeys.length} map keys found in record. Case-insensitive extra matches: ${caseInsensitiveMatched.length}. Normalized matches: ${Object.keys(normalizedMatches).length}. Unmatched map keys: [${unmatchedMapKeys.slice(0, 30).join(", ")}]. Bubble keys not in map: [${unmatchedBubbleKeys.slice(0, 30).join(", ")}]`,
                 sampleBubbleKeys: bubbleKeys,
                 matchedCount: matchedKeys.length,
                 totalMapKeys: fieldMapKeys.length,
                 caseInsensitiveMatched,
+                normalizedMatches,
                 sampleValues,
+                firstRecordSample: Object.fromEntries(Object.entries(firstRecord).filter(([k]) => !k.startsWith("_")).slice(0, 20)),
               };
               console.log(`[syncBubbleTable] Debug:`, JSON.stringify(debugInfo));
               send(JSON.stringify(debugInfo));
+
+              // For BubbleLeave: find a record with reject/rejecter/info-tech data and log all its keys + values
+              if (entityName === "BubbleLeave") {
+                const allRecordKeys = Object.keys(firstRecord);
+                const leaveDebug: Record<string, unknown> = { allKeys: allRecordKeys };
+                // Find a record that has rejecter/reject_reason/info-tech value
+                for (const rec of results.slice(0, 20)) {
+                  const recKeys = Object.keys(rec);
+                  const hasRejectData = recKeys.some(k => {
+                    const kl = k.toLowerCase();
+                    return (kl.includes("reject") || kl.includes("info") || kl.includes("tech")) && rec[k] !== null && rec[k] !== undefined && rec[k] !== "";
+                  });
+                  if (hasRejectData) {
+                    leaveDebug["sampleRecordWithRejectData"] = {};
+                    for (const [k, v] of Object.entries(rec)) {
+                      const kl = k.toLowerCase();
+                      if (kl.includes("reject") || kl.includes("info") || kl.includes("tech") || kl.includes("rejecter")) {
+                        (leaveDebug["sampleRecordWithRejectData"] as Record<string, unknown>)[k] = v;
+                      }
+                    }
+                    break;
+                  }
+                }
+                send(JSON.stringify({ type: "debug", message: "[BubbleLeave] Key analysis for reject/rejecter/info-tech fields", ...leaveDebug }));
+                console.log(`[syncBubbleTable] BubbleLeave key analysis:`, JSON.stringify(leaveDebug));
+              }
             }
 
             // Map records
@@ -523,6 +619,140 @@ Deno.serve(async (req) => {
 
           console.log(`[syncBubbleTable] Done. Fetched=${totalFetched}, Upserted=${totalUpserted}, Errors=${totalErrors}`);
 
+          // Delete orphan records: DB records whose bubble_id is NOT in Bubble anymore
+          if (allBubbleIds.size > 0 && totalErrors === 0) {
+            send(JSON.stringify({ type: "progress", message: `Checking for orphan records to delete... (Bubble has ${allBubbleIds.size} records)` }));
+            try {
+              // Fetch all bubble_ids from DB
+              const DB_FETCH_BATCH = 1000;
+              let dbBubbleIds: string[] = [];
+              let from = 0;
+              while (true) {
+                const { data: rows, error: fetchErr } = await supabase
+                  .from(tableName)
+                  .select("bubble_id")
+                  .range(from, from + DB_FETCH_BATCH - 1);
+                if (fetchErr) {
+                  send(JSON.stringify({ type: "warning", message: `Error fetching DB IDs: ${fetchErr.message}` }));
+                  break;
+                }
+                if (!rows || rows.length === 0) break;
+                dbBubbleIds = dbBubbleIds.concat(rows.map((r: { bubble_id: string }) => r.bubble_id));
+                if (rows.length < DB_FETCH_BATCH) break;
+                from += DB_FETCH_BATCH;
+              }
+
+              // Find orphans: in DB but not in Bubble
+              const orphanIds = dbBubbleIds.filter(id => !allBubbleIds.has(id));
+              
+              if (orphanIds.length > 0) {
+                send(JSON.stringify({ type: "progress", message: `Found ${orphanIds.length} orphan records to delete (DB: ${dbBubbleIds.length}, Bubble: ${allBubbleIds.size})` }));
+                
+                // Delete in batches
+                const DELETE_BATCH = 100;
+                for (let i = 0; i < orphanIds.length; i += DELETE_BATCH) {
+                  const batch = orphanIds.slice(i, i + DELETE_BATCH);
+                  const { error: delErr } = await supabase
+                    .from(tableName)
+                    .delete()
+                    .in("bubble_id", batch);
+                  if (delErr) {
+                    send(JSON.stringify({ type: "warning", message: `Delete batch error: ${delErr.message}` }));
+                    if (errors.length < 5) errors.push(`Delete batch at ${i}: ${delErr.message}`);
+                  } else {
+                    totalDeleted += batch.length;
+                  }
+                }
+                send(JSON.stringify({ type: "progress", message: `Deleted ${totalDeleted} orphan records successfully.` }));
+              } else {
+                send(JSON.stringify({ type: "progress", message: `No orphan records found. DB and Bubble are in sync (${dbBubbleIds.length} records).` }));
+              }
+            } catch (delError) {
+              console.error("[syncBubbleTable] Orphan deletion error:", delError);
+              send(JSON.stringify({ type: "warning", message: `Orphan deletion error: ${delError.message}` }));
+            }
+          } else if (totalErrors > 0) {
+            send(JSON.stringify({ type: "warning", message: "Skipping orphan deletion because there were sync errors." }));
+          }
+
+          // Post-sync: resolve data lookups for BubbleLeave
+          if (entityName === "BubbleLeave") {
+            send(JSON.stringify({ type: "progress", message: "Resolving data lookups (staff_name, leave_type, leave_period, status)..." }));
+            try {
+              // 1. Resolve staff_name from staff table
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave bl SET staff_name = s.display_name
+                FROM staff s WHERE bl.staff_id = s.bubble_id
+                AND (bl.staff_name IS NULL OR bl.staff_name = '')
+              `});
+
+              // 2. Resolve leave_type: if it stores a Bubble ID, map to full_label
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave bl SET leave_type = lt.full_label
+                FROM leave_type lt WHERE bl.leave_type = lt.bubble_id
+                AND lt.full_label IS NOT NULL
+              `});
+
+              // 3. Resolve leave_type_id (code) from leave_type table
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave bl SET leave_type_id = lt.code
+                FROM leave_type lt WHERE bl.leave_type = lt.full_label
+                AND lt.code IS NOT NULL AND (bl.leave_type_id IS NULL OR bl.leave_type_id LIKE '17%')
+              `});
+
+              // 4. Resolve leave_period_code from leave_period table
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave bl SET leave_period_code = lp.code, leave_period = lp.display
+                FROM leave_period lp WHERE bl.leave_period = lp.bubble_id AND lp.code IS NOT NULL
+              `});
+
+              // 5. Fix records where leave_period stores the code directly
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave SET leave_period_code = leave_period
+                WHERE leave_period IN ('AM', 'PM', 'FD', 'NA', 'CL')
+                AND (leave_period_code IS NULL OR leave_period_code = '')
+              `});
+
+              // 6. Derive status from approved field
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave SET status = CASE
+                  WHEN approved = 'true' THEN '已批核'
+                  WHEN approved = 'false' THEN '不批核'
+                  ELSE '審查中'
+                END
+                WHERE (status IS NULL OR status = '') AND approved IS NOT NULL
+              `});
+
+              // 7. Resolve approver_name from staff table
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave bl SET approver_name = s.display_name
+                FROM staff s WHERE bl.approver_id = s.bubble_id
+                AND (bl.approver_name IS NULL OR bl.approver_name = '')
+              `});
+
+              send(JSON.stringify({ type: "progress", message: "Data lookups resolved successfully." }));
+            } catch (lookupErr) {
+              console.warn("[syncBubbleTable] Lookup resolution error:", lookupErr);
+              send(JSON.stringify({ type: "warning", message: `Lookup resolution error: ${lookupErr.message}` }));
+            }
+          }
+
+          // Post-sync: resolve data lookups for BubbleLeaveQuota
+          if (entityName === "BubbleLeaveQuota") {
+            send(JSON.stringify({ type: "progress", message: "Resolving data lookups (staff_name)..." }));
+            try {
+              await supabase.rpc("exec_sql", { query: `
+                UPDATE bubble_leave_quota blq SET staff_name = s.display_name
+                FROM staff s WHERE blq.staff_id = s.bubble_id
+                AND (blq.staff_name IS NULL OR blq.staff_name = '')
+              `});
+              send(JSON.stringify({ type: "progress", message: "Data lookups resolved successfully." }));
+            } catch (lookupErr) {
+              console.warn("[syncBubbleTable] LeaveQuota lookup error:", lookupErr);
+              send(JSON.stringify({ type: "warning", message: `Lookup resolution error: ${lookupErr.message}` }));
+            }
+          }
+
           // Update sync_progress table
           try {
             await supabase.from("sync_progress").upsert({
@@ -531,6 +761,7 @@ Deno.serve(async (req) => {
               last_synced_at: new Date().toISOString(),
               total_fetched: totalFetched,
               total_upserted: totalUpserted,
+              total_deleted: totalDeleted,
               total_errors: totalErrors,
               status: totalErrors === 0 ? "success" : "partial",
             }, { onConflict: "entity_name" });
@@ -545,6 +776,7 @@ Deno.serve(async (req) => {
               tableName,
               totalFetched,
               totalUpserted,
+              totalDeleted,
               totalErrors,
               errors: errors.slice(0, 5),
             },

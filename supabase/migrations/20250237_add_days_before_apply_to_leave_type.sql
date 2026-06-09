@@ -1,0 +1,1 @@
+ALTER TABLE leave_type ADD COLUMN IF NOT EXISTS days_before_apply INTEGER DEFAULT 0;
