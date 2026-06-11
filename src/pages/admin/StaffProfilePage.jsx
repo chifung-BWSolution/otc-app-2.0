@@ -5,6 +5,7 @@ import {
   Building2, User, CreditCard, BookOpen, Briefcase, Star, Plus, Trash2, Loader2
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import LeaderSelect from "@/components/staff/LeaderSelect";
 import { useStaffInformation } from "@/components/staff/StaffInformationTab";
 import { useDistrictMap } from "@/hooks/useDistrictMap";
@@ -16,6 +17,7 @@ import StaffQASection from "@/components/staff/StaffQASection";
 const TABS = [
   { key: "overview", label: "概覽" },
   { key: "personal", label: "個人資料" },
+  { key: "leave", label: "假期" },
   { key: "emergency", label: "緊急聯絡" },
   { key: "education", label: "學歷" },
   { key: "experience", label: "工作經驗" },
@@ -36,14 +38,74 @@ export default function StaffProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({});
+  const [leaveBalance, setLeaveBalance] = useState(null);
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [leaveError, setLeaveError] = useState(null);
+  const [leaveFilterYear, setLeaveFilterYear] = useState(String(new Date().getFullYear()));
+  const [leaveFilterMonth, setLeaveFilterMonth] = useState("");
 
   const isPrivileged = currentUser?.role === 'admin' || currentUser?.role === 'management';
   const isOwnProfile = profile && currentUser && profile.work_email === currentUser.email;
   const canEdit = isPrivileged || isOwnProfile;
 
+  // Helper: strip time from date string, show date only (convert UTC to HK time)
+  const formatDateOnly = (dateStr) => {
+    if (!dateStr) return "—";
+    // If it's an ISO datetime with T or Z, convert to HK timezone (UTC+8)
+    if (dateStr.includes("T") || dateStr.includes("Z")) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        // Format in HK timezone
+        const hk = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+        const yyyy = hk.getUTCFullYear();
+        const mm = String(hk.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(hk.getUTCDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    }
+    // Fallback: plain date string
+    return dateStr.split("T")[0].split(" ")[0];
+  };
+
+  // Helper: filter records by year/month
+  const matchesLeaveFilter = (dateStr) => {
+    if (!leaveFilterYear && !leaveFilterMonth) return true;
+    const d = formatDateOnly(dateStr);
+    if (!d || d === "—") return true;
+    const [y, m] = d.split("-");
+    if (leaveFilterYear && y !== leaveFilterYear) return false;
+    if (leaveFilterMonth && m !== leaveFilterMonth) return false;
+    return true;
+  };
+
   useEffect(() => {
     loadData();
   }, [staffId]);
+
+  // Fetch leave balance when switching to leave tab or when profile loads
+  useEffect(() => {
+    if (activeTab === "leave" && profile?.display_name && !leaveBalance && !leaveLoading) {
+      fetchLeaveBalance();
+    }
+  }, [activeTab, profile?.display_name]);
+
+  const fetchLeaveBalance = async () => {
+    if (!profile?.display_name) return;
+    setLeaveLoading(true);
+    setLeaveError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("supabase-functions-leaveBalanceCalc", {
+        body: { staff_names: [profile.display_name] },
+      });
+      if (error) throw error;
+      const staffResult = data?.results?.[0] || null;
+      setLeaveBalance(staffResult);
+    } catch (e) {
+      setLeaveError(e?.message || "無法取得假期餘額");
+    } finally {
+      setLeaveLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -401,6 +463,285 @@ export default function StaffProfilePage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LEAVE BALANCE */}
+          {activeTab === "leave" && (
+            <div>
+              {leaveLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  <span className="ml-2 text-sm text-gray-500">正在計算假期餘額...</span>
+                </div>
+              ) : leaveError ? (
+                <div className="text-center py-12">
+                  <div className="text-red-500 text-sm mb-3">{leaveError}</div>
+                  <button onClick={fetchLeaveBalance} className="text-xs text-blue-600 hover:underline">重試</button>
+                </div>
+              ) : !leaveBalance ? (
+                <div className="text-center text-gray-400 py-12">暫無假期配額記錄</div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Summary Cards - only count non-expired years */}
+                  {(() => {
+                    const activeYears = (leaveBalance.year_details || []).filter(yd => !yd.is_expired);
+                    const currentQuota = activeYears.reduce((s, yd) => s + (yd.total_quota || 0), 0);
+                    const currentApproved = activeYears.reduce((s, yd) => s + (yd.approved_used || 0), 0);
+                    const currentPending = activeYears.reduce((s, yd) => s + (yd.pending_used || 0), 0);
+                    const currentBalance = Math.round((currentQuota - currentApproved) * 100) / 100;
+                    return (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                          <div className="text-xs text-blue-500 font-medium mb-1">總配額</div>
+                          <div className="text-2xl font-black text-blue-700">{currentQuota}</div>
+                          <div className="text-xs text-blue-400">日</div>
+                        </div>
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                          <div className="text-xs text-green-500 font-medium mb-1">剩餘</div>
+                          <div className="text-2xl font-black text-green-700">{currentBalance}</div>
+                          <div className="text-xs text-green-400">日</div>
+                        </div>
+                        <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
+                          <div className="text-xs text-orange-500 font-medium mb-1">已批核使用</div>
+                          <div className="text-2xl font-black text-orange-700">{currentApproved}</div>
+                          <div className="text-xs text-orange-400">日</div>
+                        </div>
+                        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
+                          <div className="text-xs text-yellow-600 font-medium mb-1">待批核</div>
+                          <div className="text-2xl font-black text-yellow-700">{currentPending}</div>
+                          <div className="text-xs text-yellow-500">日</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Filter Bar */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-xs text-gray-500 font-medium">篩選：</span>
+                    <select
+                      className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                      value={leaveFilterYear}
+                      onChange={(e) => setLeaveFilterYear(e.target.value)}
+                    >
+                      <option value="">全部年份</option>
+                      {(() => {
+                        const years = new Set();
+                        years.add(String(new Date().getFullYear()));
+                        (leaveBalance.year_details || []).forEach(yd => {
+                          (yd.quota_details || []).forEach(q => {
+                            const y = (q.calculation_date || "").split("T")[0].split(" ")[0].split("-")[0];
+                            if (y && y.length === 4) years.add(y);
+                          });
+                          [...(yd.approved_leaves || []), ...(yd.pending_leaves || [])].forEach(l => {
+                            const y = (l.start || "").split("T")[0].split(" ")[0].split("-")[0];
+                            if (y && y.length === 4) years.add(y);
+                          });
+                        });
+                        return [...years].sort().reverse().map(y => <option key={y} value={y}>{y}</option>);
+                      })()}
+                    </select>
+                    <select
+                      className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                      value={leaveFilterMonth}
+                      onChange={(e) => setLeaveFilterMonth(e.target.value)}
+                    >
+                      <option value="">全部月份</option>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const m = String(i + 1).padStart(2, "0");
+                        return <option key={m} value={m}>{i + 1}月</option>;
+                      })}
+                    </select>
+                    {(leaveFilterYear || leaveFilterMonth) && (
+                      <button
+                        onClick={() => { setLeaveFilterYear(""); setLeaveFilterMonth(""); }}
+                        className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
+                      >
+                        清除篩選
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Left = 派 (Quota), Right = 扣 (Leaves) - All years combined */}
+                  {(() => {
+                    const quotaRows = [];
+                    const leaveRows = [];
+                    (leaveBalance.year_details || []).forEach((yd) => {
+                      (yd.quota_details || []).filter(q => matchesLeaveFilter(q.calculation_date)).forEach((q, idx) => {
+                        quotaRows.push({
+                          key: `q-${yd.count_year}-${idx}`,
+                          date: formatDateOnly(q.calculation_date),
+                          rawDate: q.calculation_date || "",
+                          description: q.reason || "年假限額",
+                          days: q.plus_minus_quota,
+                          countYear: yd.count_year,
+                        });
+                      });
+                      (yd.approved_leaves || []).filter(l => matchesLeaveFilter(l.start)).forEach((l, idx) => {
+                        const dateDisplay = formatDateOnly(l.start) === formatDateOnly(l.end) ? formatDateOnly(l.start) : `${formatDateOnly(l.start)} - ${formatDateOnly(l.end)}`;
+                        leaveRows.push({
+                          key: `a-${yd.count_year}-${idx}`,
+                          date: dateDisplay,
+                          rawDate: l.start || "",
+                          description: l.leave_type,
+                          days: l.days,
+                          status: "approved",
+                          countYear: yd.count_year,
+                        });
+                      });
+                      (yd.pending_leaves || []).filter(l => matchesLeaveFilter(l.start)).forEach((l, idx) => {
+                        const dateDisplay = formatDateOnly(l.start) === formatDateOnly(l.end) ? formatDateOnly(l.start) : `${formatDateOnly(l.start)} - ${formatDateOnly(l.end)}`;
+                        leaveRows.push({
+                          key: `p-${yd.count_year}-${idx}`,
+                          date: dateDisplay,
+                          rawDate: l.start || "",
+                          description: l.leave_type,
+                          days: l.days,
+                          status: "pending",
+                          countYear: yd.count_year,
+                        });
+                      });
+                      if (yd.is_expired && yd.balance_excluding_pending > 0) {
+                        // Only show expired row when filter matches this year's expiry date year
+                        const expiryYear = (yd.expiry_date || "").split("-")[0];
+                        if (!leaveFilterYear || leaveFilterYear === expiryYear) {
+                          leaveRows.push({
+                            key: `expired-${yd.count_year}`,
+                            date: formatDateOnly(yd.expiry_date),
+                            rawDate: yd.expiry_date || "9999-12-31",
+                            description: "已過期AL",
+                            days: yd.balance_excluding_pending,
+                            status: "expired",
+                            countYear: yd.count_year,
+                          });
+                        }
+                      }
+                    });
+                    quotaRows.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+                    leaveRows.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
+
+                    return (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left: 派 (Quota) */}
+                        <div className="border border-blue-100 rounded-xl overflow-hidden">
+                          <div className="bg-blue-50 px-4 py-2.5 border-b border-blue-100">
+                            <span className="font-bold text-blue-700 text-sm">派 — 年假限額</span>
+                            <span className="ml-2 text-xs text-blue-500">共 {quotaRows.reduce((s, r) => s + Number(r.days || 0), 0)} 天</span>
+                          </div>
+                          <div className="p-3 max-h-[500px] overflow-y-auto">
+                            {quotaRows.length === 0 ? (
+                              <div className="text-xs text-gray-400 text-center py-6">暫無限額記錄</div>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-blue-50">
+                                    <th className="text-left py-1.5 px-2 text-blue-600 font-medium">日期</th>
+                                    <th className="text-left py-1.5 px-2 text-blue-600 font-medium">描述</th>
+                                    <th className="text-right py-1.5 px-2 text-blue-600 font-medium">天數</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {quotaRows.map((row) => (
+                                    <tr key={row.key} className="border-b border-gray-50 hover:bg-blue-50/50">
+                                      <td className="py-1.5 px-2 text-gray-600">{row.date}</td>
+                                      <td className="py-1.5 px-2 text-gray-600">
+                                        {row.description}
+                                        <span className="ml-1 text-[10px] text-gray-400">({row.countYear})</span>
+                                      </td>
+                                      <td className="py-1.5 px-2 text-right font-semibold text-blue-700">+{row.days}天</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: 扣 (Leave Used) */}
+                        <div className="border border-orange-100 rounded-xl overflow-hidden">
+                          <div className="bg-orange-50 px-4 py-2.5 border-b border-orange-100">
+                            <span className="font-bold text-orange-700 text-sm">扣 — 已用年假</span>
+                            <span className="ml-2 text-xs text-orange-500">共 {leaveRows.reduce((s, r) => s + Number(r.days || 0), 0)} 天</span>
+                            {(() => {
+                              // Breakdown by count year
+                              const yearBreakdown = {};
+                              leaveRows.forEach(r => {
+                                const yr = r.countYear;
+                                yearBreakdown[yr] = (yearBreakdown[yr] || 0) + Number(r.days || 0);
+                              });
+                              const years = Object.keys(yearBreakdown).sort((a, b) => Number(a) - Number(b));
+                              if (years.length > 1) {
+                                return (
+                                  <span className="ml-2 text-[10px] text-orange-400">
+                                    ({years.map(yr => `${yr}年度: ${yearBreakdown[yr]}天`).join("、")})
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                          <div className="p-3 max-h-[500px] overflow-y-auto">
+                            {leaveRows.length === 0 ? (
+                              <div className="text-xs text-gray-400 text-center py-6">暫無請假記錄</div>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-orange-50">
+                                    <th className="text-left py-1.5 px-2 text-orange-600 font-medium">狀態</th>
+                                    <th className="text-left py-1.5 px-2 text-orange-600 font-medium">日期</th>
+                                    <th className="text-left py-1.5 px-2 text-orange-600 font-medium">描述</th>
+                                    <th className="text-right py-1.5 px-2 text-orange-600 font-medium">天數</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {leaveRows.map((row) => {
+                                    let rowClass = "border-b border-gray-50 hover:bg-orange-50/30";
+                                    let textClass = "text-gray-600";
+                                    let daysClass = "text-orange-700";
+                                    let badge = <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full">已批核</span>;
+
+                                    if (row.status === "pending") {
+                                      rowClass = "border-b border-gray-50 hover:bg-yellow-50/50";
+                                      textClass = "text-yellow-700";
+                                      daysClass = "text-yellow-700";
+                                      badge = <span className="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded-full">待批核</span>;
+                                    } else if (row.status === "expired") {
+                                      rowClass = "border-b border-gray-50 bg-red-50/50";
+                                      textClass = "text-red-600";
+                                      daysClass = "text-red-600";
+                                      badge = <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">已過期</span>;
+                                    }
+
+                                    return (
+                                      <tr key={row.key} className={rowClass}>
+                                        <td className="py-1.5 px-2">{badge}</td>
+                                        <td className={`py-1.5 px-2 ${textClass}`}>{row.date}</td>
+                                        <td className={`py-1.5 px-2 ${textClass}`}>
+                                          {row.description}
+                                          <span className="ml-1 text-[10px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">扣{row.countYear}年度</span>
+                                        </td>
+                                        <td className={`py-1.5 px-2 text-right font-semibold ${daysClass}`}>-{row.days}天</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+
+
+
+
+
+
+
                 </div>
               )}
             </div>

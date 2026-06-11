@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Save, Clock, RefreshCw } from "lucide-react";
+import { Loader2, Save, Clock } from "lucide-react";
 
 const TIME_FIELDS = [
   { key: "work_start", label: "上班時間", default: "09:00" },
@@ -46,17 +46,6 @@ export default function WorkScheduleSettings() {
     setSaving(null);
   };
 
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
-
-  const handleSyncRegion = async () => {
-    setSyncing(true);
-    setSyncResult(null);
-    const res = await base44.functions.invoke('populateStaffRegion', {});
-    setSyncResult(res.data);
-    setSyncing(false);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-400">
@@ -69,27 +58,6 @@ export default function WorkScheduleSettings() {
     <div className="space-y-4">
       <div className="text-xs text-gray-500">
         設定各地區辦公室的上下班時間，用於計算遲到分鐘及自願加班時數。
-      </div>
-
-      {/* Sync staff_region button */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-bold text-indigo-800">🔄 同步員工地區</div>
-          <div className="text-xs text-indigo-600 mt-0.5">根據員工的 Base Location 自動填寫 staff_region 欄位</div>
-          {syncResult && (
-            <div className="text-xs text-indigo-700 mt-1 font-medium">
-              ✅ 完成：共 {syncResult.total} 人，已更新 {syncResult.updated} 人，跳過 {syncResult.skipped} 人
-            </div>
-          )}
-        </div>
-        <button
-          onClick={handleSyncRegion}
-          disabled={syncing}
-          className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
-        >
-          {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-          {syncing ? '同步中...' : '立即同步'}
-        </button>
       </div>
 
       {regions.map(region => (

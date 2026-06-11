@@ -2,14 +2,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { menuGroups, findGroupByPath } from "./menuConfig";
 
-// Paths accessible by non-admin users
-const USER_ALLOWED_PATHS = ["/work/annual-review", "/work/peer-review"];
-
-export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRole }) {
+export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRole, isPathAllowed }) {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const isAdmin = userRole === 'admin' || userRole === 'management';
 
   // Prefer explicit activeKey; otherwise derive from current route
   const routeGroup = findGroupByPath(location.pathname);
@@ -28,7 +23,7 @@ export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRol
         />
       )}
       <aside
-        className={`fixed md:sticky top-0 md:top-[57px] left-0 md:h-[calc(100vh-57px)] h-full bg-white shadow-lg md:shadow-none border-r border-gray-200 z-30 transition-all duration-300 flex flex-col ${
+        className={`fixed md:relative top-0 left-0 h-full bg-white shadow-lg md:shadow-none border-r border-gray-200 z-30 md:z-auto transition-all duration-300 flex flex-col ${
           collapsed ? "-translate-x-full md:translate-x-0 md:w-12" : "w-60"
         }`}
       >
@@ -52,38 +47,83 @@ export default function SubSidebar({ activeKey, collapsed, setCollapsed, userRol
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto py-2">
-          {currentGroup.items.map((item) => {
-            const active = location.pathname === item.path;
-            const icon = item.label.split(" ")[0];
-            const text = item.label.split(" ").slice(1).join(" ");
-            const enabled = isAdmin || USER_ALLOWED_PATHS.includes(item.path);
-            return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  if (!enabled) return;
-                  navigate(item.path);
-                  if (window.innerWidth < 768) setCollapsed(true);
-                }}
-                disabled={!enabled}
-                title={item.label}
-                className={`w-full flex items-center py-2 text-sm transition-all ${
-                  collapsed ? "px-0 justify-center" : "px-4"
-                } ${
-                  !enabled
-                    ? "text-gray-300 cursor-not-allowed"
-                    : active
+          {currentGroup.sections ? (
+            // Render items grouped by sections
+            currentGroup.sections.map((section, sIdx) => {
+              const filteredItems = section.items.filter(item => isPathAllowed ? isPathAllowed(item.path) : true);
+              if (filteredItems.length === 0) return null;
+              return (
+                <div key={sIdx}>
+                  {!collapsed && (
+                    <div className="px-4 pt-3 pb-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.title}</span>
+                    </div>
+                  )}
+                  {collapsed && sIdx > 0 && (
+                    <div className="mx-2 my-1 border-t border-gray-200" />
+                  )}
+                  {filteredItems.map((item) => {
+                    const active = location.pathname === item.path;
+                    const icon = item.label.split(" ")[0];
+                    const text = item.label.split(" ").slice(1).join(" ");
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          navigate(item.path);
+                          if (window.innerWidth < 768) setCollapsed(true);
+                        }}
+                        title={item.label}
+                        className={`w-full flex items-center py-2 text-sm transition-all ${
+                          collapsed ? "px-0 justify-center" : "px-4"
+                        } ${
+                          active
+                            ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-base">{icon}</span>
+                        {!collapsed && (
+                          <span className="ml-2 text-left text-xs">{text}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          ) : (
+            // Render flat items list
+            currentGroup.items
+              .filter((item) => isPathAllowed ? isPathAllowed(item.path) : true)
+              .map((item) => {
+              const active = location.pathname === item.path;
+              const icon = item.label.split(" ")[0];
+              const text = item.label.split(" ").slice(1).join(" ");
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    if (window.innerWidth < 768) setCollapsed(true);
+                  }}
+                  title={item.label}
+                  className={`w-full flex items-center py-2 text-sm transition-all ${
+                    collapsed ? "px-0 justify-center" : "px-4"
+                  } ${
+                    active
                       ? `${currentGroup.bg} ${currentGroup.color} font-semibold border-r-4 ${currentGroup.border}`
                       : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <span className="text-base">{icon}</span>
-                {!collapsed && (
-                  <span className="ml-2 text-left text-xs">{text}</span>
-                )}
-              </button>
-            );
-          })}
+                  }`}
+                >
+                  <span className="text-base">{icon}</span>
+                  {!collapsed && (
+                    <span className="ml-2 text-left text-xs">{text}</span>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       </aside>
     </>

@@ -56,7 +56,6 @@ export type Database = {
       annual_review: {
         Row: {
           attendance_work_days: number | null
-          base44_id: string | null
           boss_adjustment_note: string | null
           boss_dept_goals: Json | null
           boss_extra_notes: string | null
@@ -97,7 +96,6 @@ export type Database = {
         }
         Insert: {
           attendance_work_days?: number | null
-          base44_id?: string | null
           boss_adjustment_note?: string | null
           boss_dept_goals?: Json | null
           boss_extra_notes?: string | null
@@ -138,7 +136,6 @@ export type Database = {
         }
         Update: {
           attendance_work_days?: number | null
-          base44_id?: string | null
           boss_adjustment_note?: string | null
           boss_dept_goals?: Json | null
           boss_extra_notes?: string | null
@@ -182,7 +179,6 @@ export type Database = {
       appraisal_report: {
         Row: {
           annual_review_id: string | null
-          base44_id: string | null
           boss_feedback: string | null
           created_by_id: string | null
           created_date: string | null
@@ -209,7 +205,6 @@ export type Database = {
         }
         Insert: {
           annual_review_id?: string | null
-          base44_id?: string | null
           boss_feedback?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -236,7 +231,6 @@ export type Database = {
         }
         Update: {
           annual_review_id?: string | null
-          base44_id?: string | null
           boss_feedback?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -313,7 +307,6 @@ export type Database = {
           answers: Json | null
           assessment_id: string | null
           assessment_type: string | null
-          base44_id: string | null
           bu_name: string | null
           course_code: string | null
           course_id: string | null
@@ -343,7 +336,6 @@ export type Database = {
           answers?: Json | null
           assessment_id?: string | null
           assessment_type?: string | null
-          base44_id?: string | null
           bu_name?: string | null
           course_code?: string | null
           course_id?: string | null
@@ -373,7 +365,6 @@ export type Database = {
           answers?: Json | null
           assessment_id?: string | null
           assessment_type?: string | null
-          base44_id?: string | null
           bu_name?: string | null
           course_code?: string | null
           course_id?: string | null
@@ -463,7 +454,6 @@ export type Database = {
         Row: {
           accuracy_in: number | null
           accuracy_out: number | null
-          base44_id: string | null
           bubble_id: string | null
           clock_out_time: string | null
           clockin_time: string | null
@@ -506,7 +496,6 @@ export type Database = {
         Insert: {
           accuracy_in?: number | null
           accuracy_out?: number | null
-          base44_id?: string | null
           bubble_id?: string | null
           clock_out_time?: string | null
           clockin_time?: string | null
@@ -549,7 +538,6 @@ export type Database = {
         Update: {
           accuracy_in?: number | null
           accuracy_out?: number | null
-          base44_id?: string | null
           bubble_id?: string | null
           clock_out_time?: string | null
           clockin_time?: string | null
@@ -598,10 +586,8 @@ export type Database = {
           approver_email: string | null
           approver_id: string | null
           approver_name: string | null
-          base44_id: string | null
           bubble_id: string | null
           count_year: string | null
-          created_by_id: string | null
           created_date: string | null
           days: string | null
           delegate_email: string | null
@@ -610,10 +596,8 @@ export type Database = {
           display_name: string | null
           end_date_time: string | null
           from_date: string | null
-          google_event_id: string | null
           id: number
           info_tech_url: string | null
-          interview_email: string | null
           leave_period: string | null
           leave_period_code: string | null
           leave_type: string | null
@@ -628,8 +612,6 @@ export type Database = {
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
-          send_approval_email: string | null
-          send_email: string | null
           staff_id: string | null
           staff_name: string | null
           start_date_time: string | null
@@ -646,10 +628,8 @@ export type Database = {
           approver_email?: string | null
           approver_id?: string | null
           approver_name?: string | null
-          base44_id?: string | null
           bubble_id?: string | null
           count_year?: string | null
-          created_by_id?: string | null
           created_date?: string | null
           days?: string | null
           delegate_email?: string | null
@@ -658,10 +638,8 @@ export type Database = {
           display_name?: string | null
           end_date_time?: string | null
           from_date?: string | null
-          google_event_id?: string | null
           id?: never
           info_tech_url?: string | null
-          interview_email?: string | null
           leave_period?: string | null
           leave_period_code?: string | null
           leave_type?: string | null
@@ -676,8 +654,6 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          send_approval_email?: string | null
-          send_email?: string | null
           staff_id?: string | null
           staff_name?: string | null
           start_date_time?: string | null
@@ -694,10 +670,8 @@ export type Database = {
           approver_email?: string | null
           approver_id?: string | null
           approver_name?: string | null
-          base44_id?: string | null
           bubble_id?: string | null
           count_year?: string | null
-          created_by_id?: string | null
           created_date?: string | null
           days?: string | null
           delegate_email?: string | null
@@ -706,10 +680,8 @@ export type Database = {
           display_name?: string | null
           end_date_time?: string | null
           from_date?: string | null
-          google_event_id?: string | null
           id?: never
           info_tech_url?: string | null
-          interview_email?: string | null
           leave_period?: string | null
           leave_period_code?: string | null
           leave_type?: string | null
@@ -724,8 +696,6 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          send_approval_email?: string | null
-          send_email?: string | null
           staff_id?: string | null
           staff_name?: string | null
           start_date_time?: string | null
@@ -738,9 +708,62 @@ export type Database = {
         }
         Relationships: []
       }
+      bubble_leave_quota: {
+        Row: {
+          bubble_id: string
+          calculation_date: string | null
+          count_year: string | null
+          created_at: string | null
+          created_by: string | null
+          created_date: string | null
+          id: string
+          modified_date: string | null
+          operator_text: string | null
+          plus_minus_quota: string | null
+          reason: string | null
+          slug: string | null
+          staff_id: string | null
+          staff_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bubble_id: string
+          calculation_date?: string | null
+          count_year?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          id?: string
+          modified_date?: string | null
+          operator_text?: string | null
+          plus_minus_quota?: string | null
+          reason?: string | null
+          slug?: string | null
+          staff_id?: string | null
+          staff_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bubble_id?: string
+          calculation_date?: string | null
+          count_year?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          id?: string
+          modified_date?: string | null
+          operator_text?: string | null
+          plus_minus_quota?: string | null
+          reason?: string | null
+          slug?: string | null
+          staff_id?: string | null
+          staff_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       bubble_man_hour_date: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           created_date: string | null
           id: number
@@ -751,7 +774,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_date?: string | null
           id?: never
@@ -762,7 +784,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_date?: string | null
           id?: never
@@ -777,7 +798,6 @@ export type Database = {
       bubble_man_hour_task: {
         Row: {
           asana_link: string | null
-          base44_id: string | null
           brand_id: string | null
           brand_name: string | null
           bubble_id: string | null
@@ -809,7 +829,6 @@ export type Database = {
         }
         Insert: {
           asana_link?: string | null
-          base44_id?: string | null
           brand_id?: string | null
           brand_name?: string | null
           bubble_id?: string | null
@@ -841,7 +860,6 @@ export type Database = {
         }
         Update: {
           asana_link?: string | null
-          base44_id?: string | null
           brand_id?: string | null
           brand_name?: string | null
           bubble_id?: string | null
@@ -875,7 +893,6 @@ export type Database = {
       }
       bubble_merits_demerits: {
         Row: {
-          base44_id: string | null
           brief_description: string | null
           bubble_created_by: string | null
           bubble_created_date: string | null
@@ -893,7 +910,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           brief_description?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
@@ -911,7 +927,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           brief_description?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
@@ -932,7 +947,6 @@ export type Database = {
       }
       bubble_ot: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           clockin_id: string | null
           created_by_id: string | null
@@ -952,7 +966,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           clockin_id?: string | null
           created_by_id?: string | null
@@ -972,7 +985,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           clockin_id?: string | null
           created_by_id?: string | null
@@ -996,7 +1008,6 @@ export type Database = {
       bubble_project: {
         Row: {
           asana_link: string | null
-          base44_id: string | null
           brands: Json | null
           bubble_api_id: string | null
           bubble_id: string | null
@@ -1024,7 +1035,6 @@ export type Database = {
         }
         Insert: {
           asana_link?: string | null
-          base44_id?: string | null
           brands?: Json | null
           bubble_api_id?: string | null
           bubble_id?: string | null
@@ -1052,7 +1062,6 @@ export type Database = {
         }
         Update: {
           asana_link?: string | null
-          base44_id?: string | null
           brands?: Json | null
           bubble_api_id?: string | null
           bubble_id?: string | null
@@ -1083,7 +1092,6 @@ export type Database = {
       bubble_staff_kpi: {
         Row: {
           asana_link: string | null
-          base44_id: string | null
           box_folder: string | null
           breakthrough_description: string | null
           bubble_id: string | null
@@ -1105,7 +1113,6 @@ export type Database = {
         }
         Insert: {
           asana_link?: string | null
-          base44_id?: string | null
           box_folder?: string | null
           breakthrough_description?: string | null
           bubble_id?: string | null
@@ -1127,7 +1134,6 @@ export type Database = {
         }
         Update: {
           asana_link?: string | null
-          base44_id?: string | null
           box_folder?: string | null
           breakthrough_description?: string | null
           bubble_id?: string | null
@@ -1151,7 +1157,6 @@ export type Database = {
       }
       bubble_staff_kpimonth: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           company_comment: string | null
           company_point: number | null
@@ -1164,7 +1169,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           company_comment?: string | null
           company_point?: number | null
@@ -1177,7 +1181,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           company_comment?: string | null
           company_point?: number | null
@@ -1307,7 +1310,6 @@ export type Database = {
       }
       company_event: {
         Row: {
-          base44_id: string | null
           color: string | null
           created_by_id: string | null
           created_date: string | null
@@ -1329,7 +1331,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           color?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -1351,7 +1352,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           color?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -1463,7 +1463,6 @@ export type Database = {
       }
       contribution_type: {
         Row: {
-          base44_id: string | null
           created_by_id: string | null
           created_date: string | null
           description: string | null
@@ -1475,7 +1474,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           description?: string | null
@@ -1487,7 +1485,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           description?: string | null
@@ -1502,7 +1499,6 @@ export type Database = {
       }
       course: {
         Row: {
-          base44_id: string | null
           category_id: string | null
           category_name: string | null
           code: string | null
@@ -1528,7 +1524,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           category_id?: string | null
           category_name?: string | null
           code?: string | null
@@ -1554,7 +1549,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           category_id?: string | null
           category_name?: string | null
           code?: string | null
@@ -1583,7 +1577,6 @@ export type Database = {
       }
       course_category: {
         Row: {
-          base44_id: string | null
           color: string | null
           created_by_id: string | null
           created_date: string | null
@@ -1597,7 +1590,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           color?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -1611,7 +1603,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           color?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -1628,7 +1619,6 @@ export type Database = {
       }
       course_resource: {
         Row: {
-          base44_id: string | null
           category: string | null
           content_text: string | null
           course_id: string | null
@@ -1656,7 +1646,6 @@ export type Database = {
           url: string | null
         }
         Insert: {
-          base44_id?: string | null
           category?: string | null
           content_text?: string | null
           course_id?: string | null
@@ -1684,7 +1673,6 @@ export type Database = {
           url?: string | null
         }
         Update: {
-          base44_id?: string | null
           category?: string | null
           content_text?: string | null
           course_id?: string | null
@@ -1779,6 +1767,7 @@ export type Database = {
       event_registrations: {
         Row: {
           event_id: string | null
+          followed_by: string | null
           form_data: Json | null
           form_id: string | null
           guest_count: number | null
@@ -1794,6 +1783,7 @@ export type Database = {
         }
         Insert: {
           event_id?: string | null
+          followed_by?: string | null
           form_data?: Json | null
           form_id?: string | null
           guest_count?: number | null
@@ -1809,6 +1799,7 @@ export type Database = {
         }
         Update: {
           event_id?: string | null
+          followed_by?: string | null
           form_data?: Json | null
           form_id?: string | null
           guest_count?: number | null
@@ -2221,11 +2212,11 @@ export type Database = {
       }
       leave_type: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           code: string | null
           created_by_id: string | null
           created_date: string | null
+          days_before_apply: number | null
           default_entitlement: number | null
           full_label: string | null
           id: number
@@ -2235,11 +2226,11 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           code?: string | null
           created_by_id?: string | null
           created_date?: string | null
+          days_before_apply?: number | null
           default_entitlement?: number | null
           full_label?: string | null
           id?: never
@@ -2249,11 +2240,11 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           code?: string | null
           created_by_id?: string | null
           created_date?: string | null
+          days_before_apply?: number | null
           default_entitlement?: number | null
           full_label?: string | null
           id?: never
@@ -2266,7 +2257,6 @@ export type Database = {
       }
       merit_demerit_type: {
         Row: {
-          base44_id: string | null
           category: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2278,7 +2268,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           category?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2290,7 +2279,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           category?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2305,7 +2293,6 @@ export type Database = {
       }
       nosbu: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2316,7 +2303,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2327,7 +2313,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2342,7 +2327,6 @@ export type Database = {
       nosdistrict: {
         Row: {
           area: string | null
-          base44_id: string | null
           bubble_id: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2356,7 +2340,6 @@ export type Database = {
         }
         Insert: {
           area?: string | null
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2370,7 +2353,6 @@ export type Database = {
         }
         Update: {
           area?: string | null
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2386,7 +2368,6 @@ export type Database = {
       }
       nostask: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2399,7 +2380,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2412,7 +2392,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2428,7 +2407,6 @@ export type Database = {
       }
       nostask_type: {
         Row: {
-          base44_id: string | null
           brands: Json | null
           bubble_id: string | null
           created_by_id: string | null
@@ -2441,7 +2419,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           brands?: Json | null
           bubble_id?: string | null
           created_by_id?: string | null
@@ -2454,7 +2431,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           brands?: Json | null
           bubble_id?: string | null
           created_by_id?: string | null
@@ -2470,7 +2446,6 @@ export type Database = {
       }
       nosteam: {
         Row: {
-          base44_id: string | null
           bu_id: string | null
           bu_name: string | null
           bubble_id: string | null
@@ -2484,7 +2459,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bu_id?: string | null
           bu_name?: string | null
           bubble_id?: string | null
@@ -2498,7 +2472,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bu_id?: string | null
           bu_name?: string | null
           bubble_id?: string | null
@@ -2515,7 +2488,6 @@ export type Database = {
       }
       nosteam_role: {
         Row: {
-          base44_id: string | null
           bubble_id: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2526,7 +2498,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2537,7 +2508,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2552,7 +2522,6 @@ export type Database = {
       notification: {
         Row: {
           action_taken: string | null
-          base44_id: string | null
           created_date: string | null
           days_remaining: number | null
           id: number
@@ -2572,7 +2541,6 @@ export type Database = {
         }
         Insert: {
           action_taken?: string | null
-          base44_id?: string | null
           created_date?: string | null
           days_remaining?: number | null
           id?: number
@@ -2592,7 +2560,6 @@ export type Database = {
         }
         Update: {
           action_taken?: string | null
-          base44_id?: string | null
           created_date?: string | null
           days_remaining?: number | null
           id?: number
@@ -2612,9 +2579,35 @@ export type Database = {
         }
         Relationships: []
       }
+      page_permissions: {
+        Row: {
+          allowed: boolean | null
+          created_at: string | null
+          id: number
+          page_path: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       peer_review: {
         Row: {
-          base44_id: string | null
           comment: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2639,7 +2632,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           comment?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2664,7 +2656,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           comment?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2694,7 +2685,6 @@ export type Database = {
         Row: {
           approved_by: string | null
           approved_date: string | null
-          base44_id: string | null
           created_by_id: string | null
           created_date: string | null
           field_name: string | null
@@ -2715,7 +2705,6 @@ export type Database = {
         Insert: {
           approved_by?: string | null
           approved_date?: string | null
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           field_name?: string | null
@@ -2736,7 +2725,6 @@ export type Database = {
         Update: {
           approved_by?: string | null
           approved_date?: string | null
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           field_name?: string | null
@@ -2759,7 +2747,6 @@ export type Database = {
       region: {
         Row: {
           base_locations: Json | null
-          base44_id: string | null
           code: string | null
           color: string | null
           created_by_id: string | null
@@ -2782,7 +2769,6 @@ export type Database = {
         }
         Insert: {
           base_locations?: Json | null
-          base44_id?: string | null
           code?: string | null
           color?: string | null
           created_by_id?: string | null
@@ -2805,7 +2791,6 @@ export type Database = {
         }
         Update: {
           base_locations?: Json | null
-          base44_id?: string | null
           code?: string | null
           color?: string | null
           created_by_id?: string | null
@@ -2943,7 +2928,6 @@ export type Database = {
       }
       review_preset: {
         Row: {
-          base44_id: string | null
           category: string | null
           created_by_id: string | null
           created_date: string | null
@@ -2954,7 +2938,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           category?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2965,7 +2948,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           category?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -2979,7 +2961,6 @@ export type Database = {
       }
       score_level: {
         Row: {
-          base44_id: string | null
           created_by_id: string | null
           created_date: string | null
           description: string | null
@@ -2991,7 +2972,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           description?: string | null
@@ -3003,7 +2983,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           created_by_id?: string | null
           created_date?: string | null
           description?: string | null
@@ -3081,7 +3060,6 @@ export type Database = {
         Row: {
           al_quota: number | null
           base_location: string | null
-          base44_id: string | null
           birthday: string | null
           brands: Json | null
           bu_name: string | null
@@ -3139,7 +3117,6 @@ export type Database = {
         Insert: {
           al_quota?: number | null
           base_location?: string | null
-          base44_id?: string | null
           birthday?: string | null
           brands?: Json | null
           bu_name?: string | null
@@ -3197,7 +3174,6 @@ export type Database = {
         Update: {
           al_quota?: number | null
           base_location?: string | null
-          base44_id?: string | null
           birthday?: string | null
           brands?: Json | null
           bu_name?: string | null
@@ -3256,7 +3232,6 @@ export type Database = {
       }
       staff_contact_person: {
         Row: {
-          base44_id: string | null
           bubble_created_date: string | null
           bubble_id: string | null
           bubble_modified_date: string | null
@@ -3272,7 +3247,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3288,7 +3262,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3307,7 +3280,6 @@ export type Database = {
       }
       staff_education: {
         Row: {
-          base44_id: string | null
           bubble_created_date: string | null
           bubble_id: string | null
           bubble_modified_date: string | null
@@ -3333,7 +3305,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3359,7 +3330,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3390,7 +3360,6 @@ export type Database = {
         Row: {
           bank_card_name: string | null
           bank_card_owner: string | null
-          base44_id: string | null
           birthday: string | null
           bubble_created_date: string | null
           bubble_id: string | null
@@ -3425,7 +3394,6 @@ export type Database = {
         Insert: {
           bank_card_name?: string | null
           bank_card_owner?: string | null
-          base44_id?: string | null
           birthday?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3460,7 +3428,6 @@ export type Database = {
         Update: {
           bank_card_name?: string | null
           bank_card_owner?: string | null
-          base44_id?: string | null
           birthday?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3497,7 +3464,6 @@ export type Database = {
       staff_qaanswer: {
         Row: {
           answer_text: string | null
-          base44_id: string | null
           bubble_created_by: string | null
           bubble_created_date: string | null
           bubble_id: string | null
@@ -3513,7 +3479,6 @@ export type Database = {
         }
         Insert: {
           answer_text?: string | null
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3529,7 +3494,6 @@ export type Database = {
         }
         Update: {
           answer_text?: string | null
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3547,7 +3511,6 @@ export type Database = {
       }
       staff_qacategory: {
         Row: {
-          base44_id: string | null
           bubble_created_by: string | null
           bubble_created_date: string | null
           bubble_id: string | null
@@ -3562,7 +3525,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3577,7 +3539,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3595,7 +3556,6 @@ export type Database = {
       }
       staff_qaquestion: {
         Row: {
-          base44_id: string | null
           bubble_created_by: string | null
           bubble_created_date: string | null
           bubble_id: string | null
@@ -3617,7 +3577,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3639,7 +3598,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_created_by?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
@@ -3664,7 +3622,6 @@ export type Database = {
       }
       staff_work_experience: {
         Row: {
-          base44_id: string | null
           bubble_created_date: string | null
           bubble_id: string | null
           bubble_modified_date: string | null
@@ -3682,7 +3639,6 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3700,7 +3656,6 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          base44_id?: string | null
           bubble_created_date?: string | null
           bubble_id?: string | null
           bubble_modified_date?: string | null
@@ -3727,6 +3682,7 @@ export type Database = {
           last_synced_at: string | null
           status: string | null
           table_name: string | null
+          total_deleted: number | null
           total_errors: number | null
           total_fetched: number | null
           total_upserted: number | null
@@ -3739,6 +3695,7 @@ export type Database = {
           last_synced_at?: string | null
           status?: string | null
           table_name?: string | null
+          total_deleted?: number | null
           total_errors?: number | null
           total_fetched?: number | null
           total_upserted?: number | null
@@ -3751,6 +3708,7 @@ export type Database = {
           last_synced_at?: string | null
           status?: string | null
           table_name?: string | null
+          total_deleted?: number | null
           total_errors?: number | null
           total_fetched?: number | null
           total_upserted?: number | null
@@ -3803,7 +3761,6 @@ export type Database = {
       tender_registration: {
         Row: {
           amount: number | null
-          base44_id: string | null
           client: string | null
           created_by_id: string | null
           created_date: string | null
@@ -3822,7 +3779,6 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
-          base44_id?: string | null
           client?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -3841,7 +3797,6 @@ export type Database = {
         }
         Update: {
           amount?: number | null
-          base44_id?: string | null
           client?: string | null
           created_by_id?: string | null
           created_date?: string | null
@@ -3896,6 +3851,36 @@ export type Database = {
           linked_staff_id?: string | null
           password_hint?: string | null
           role?: string | null
+        }
+        Relationships: []
+      }
+      user_page_overrides: {
+        Row: {
+          allowed: boolean | null
+          created_at: string | null
+          id: number
+          page_path: string
+          updated_at: string | null
+          user_email: string | null
+          user_id: number
+        }
+        Insert: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path: string
+          updated_at?: string | null
+          user_email?: string | null
+          user_id: number
+        }
+        Update: {
+          allowed?: boolean | null
+          created_at?: string | null
+          id?: never
+          page_path?: string
+          updated_at?: string | null
+          user_email?: string | null
+          user_id?: number
         }
         Relationships: []
       }

@@ -192,7 +192,6 @@ All 3 routes (`/leader/team`, `/leader/training`, `/leader/certification`) — P
 ## Data Layer
 - **Data is fetched from Supabase** via the data layer in `src/api/base44Client.js`.
 - `base44.auth.me()` calls Supabase auth to fetch the logged-in user.
-- Dev admin bypass available via localStorage `__dev_admin_bypass`.
 
 
 ---

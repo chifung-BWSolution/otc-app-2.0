@@ -12,6 +12,7 @@ const TABLE_MAP: Record<string, string> = {
   StaffInformation: "staff_information",
   BubbleOT: "bubble_ot",
   BubbleLeave: "bubble_leave",
+  BubbleLeaveQuota: "bubble_leave_quota",
   BubbleClockin: "bubble_clockin",
   BubbleManHourDate: "bubble_man_hour_date",
   BubbleManHourTask: "bubble_man_hour_task",

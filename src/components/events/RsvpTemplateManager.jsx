@@ -23,6 +23,13 @@ const TEMPLATE_TYPES = [
   { value: "cancellation", label: "缺席/取消報名", emoji: "❌" },
 ];
 
+const DEFAULT_BODIES = {
+  submission_success: "你好 {{參加者姓名}}，\n\n感謝你報名參加「{{活動名稱}}」！\n\n活動日期：{{日期}}\n活動地點：{{地點}}\n場次：{{場次名稱}}\n\n如有任何查詢，歡迎聯絡我們。",
+  reminder: "提醒：{{參加者姓名}}，你報名嘅「{{活動名稱}}」即將舉行！\n\n活動日期：{{日期}}\n活動地點：{{地點}}\n場次：{{場次名稱}}\n\n請準時出席，感謝！",
+  attendance_confirmed: "{{參加者姓名}} 你好！\n\n已確認你將出席「{{活動名稱}}」。\n\n活動日期：{{日期}}\n地點：{{地點}}\n\n期待見到你！",
+  cancellation: "{{參加者姓名}} 你好，\n\n已收到你取消「{{活動名稱}}」報名嘅通知。\n\n如有需要，歡迎再次報名。謝謝！",
+};
+
 const VARIABLES = [
   { key: "活動名稱", desc: "活動標題" },
   { key: "參加者姓名", desc: "報名者姓名" },
@@ -169,11 +176,10 @@ export default function RsvpTemplateManager({ eventId, eventTitle }) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const DEFAULT_BODY = "你好 {{參加者姓名}}，\n\n感謝你報名參加「{{活動名稱}}」！\n\n活動日期：{{日期}}\n活動地點：{{地點}}\n場次：{{場次名稱}}\n\n如有任何查詢，歡迎聯絡我們。";
 
   const [form, setForm] = useState({
     template_type: "submission_success",
-    body: DEFAULT_BODY,
+    body: DEFAULT_BODIES["submission_success"],
     send_via_notification: true,
     is_active: true,
   });
@@ -196,7 +202,7 @@ export default function RsvpTemplateManager({ eventId, eventTitle }) {
   const resetForm = () => {
     setForm({
       template_type: "submission_success",
-      body: DEFAULT_BODY,
+      body: DEFAULT_BODIES["submission_success"],
       send_via_notification: true,
       is_active: true,
     });
@@ -289,7 +295,12 @@ export default function RsvpTemplateManager({ eventId, eventTitle }) {
                 <Label className="text-xs">訊息類型</Label>
                 <Select
                   value={form.template_type}
-                  onValueChange={(v) => setForm((p) => ({ ...p, template_type: v }))}
+                  onValueChange={(v) => setForm((p) => ({
+                    ...p,
+                    template_type: v,
+                    // Auto-fill default body when creating (not editing)
+                    ...(!editingId ? { body: DEFAULT_BODIES[v] || p.body } : {}),
+                  }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -352,7 +363,7 @@ export default function RsvpTemplateManager({ eventId, eventTitle }) {
                   rows={6}
                 />
                 <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
-                  {"💡 使用 {{欄位名}} 嚟插入動態內容，例如 {{日期}} 會顯示活動日期"}
+                  {"💡 輸入 @ 即可插入動態欄位，例如 @日期 會顯示活動日期"}
                 </p>
               </div>
 

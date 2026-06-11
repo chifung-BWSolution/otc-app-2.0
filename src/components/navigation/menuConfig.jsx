@@ -50,6 +50,7 @@ export const menuGroups = [
       { label: "🚀 主要項目", path: "/work/projects" },
       { label: "✅ 特別批核", path: "/work/special-approval" },
       { label: "📋 年度工作評估", path: "/work/annual-review" },
+      { label: "👥 同事互評", path: "/work/peer-review" },
     ],
   },
   {
@@ -110,6 +111,19 @@ export const menuGroups = [
     ],
   },
   {
+    key: "events",
+    label: "活動管理",
+    icon: "🎪",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    border: "border-amber-400",
+    gradient: "from-amber-500 to-orange-500",
+    items: [
+      { label: "🎫 參加活動", path: "/events/join" },
+      { label: "🎪 活動管理", path: "/admin/events" },
+    ],
+  },
+  {
     key: "adminfollow",
     label: "行政跟進",
     icon: "⚙️",
@@ -118,13 +132,11 @@ export const menuGroups = [
     border: "border-red-400",
     gradient: "from-red-500 to-rose-500",
     items: [
-      { label: "🎪 活動管理", path: "/admin/events" },
       { label: "✅ 批核申請", path: "/admin/approvals" },
       { label: "🌴 假期審批", path: "/admin/leave-approvals" },
       { label: "📋 考核安排", path: "/admin/assessment-arrangement" },
       { label: "📊 考核成績登記", path: "/admin/assessment-results" },
       { label: "👤 員工目錄", path: "/admin/staff" },
-      { label: "🏗️ 組織架構設定", path: "/admin/org-settings" },
       { label: "🌏 地區管理", path: "/admin/regions" },
       { label: "🎉 新同事入職", path: "/admin/onboarding" },
       { label: "👋 同事離職", path: "/admin/offboarding" },
@@ -132,9 +144,52 @@ export const menuGroups = [
       { label: "📊 功過記錄", path: "/admin/performance-records" },
       { label: "📲 App管理", path: "/admin/app-management" },
       { label: "🎓 課程管理", path: "/admin/course-management" },
-      { label: "👤 用戶帳戶管理", path: "/admin/user-management" },
-      { label: "🔄 Bubble數據匯入", path: "/admin/bubble-data" },
     ],
+  },
+  {
+    key: "settings",
+    label: "系統設定",
+    icon: "🔧",
+    color: "text-slate-600",
+    bg: "bg-slate-50",
+    border: "border-slate-400",
+    gradient: "from-slate-500 to-gray-600",
+    sections: [
+      {
+        title: "組織架構",
+        items: [
+          { label: "🏗️ BU / Team / Role", path: "/settings/org-structure" },
+          { label: "⏰ 上班時間設定", path: "/settings/work-schedule" },
+          { label: "👥 Team 分組", path: "/settings/team-groups" },
+        ],
+      },
+      {
+        title: "假期管理",
+        items: [
+          { label: "🌴 假期設定", path: "/settings/leave" },
+        ],
+      },
+      {
+        title: "考核評估",
+        items: [
+          { label: "📝 貢獻類型", path: "/settings/contribution-types" },
+          { label: "⭐ 自評分數", path: "/settings/score-levels" },
+          { label: "📋 評估選項", path: "/settings/review-presets" },
+          { label: "⚖️ 功過類型", path: "/settings/merit-demerit-types" },
+        ],
+      },
+      {
+        title: "系統管理",
+        items: [
+          { label: "👤 用戶帳戶管理", path: "/admin/user-management" },
+          { label: "🔐 頁面權限管理", path: "/admin/page-permissions" },
+          { label: "🔄 Bubble數據遷移總覽", path: "/admin/bubble-data" },
+        ],
+      },
+    ],
+    get items() {
+      return this.sections.flatMap(s => s.items);
+    },
   },
   {
     key: "superadmin",

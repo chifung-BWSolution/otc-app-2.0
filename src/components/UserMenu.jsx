@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { User, LogOut, ChevronDown, Shield } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function UserMenu({ currentUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { logout } = useAuth();
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -13,7 +14,7 @@ export default function UserMenu({ currentUser }) {
   }, []);
 
   const handleLogout = () => {
-    base44.auth.logout("/");
+    logout(true);
   };
 
   const initials = currentUser?.full_name?.[0] || currentUser?.email?.[0] || "?";

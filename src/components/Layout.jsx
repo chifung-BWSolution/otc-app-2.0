@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./NotificationBell";
@@ -7,7 +7,10 @@ import RegionBadge from "./RegionBadge";
 import UserMenu from "./UserMenu";
 import TopNavBar from "./navigation/TopNavBar";
 import SubSidebar from "./navigation/SubSidebar";
+import ImpersonationBanner from "./ImpersonationBanner";
 import { findGroupByPath, menuGroups } from "./navigation/menuConfig";
+import { usePagePermissions } from "@/hooks/usePagePermissions";
+import { useAuth } from "@/lib/AuthContext";
 
 const pageTitles = {
   "/": "🏠 主頁",
@@ -52,9 +55,23 @@ const pageTitles = {
   "/admin/app-management": "📲 App管理",
   "/admin/course-management": "🎓 課程管理",
   "/admin/annual-reviews": "📋 年度評估表",
+  "/admin/page-permissions": "🔐 頁面權限管理",
   "/work/annual-review": "📋 年度工作評估",
+  "/work/peer-review": "👥 同事互評",
   "/superadmin/analytics": "📈 分析報表",
   "/superadmin/directory": "👥 同事一覽表",
+  "/admin/manhour-report": "📊 工作匯報報告",
+  "/admin/performance-report": "📈 績效總覽報告",
+  "/admin/peer-reviews": "👥 同事互評管理",
+  "/admin/appraisal-reports": "📄 員工年度表現報告",
+  "/admin/regions": "🌏 地區管理",
+  "/admin/events": "🎪 活動管理",
+  "/admin/assessment-arrangement": "📋 考核安排",
+  "/admin/assessment-results": "📊 考核成績登記",
+  "/admin/bubble-data": "🔄 Bubble數據匯入",
+  "/admin/user-management": "👤 用戶帳戶管理",
+  "/events/join": "🎫 參加活動",
+  "/business/tender": "📋 Tender登記",
 };
 
 export default function Layout() {
@@ -66,15 +83,13 @@ export default function Layout() {
   const title = pageTitles[location.pathname] || "企業管理系統";
 
   const [isMGT, setIsMGT] = useState(false);
+  const { user: authUser } = useAuth();
+
+  const { isPathAllowed, isGroupAllowed, filterAllowedItems, loading: permLoading } = usePagePermissions();
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setCurrentUser(u);
-      // Dev admin bypass - always show MGT tabs
-      if (u?.id === '00000000-0000-0000-0000-000000000000') {
-        setIsMGT(true);
-        return;
-      }
       // Check if user belongs to MGT team
       if (u?.linked_staff_id) {
         base44.entities.Staff.filter({ bubble_id: u.linked_staff_id }, "id", 1)
@@ -99,10 +114,19 @@ export default function Layout() {
   const isHome = location.pathname === "/";
   const showSidebar = hasSubSidebar && !isHome;
 
+  // Route guard: if current path is not allowed, redirect to home
+  const currentPathBlocked = !permLoading && location.pathname !== "/" && !isPathAllowed(location.pathname);
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      {/* Route guard */}
+      {currentPathBlocked && <Navigate to="/" replace />}
+
+      {/* Impersonation Warning Banner */}
+      <ImpersonationBanner />
+
       {/* Top Header */}
-      <header className="bg-white shadow-sm px-4 py-2 flex items-center justify-between sticky top-0 z-40">
+      <header className="bg-white shadow-sm px-4 py-2 flex items-center justify-between shrink-0 z-40">
         <div className="flex items-center gap-3">
           {showSidebar && (
             <button
@@ -132,21 +156,29 @@ export default function Layout() {
       </header>
 
       {/* Top Navigation (horizontal main categories) */}
-      <div className="sticky top-[49px] z-30">
-        <TopNavBar activeKey={activeKey} setActiveKey={setActiveKey} isMGT={isMGT} userRole={currentUser?.role} />
+      <div className="shrink-0 z-30">
+        <TopNavBar
+          activeKey={activeKey}
+          setActiveKey={setActiveKey}
+          isMGT={isMGT}
+          userRole={authUser?.role || currentUser?.role}
+          isGroupAllowed={isGroupAllowed}
+          filterAllowedItems={filterAllowedItems}
+        />
       </div>
 
       {/* Body: sub sidebar + content */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {showSidebar && (
           <SubSidebar
             activeKey={activeKey}
             collapsed={collapsed}
             setCollapsed={setCollapsed}
-            userRole={currentUser?.role}
+            userRole={authUser?.role || currentUser?.role}
+            isPathAllowed={isPathAllowed}
           />
         )}
-        <main className="flex-1 p-4 md:p-6 max-w-full min-w-0">
+        <main className="flex-1 p-4 md:p-6 max-w-full min-w-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

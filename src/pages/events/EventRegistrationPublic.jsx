@@ -174,15 +174,24 @@ export default function EventRegistrationPublic() {
     }
 
     // Check duplicate
-    if (!event?.allow_duplicate_registration && formData.email) {
-      const { data: existing } = await supabase
+    const emailValue = formData.email || formData["電郵"] || "";
+    if (!event?.allow_duplicate_registration && emailValue) {
+      // Search both possible key formats
+      const { data: existing1 } = await supabase
         .from("event_registrations")
         .select("id")
         .eq("event_id", event.id)
         .eq("status", "confirmed")
-        .contains("form_data", { email: formData.email });
+        .contains("form_data", { email: emailValue });
 
-      if (existing && existing.length > 0) {
+      const { data: existing2 } = await supabase
+        .from("event_registrations")
+        .select("id")
+        .eq("event_id", event.id)
+        .eq("status", "confirmed")
+        .contains("form_data", { "電郵": emailValue });
+
+      if ((existing1 && existing1.length > 0) || (existing2 && existing2.length > 0)) {
         setError("你已經報名過此活動");
         setSubmitting(false);
         return;

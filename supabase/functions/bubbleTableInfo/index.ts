@@ -13,6 +13,7 @@ const BUBBLE_TYPE_MAP: Record<string, string> = {
   StaffInformation: "Staff Information",
   BubbleOT: "OT",
   BubbleLeave: "Leave",
+  BubbleLeaveQuota: "leavequota",
   BubbleClockin: "Clock-in",
   BubbleManHourDate: "Man Hour Date",
   BubbleManHourTask: "Man Hour Task",

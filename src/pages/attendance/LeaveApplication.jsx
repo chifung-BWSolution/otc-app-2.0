@@ -110,11 +110,8 @@ export default function LeaveApplication() {
 
       {activeTab === "balances" && (
         <LeaveBalancesTab
-          balances={balances}
-          loading={loading}
           user={user}
           userRole={userRole}
-          userDept={user?.department}
         />
       )}
     </div>

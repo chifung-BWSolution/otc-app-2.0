@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Login = () => {
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,17 +16,12 @@ const Login = () => {
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState('email'); // 'email' or 'verify'
 
-  const handleDevAdminLogin = () => {
-    const fakeAdmin = {
-      id: '00000000-0000-0000-0000-000000000000',
-      email: 'dev-admin@test.local',
-      full_name: 'Dev Admin',
-      role: 'admin',
-      team_role_name: 'MGT Team',
-    };
-    localStorage.setItem('__dev_admin_bypass', JSON.stringify(fakeAdmin));
-    window.location.href = '/';
-  };
+  // If already authenticated (e.g. onAuthStateChange fired), redirect via React Router
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -40,13 +38,19 @@ const Login = () => {
       });
 
       if (error) {
-        setError(error.message);
+        if (error.message?.includes('Email rate limit') || error.status === 429) {
+          setError('發送過於頻繁，請稍後再試（每小時限制 4 封）');
+        } else if (error.message?.includes('Signups not allowed') || error.message?.includes('not allowed')) {
+          setError('此電郵未註冊，請聯繫管理員');
+        } else {
+          setError(error.message || '發送驗證碼失敗');
+        }
       } else {
         setSuccess('驗證碼已發送至您的電郵，請查收。');
         setStep('verify');
       }
     } catch (err) {
-      setError('發送驗證碼時發生錯誤，請稍後再試');
+      setError('郵件服務暫時無法使用，請稍後再試或聯繫管理員');
     } finally {
       setLoading(false);
     }
@@ -67,12 +71,14 @@ const Login = () => {
 
       if (error) {
         setError(error.message);
+        setLoading(false);
       } else {
-        window.location.href = '/';
+        setSuccess('驗證成功，正在跳轉...');
+        // onAuthStateChange will set isAuthenticated=true, then Navigate will redirect
+        // No need for window.location.href which causes full reload race condition
       }
     } catch (err) {
       setError('驗證時發生錯誤，請稍後再試');
-    } finally {
       setLoading(false);
     }
   };
@@ -197,16 +203,7 @@ const Login = () => {
         </CardContent>
       </Card>
 
-      {/* Dev bypass button */}
-      <div className="mt-4 w-full max-w-md">
-        <Button
-          variant="outline"
-          className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
-          onClick={handleDevAdminLogin}
-        >
-          🛠️ Dev Admin Login (跳過驗證)
-        </Button>
-      </div>
+
     </div>
   );
 };

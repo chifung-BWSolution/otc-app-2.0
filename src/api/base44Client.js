@@ -135,8 +135,11 @@ function createEntityProxy(entityName) {
 
       const { data, error } = await query;
       if (error) {
-        console.error(`[SupabaseCompat] filter error on ${table}:`, error);
+        console.error(`[SupabaseCompat] filter error on ${table}:`, error.message, error.code, error.details);
         throw error;
+      }
+      if (!data || data.length === 0) {
+        console.debug(`[SupabaseCompat] filter on ${table} returned empty`, { filterObj, sortStr });
       }
       return data || [];
     },
@@ -246,7 +249,9 @@ const functionsProxy = {
    * Returns just the data (unwrapped from Supabase response)
    */
   async invoke(functionName, params = {}) {
+    // Tempo deploys edge functions with slug "supabase-functions-{folderName}"
     const slug = `supabase-functions-${functionName}`;
+    console.debug(`[SupabaseCompat] Invoking edge function: ${slug}`);
     const { data, error } = await supabase.functions.invoke(slug, {
       body: params,
     });
@@ -274,25 +279,38 @@ const authProxy = {
    * me() - get current authenticated user
    */
   async me() {
-    // DEV BYPASS: if dev admin mode is enabled, return fake admin user
-    const devAdmin = localStorage.getItem('__dev_admin_bypass');
-    if (devAdmin) {
-      const parsed = JSON.parse(devAdmin);
-      return parsed;
-    }
-
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       const err = new Error('Not authenticated');
       err.status = 401;
       throw err;
     }
+    // Fetch role and linked_staff_id from the "user" table in DB
+    let dbRole = null;
+    let linkedStaffId = null;
+    let dbFullName = null;
+    try {
+      const { data: dbUser } = await supabase
+        .from('user')
+        .select('role, linked_staff_id, full_name')
+        .eq('email', user.email)
+        .maybeSingle();
+      if (dbUser) {
+        dbRole = dbUser.role;
+        linkedStaffId = dbUser.linked_staff_id;
+        dbFullName = dbUser.full_name;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch user role from DB:', e);
+    }
     // Return user info in a format compatible with what the app expects
     return {
       id: user.id,
       email: user.email,
-      full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+      full_name: dbFullName || user.user_metadata?.full_name || user.user_metadata?.name || '',
       ...user.user_metadata,
+      role: dbRole,
+      linked_staff_id: linkedStaffId,
     };
   },
 
@@ -300,7 +318,6 @@ const authProxy = {
    * logout(redirectUrl) - sign out and optionally redirect
    */
   async logout(redirectUrl) {
-    localStorage.removeItem('__dev_admin_bypass');
     await supabase.auth.signOut();
     if (redirectUrl) {
       window.location.href = redirectUrl;
@@ -311,8 +328,6 @@ const authProxy = {
    * isAuthenticated() - check if user is currently authenticated
    */
   async isAuthenticated() {
-    const devAdmin = localStorage.getItem('__dev_admin_bypass');
-    if (devAdmin) return true;
     const { data: { user } } = await supabase.auth.getUser();
     return !!user;
   },

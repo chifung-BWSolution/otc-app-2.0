@@ -1,0 +1,1 @@
+ALTER TABLE sync_progress ADD COLUMN IF NOT EXISTS total_deleted INTEGER DEFAULT 0;
