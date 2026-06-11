@@ -2184,9 +2184,11 @@ export type Database = {
           created_date: string | null
           display: string
           eng_display: string
+          end_time: string | null
           id: string
           is_active: boolean
-          limited_leave_types: string | null
+          limited_leave_type_id: number | null
+          start_time: string | null
         }
         Insert: {
           bubble_id?: string | null
@@ -2194,9 +2196,11 @@ export type Database = {
           created_date?: string | null
           display: string
           eng_display: string
+          end_time?: string | null
           id?: string
           is_active?: boolean
-          limited_leave_types?: string | null
+          limited_leave_type_id?: number | null
+          start_time?: string | null
         }
         Update: {
           bubble_id?: string | null
@@ -2204,11 +2208,21 @@ export type Database = {
           created_date?: string | null
           display?: string
           eng_display?: string
+          end_time?: string | null
           id?: string
           is_active?: boolean
-          limited_leave_types?: string | null
+          limited_leave_type_id?: number | null
+          start_time?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leave_period_limited_leave_type_id_fkey"
+            columns: ["limited_leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_type"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leave_type: {
         Row: {

@@ -83,7 +83,8 @@ export default function PagePermissions() {
     setSaving(true);
     try {
       // Delete all existing for this role
-      await supabase.from("page_permissions").delete().eq("role", selectedRole);
+      const { error: delError } = await supabase.from("page_permissions").delete().eq("role", selectedRole);
+      if (delError) throw delError;
 
       // Insert new ones
       const rows = Object.entries(localRolePerms)
@@ -99,7 +100,12 @@ export default function PagePermissions() {
         if (error) throw error;
       }
 
-      toast({ title: "✅ 已儲存", description: `角色「${selectedRole}」的頁面權限已更新` });
+      toast({
+        title: "✅ 已儲存",
+        description: rows.length > 0
+          ? `角色「${selectedRole}」的頁面權限已更新（${rows.length} 項）`
+          : `已清空角色「${selectedRole}」的所有頁面權限設定`,
+      });
       await fetchAll();
     } catch (e) {
       toast({ title: "❌ 錯誤", description: e.message, variant: "destructive" });
@@ -113,7 +119,8 @@ export default function PagePermissions() {
     setSaving(true);
     try {
       // Delete all existing for this user
-      await supabase.from("user_page_overrides").delete().eq("user_id", selectedUserId);
+      const { error: delError } = await supabase.from("user_page_overrides").delete().eq("user_id", selectedUserId);
+      if (delError) throw delError;
 
       // Insert new ones (only paths that have explicit override)
       const rows = Object.entries(localUserPerms)
@@ -130,7 +137,12 @@ export default function PagePermissions() {
         if (error) throw error;
       }
 
-      toast({ title: "✅ 已儲存", description: `用戶「${selectedUser?.full_name || selectedUser?.email}」的權限覆寫已更新` });
+      toast({
+        title: "✅ 已儲存",
+        description: rows.length > 0
+          ? `用戶「${selectedUser?.full_name || selectedUser?.email}」的權限覆寫已更新（${rows.length} 項）`
+          : `已清空用戶「${selectedUser?.full_name || selectedUser?.email}」的所有權限覆寫`,
+      });
       await fetchAll();
     } catch (e) {
       toast({ title: "❌ 錯誤", description: e.message, variant: "destructive" });

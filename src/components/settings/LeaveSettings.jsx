@@ -4,30 +4,50 @@ import { Loader2, Plus, Check, X, Edit2, Trash2 } from "lucide-react";
 
 function LeavePeriodSection() {
   const [items, setItems] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ code: "", display: "", eng_display: "", is_active: true, limited_leave_types: "" });
+  const [form, setForm] = useState({ code: "", display: "", eng_display: "", is_active: true, limited_leave_type_id: "", start_time: "", end_time: "" });
   const [adding, setAdding] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const data = await base44.entities.LeavePeriod.list("code", 100);
-    setItems(data);
+    const [periods, types] = await Promise.all([
+      base44.entities.LeavePeriod.list("code", 100),
+      base44.entities.LeaveType.list("code", 100),
+    ]);
+    setItems(periods);
+    setLeaveTypes(types);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
+  // limited_leave_type_id stores a single leave_type id (as string). Map to display name.
+  const leaveTypeName = (val) => {
+    if (!val) return "全部";
+    const match = leaveTypes.find(t => String(t.id) === String(val));
+    return match ? (match.name || match.code || val) : val;
+  };
+
   const handleSave = async () => {
     if (!form.code.trim() || !form.display.trim()) return;
+    // Empty time inputs should be stored as null, not "".
+    const payload = {
+      ...form,
+      start_time: form.start_time || null,
+      end_time: form.end_time || null,
+      // FK to leave_type(id); empty selection must be null, not ""
+      limited_leave_type_id: form.limited_leave_type_id || null,
+    };
     if (editId) {
-      await base44.entities.LeavePeriod.update(editId, form);
+      await base44.entities.LeavePeriod.update(editId, payload);
     } else {
-      await base44.entities.LeavePeriod.create(form);
+      await base44.entities.LeavePeriod.create(payload);
     }
     setEditId(null);
     setAdding(false);
-    setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_types: "" });
+    setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_type_id: "", start_time: "", end_time: "" });
     load();
   };
 
@@ -44,7 +64,10 @@ function LeavePeriodSection() {
       display: item.display || "",
       eng_display: item.eng_display || "",
       is_active: item.is_active !== false,
-      limited_leave_types: item.limited_leave_types || "",
+      limited_leave_type_id: item.limited_leave_type_id || "",
+      // DB stores TIME as "HH:MM:SS"; <input type="time"> wants "HH:MM"
+      start_time: (item.start_time || "").slice(0, 5),
+      end_time: (item.end_time || "").slice(0, 5),
     });
     setAdding(false);
   };
@@ -52,7 +75,7 @@ function LeavePeriodSection() {
   const cancel = () => {
     setEditId(null);
     setAdding(false);
-    setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_types: "" });
+    setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_type_id: "", start_time: "", end_time: "" });
   };
 
   if (loading) return <div className="text-center py-6 text-gray-400 text-sm">載入中...</div>;
@@ -66,24 +89,28 @@ function LeavePeriodSection() {
         </div>
       </div>
       <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 flex items-center text-xs font-bold text-gray-500 uppercase tracking-wider gap-2">
-        <span className="w-16">代碼</span>
-        <span className="w-28">中文名稱</span>
-        <span className="w-28">英文名稱</span>
-        <span className="flex-1">限定假別</span>
-        <span className="w-16 text-center">狀態</span>
+        <span className="w-14">代碼</span>
+        <span className="w-24">中文名稱</span>
+        <span className="w-24">英文名稱</span>
+        <span className="w-32 text-center">時間範圍</span>
+        <span className="flex-1">假期類別</span>
+        <span className="w-14 text-center">狀態</span>
         <span className="w-16" />
       </div>
 
       {items.map(item =>
         editId === item.id ? (
-          <EditPeriodRow key={item.id} form={form} setForm={setForm} onSave={handleSave} onCancel={cancel} />
+          <EditPeriodRow key={item.id} form={form} setForm={setForm} onSave={handleSave} onCancel={cancel} leaveTypes={leaveTypes} />
         ) : (
           <div key={item.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50 hover:bg-gray-50 group transition-colors">
-            <span className="w-16 text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{item.code}</span>
-            <span className={`w-28 text-sm font-medium ${item.is_active !== false ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{item.display}</span>
-            <span className="w-28 text-xs text-gray-500">{item.eng_display || "—"}</span>
-            <span className="flex-1 text-xs text-gray-400 truncate">{item.limited_leave_types || "全部"}</span>
-            <span className={`w-16 text-center text-xs font-medium ${item.is_active !== false ? 'text-green-600' : 'text-gray-400'}`}>
+            <span className="w-14 text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{item.code}</span>
+            <span className={`w-24 text-sm font-medium ${item.is_active !== false ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{item.display}</span>
+            <span className="w-24 text-xs text-gray-500">{item.eng_display || "—"}</span>
+            <span className="w-32 text-center text-xs text-gray-600 font-mono">
+              {item.start_time && item.end_time ? `${item.start_time.slice(0, 5)}–${item.end_time.slice(0, 5)}` : "—"}
+            </span>
+            <span className="flex-1 text-xs text-gray-500 truncate">{leaveTypeName(item.limited_leave_type_id)}</span>
+            <span className={`w-14 text-center text-xs font-medium ${item.is_active !== false ? 'text-green-600' : 'text-gray-400'}`}>
               {item.is_active !== false ? '啟用' : '停用'}
             </span>
             <div className="flex gap-1 w-16 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -95,9 +122,9 @@ function LeavePeriodSection() {
       )}
 
       {adding ? (
-        <EditPeriodRow form={form} setForm={setForm} onSave={handleSave} onCancel={cancel} />
+        <EditPeriodRow form={form} setForm={setForm} onSave={handleSave} onCancel={cancel} leaveTypes={leaveTypes} />
       ) : (
-        <button onClick={() => { setAdding(true); setEditId(null); setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_types: "" }); }}
+        <button onClick={() => { setAdding(true); setEditId(null); setForm({ code: "", display: "", eng_display: "", is_active: true, limited_leave_type_id: "", start_time: "", end_time: "" }); }}
           className="flex items-center gap-2 px-4 py-2.5 text-sm text-blue-500 hover:bg-blue-50 w-full text-left transition-colors">
           <Plus size={14} /> 新增假期區間
         </button>
@@ -106,13 +133,23 @@ function LeavePeriodSection() {
   );
 }
 
-function EditPeriodRow({ form, setForm, onSave, onCancel }) {
+function EditPeriodRow({ form, setForm, onSave, onCancel, leaveTypes = [] }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-gray-100">
-      <input className="w-16 border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono" value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="代碼 *" autoFocus />
-      <input className="w-28 border border-blue-300 rounded-lg px-2 py-1.5 text-sm" value={form.display} onChange={e => setForm(f => ({ ...f, display: e.target.value }))} placeholder="中文名 *" />
-      <input className="w-28 border border-blue-300 rounded-lg px-2 py-1.5 text-sm" value={form.eng_display} onChange={e => setForm(f => ({ ...f, eng_display: e.target.value }))} placeholder="英文名" />
-      <input className="flex-1 border border-blue-300 rounded-lg px-2 py-1.5 text-xs" value={form.limited_leave_types} onChange={e => setForm(f => ({ ...f, limited_leave_types: e.target.value }))} placeholder="限定假別（留空=全部）" />
+      <input className="w-14 border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono" value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="代碼 *" autoFocus />
+      <input className="w-24 border border-blue-300 rounded-lg px-2 py-1.5 text-sm" value={form.display} onChange={e => setForm(f => ({ ...f, display: e.target.value }))} placeholder="中文名 *" />
+      <input className="w-24 border border-blue-300 rounded-lg px-2 py-1.5 text-sm" value={form.eng_display} onChange={e => setForm(f => ({ ...f, eng_display: e.target.value }))} placeholder="英文名" />
+      <div className="flex items-center gap-1 shrink-0">
+        <input type="time" className="w-[112px] border border-blue-300 rounded-lg px-2 py-1.5 text-xs" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} title="開始時間" />
+        <span className="text-gray-400 text-xs">–</span>
+        <input type="time" className="w-[112px] border border-blue-300 rounded-lg px-2 py-1.5 text-xs" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} title="結束時間" />
+      </div>
+      <select className="flex-1 border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white" value={form.limited_leave_type_id} onChange={e => setForm(f => ({ ...f, limited_leave_type_id: e.target.value }))} title="限定此區間只適用於某假期類別（留空=全部）">
+        <option value="">全部假期類別</option>
+        {leaveTypes.map(t => (
+          <option key={t.id} value={String(t.id)}>{t.name || t.code} {t.code ? `(${t.code})` : ""}</option>
+        ))}
+      </select>
       <label className="flex items-center gap-1 text-xs text-gray-600 shrink-0">
         <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
         啟用
@@ -195,7 +232,7 @@ function LeaveTypeSection() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="px-4 py-3 bg-teal-50 border-b border-teal-100 flex items-center justify-between">
         <div>
-          <span className="text-sm font-bold text-teal-800">🌴 假別類型 (Leave Type)</span>
+          <span className="text-sm font-bold text-teal-800">🌴 假期類別 (Leave Type)</span>
           <p className="text-xs text-teal-600 mt-0.5">設定年假、病假、事假等假別及預設天數</p>
         </div>
       </div>
